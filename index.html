@@ -231,9 +231,9 @@ ${content}`;
       const table = document.getElementById("exam-table");
       const filtered = data.filter((row, i) => i === 0 || (row[0] === className && cleanDate(row[1]) === date));
 
-      let html = "<table><tr>" + data[0].slice(0, 3).map(h => `<th>${h}</th>`).join("") + "</tr>";
+      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${h}</th>`).join("") + "</tr>";
       for (let i = 1; i < filtered.length; i++) {
-        html += "<tr>" + filtered[i].slice(0, 3).map((cell, j) => `<td>${j === 1 ? cleanDate(cell) : cell}</td>`).join("") + "</tr>";
+        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) => `<td>${j === 1 ? cleanDate(cell) : cell}</td>`).join("") + "</tr>";
       }
       html += "</table>";
       table.innerHTML = html;
