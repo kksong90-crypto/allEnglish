@@ -240,15 +240,25 @@ ${content}`;
     }
 
     async function loadRetest() {
-      const data = await fetchSheet("Retest");
-      const target = document.getElementById("retest-table");
-      let html = "<table><tr>" + data[0].map(h => `<th>${h}</th>`).filter(h => !h.includes("재시험")).join("") + "</tr>";
-      for (let i = 1; i < data.length; i++) {
-        html += "<tr>" + data[i].map((cell, j) => j === 3 ? null : `<td>${j === 2 ? cleanDate(cell) : cell}</td>`).filter(c => c).join("") + "</tr>";
-      }
-      html += "</table>";
-      target.innerHTML = html;
-    }
+  const data = await fetchSheet("Retest");
+  const target = document.getElementById("retest-table");
+
+  // "재시험" 열만 제외하고 나머지는 다 표시
+  let html = "<table><tr>" 
+    + data[0].map(h => `<th>${h}</th>`).filter(h => !h.includes("재시험")).join("") 
+    + "</tr>";
+
+  for (let i = 1; i < data.length; i++) {
+    html += "<tr>" + data[i].map((cell, j) => {
+      if (j === 2) return `<td>${cleanDate(cell)}</td>`; // 날짜만 변환
+      if (data[0][j] === "재시험") return null;          // 재시험 열은 제외
+      return `<td>${cell}</td>`;                        // 시험범위 포함 나머지 출력
+    }).filter(c => c).join("") + "</tr>";
+  }
+
+  html += "</table>";
+  target.innerHTML = html;
+}
 
     window.onload = async () => {
       await Promise.all([
