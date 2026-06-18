@@ -586,11 +586,22 @@ function showFavorites() {
   }
 
   let html = `
-    <div class="card">
-      <b>⭐ 나의 중요 단어장</b><br>
-      저장된 중요 단어 ${favorites.length}개
-    </div>
-  `;
+
+<div class="card">
+  <b>⭐ 나의 중요 단어장</b><br>
+  저장된 중요 단어 ${favorites.length}개
+</div>
+
+<div class="button-row">
+
+  <button
+    class="vocab-btn"
+    onclick="startFavoriteTest()">
+    중요단어 시험
+  </button>
+
+</div>
+`;
 
   html += `
     <table>
@@ -599,22 +610,41 @@ function showFavorites() {
         <th>Day</th>
         <th>영어</th>
         <th>뜻</th>
+        <th>해제</th>
       </tr>
   `;
 
   favorites.forEach(row => {
 
-    html += `
-      <tr>
-        <td>${escapeHtml(row[0])}</td>
-        <td>${escapeHtml(row[1])}</td>
-        <td>${escapeHtml(row[2])}</td>
-        <td>${escapeHtml(row[3])}</td>
-      </tr>
-    `;
+  const key =
+    row[0] + "|" +
+    row[1] + "|" +
+    row[2];
 
-  });
+  html += `
+    <tr>
+      <td>${escapeHtml(row[0])}</td>
+      <td>${escapeHtml(row[1])}</td>
+      <td>${escapeHtml(row[2])}</td>
+      <td>${escapeHtml(row[3])}</td>
 
+      <td>
+        <button
+          onclick="removeFavorite('${encodeURIComponent(key)}')"
+          style="
+            border:none;
+            background:none;
+            font-size:1.4em;
+            cursor:pointer;
+          ">
+          ⭐
+        </button>
+      </td>
+
+    </tr>
+  `;
+
+});
   html += "</table>";
 
   target.innerHTML = html;
@@ -626,6 +656,91 @@ function showFavorites() {
         .map(item => item.value);
     }
 
+function startFavoriteTest() {
+
+  const favorites =
+    vocabData.slice(1).filter(row => {
+
+      const key =
+        row[0] + "|" +
+        row[1] + "|" +
+        row[2];
+
+      return favoriteWords.includes(key);
+
+    });
+
+  if (favorites.length === 0) {
+
+    alert("중요 단어가 없습니다.");
+
+    return;
+  }
+
+  currentVocabWords =
+    shuffleArray(favorites)
+      .slice(
+        0,
+        Math.min(25, favorites.length)
+      );
+
+  let html = `
+    <div class="card">
+      <b>⭐ 중요단어 시험</b><br>
+      ${currentVocabWords.length}문제
+    </div>
+  `;
+
+  currentVocabWords.forEach((row, index) => {
+
+    html += `
+      <div class="vocab-question">
+
+        <b>
+          Q${index + 1}.
+          ${escapeHtml(row[3])}
+        </b>
+
+        <input
+          type="text"
+          id="answer-${index}"
+          placeholder="영어 단어 입력">
+
+      </div>
+    `;
+
+  });
+
+  html += `
+    <button
+      class="vocab-btn"
+      onclick="gradeVocabTest()">
+      채점하기
+    </button>
+
+    <div id="vocab-result"></div>
+  `;
+
+  document.getElementById("favorites-view").innerHTML =
+    html;
+}
+function removeFavorite(encodedKey) {
+
+  const key =
+    decodeURIComponent(encodedKey);
+
+  favoriteWords =
+    favoriteWords.filter(
+      x => x !== key
+    );
+
+  localStorage.setItem(
+    "favoriteWords",
+    JSON.stringify(favoriteWords)
+  );
+
+  showFavorites();
+}
     function normalizeAnswer(text) {
       return String(text || "")
         .trim()
