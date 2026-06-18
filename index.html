@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -12,14 +11,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="All바른 English" />
   <link rel="manifest" href="manifest.json" />
+
   <style>
     * { box-sizing: border-box; }
+
     html, body {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       font-family: 'Segoe UI', sans-serif;
       background: #f0f4f2;
       font-size: 18px;
     }
+
     header {
       background: #3f6158;
       color: white;
@@ -28,43 +31,53 @@
       font-size: 1.8em;
       font-weight: bold;
     }
+
     nav {
       display: flex;
       flex-wrap: nowrap;
+      overflow-x: auto;
       background: #dcedc8;
       justify-content: space-around;
       padding: 0;
       border-bottom: 2px solid #a0c79b;
     }
+
     nav button {
       flex: 1;
+      min-width: 82px;
       background: none;
       border: none;
-      font-size: 1.2em;
+      font-size: 1.15em;
       font-weight: bold;
       color: #3f6158;
       cursor: pointer;
-      padding: 1em 0.5em;
+      padding: 1em 0.45em;
       border-bottom: 4px solid transparent;
       transition: all 0.3s;
+      white-space: nowrap;
     }
+
     nav button.active {
       border-bottom: 4px solid #3f6158;
       background: #e6f4dc;
     }
+
     section {
       padding: 1.5em;
       display: none;
     }
+
     section.active {
       display: block;
     }
+
     .section-title {
       font-size: 1.4em;
       margin-bottom: 0.7em;
       color: #3f6158;
       font-weight: bold;
     }
+
     .card {
       background: white;
       border-radius: 16px;
@@ -72,24 +85,80 @@
       margin: 1em 0;
       padding: 1.2em;
       white-space: pre-wrap;
+      line-height: 1.55;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 1.0em;
       text-align: center;
+      word-break: break-word;
+      line-height: 1.45;
     }
-    select, input[type="date"] {
-      padding: 0.7em;
+
+    select, input[type="date"], input[type="text"] {
+      padding: 0.75em;
       margin: 0.8em 0;
       font-size: 1.1em;
       width: 100%;
       display: block;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      background: white;
     }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+
+    .vocab-btn {
+      flex: 1;
+      background: #3f6158;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.9em;
+      font-size: 1.05em;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .vocab-btn.secondary {
+      background: #6f8f86;
+    }
+
+    .vocab-question {
+      background: white;
+      border-radius: 14px;
+      padding: 1em;
+      margin: 1em 0;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+
+    .vocab-question b {
+      display: block;
+      margin-bottom: 0.5em;
+      color: #3f6158;
+    }
+
+    .result-correct {
+      color: #1b7f3a;
+      font-weight: bold;
+    }
+
+    .result-wrong {
+      color: #c0392b;
+      font-weight: bold;
+    }
+
     #loader {
       display: flex;
       flex-direction: column;
@@ -98,13 +167,16 @@
       height: 60vh;
       transition: opacity 0.3s ease;
     }
+
     #loader.hidden { display: none; }
+
     .loader-text {
       margin-top: 1em;
       color: #3f6158;
       font-weight: bold;
       font-size: 1.2em;
     }
+
     .mode-toggle {
       position: fixed;
       top: 10px;
@@ -117,32 +189,68 @@
       font-size: 1em;
       z-index: 100;
     }
+
     body.dark {
       background: #1a1a1a;
       color: #e0e0e0;
     }
-    body.dark header, body.dark nav {
+
+    body.dark header,
+    body.dark nav {
       background: #333;
       color: white;
     }
-    body.dark .card, body.dark table {
+
+    body.dark nav button {
+      color: #e0e0e0;
+    }
+
+    body.dark nav button.active {
+      background: #444;
+      border-bottom-color: #dcedc8;
+    }
+
+    body.dark .card,
+    body.dark table,
+    body.dark .vocab-question {
       background: #2a2a2a;
       color: #f0f0f0;
     }
+
+    body.dark input,
+    body.dark select {
+      background: #222;
+      color: #f0f0f0;
+      border-color: #555;
+    }
+
+    body.dark .vocab-question b {
+      color: #dcedc8;
+    }
+
     @media (max-width: 600px) {
       html, body { font-size: 17px; }
-      nav button { font-size: 1.1em; padding: 0.8em 0.4em; }
+      header { font-size: 1.55em; padding: 0.9em; }
+      nav button { font-size: 1.0em; padding: 0.8em 0.35em; }
+      section { padding: 1em; }
       .section-title { font-size: 1.2em; }
+      th, td { padding: 0.75em 0.45em; font-size: 0.95em; }
+      .button-row { flex-direction: column; }
+      .mode-toggle { font-size: 0.85em; padding: 0.45em 0.7em; }
     }
   </style>
 </head>
+
 <body>
   <button class="mode-toggle" onclick="toggleMode()">🌗 모드 전환</button>
+
   <header>All바른 English</header>
+
   <nav>
     <button onclick="showTab('notice')" class="active">공지사항</button>
     <button onclick="showTab('exam')">시험정보</button>
     <button onclick="showTab('retest')">재시험</button>
+    <button onclick="showTab('vocab')">단어장</button>
   </nav>
 
   <section id="notice" class="active">
@@ -162,6 +270,20 @@
     <div id="retest-table"></div>
   </section>
 
+  <section id="vocab">
+    <div class="section-title">📘 단어장</div>
+
+    <select id="vocab-book-select"></select>
+    <select id="vocab-day-select"></select>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="showVocabList()">단어 보기</button>
+      <button class="vocab-btn" onclick="startVocabTest()">단어시험 시작</button>
+    </div>
+
+    <div id="vocab-view"></div>
+  </section>
+
   <div id="loader">
     <svg width="50" height="50" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
       <circle cx="50" cy="50" r="35" stroke-width="10" stroke="#3f6158"
@@ -177,6 +299,9 @@
   <script>
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzyk-n_G93BJG1vlck6DNakEdZolCSoB9I3ylmyN2e6qX9NNHdQYgx6phA4OU9JAwfT/exec";
 
+    let vocabData = [];
+    let currentVocabWords = [];
+
     function showTab(tabId) {
       document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
       document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
@@ -191,14 +316,24 @@
     function cleanDate(isoDate) {
       if (!isoDate) return "";
       const d = new Date(isoDate);
+      if (isNaN(d.getTime())) return isoDate;
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     async function fetchSheet(sheetName) {
-      const res = await fetch(SHEET_URL + "?sheetName=" + sheetName);
+      const res = await fetch(SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName));
       return await res.json();
     }
 
@@ -206,13 +341,14 @@
       const data = await fetchSheet("Notice");
       const target = document.getElementById("notice-content");
       target.innerHTML = "";
+
       for (let i = 1; i < data.length; i++) {
         const [date, title, content] = data[i];
         const card = document.createElement("div");
         card.className = "card";
-        card.innerHTML = `📅 ${cleanDate(date)}
-<b>${title}</b>
-${content}`;
+        card.innerHTML = `📅 ${escapeHtml(cleanDate(date))}
+<b>${escapeHtml(title)}</b>
+${escapeHtml(content)}`;
         target.appendChild(card);
       }
     }
@@ -220,8 +356,8 @@ ${content}`;
     async function loadClassDropdown() {
       const data = await fetchSheet("TestInfo");
       const select = document.getElementById("class-select");
-      const uniqueClasses = [...new Set(data.slice(1).map(row => row[0]))];
-      select.innerHTML = uniqueClasses.map(c => `<option>${c}</option>`).join("");
+      const uniqueClasses = [...new Set(data.slice(1).map(row => row[0]).filter(Boolean))];
+      select.innerHTML = uniqueClasses.map(c => `<option>${escapeHtml(c)}</option>`).join("");
     }
 
     async function loadExam() {
@@ -229,48 +365,244 @@ ${content}`;
       const date = document.getElementById("exam-date").value;
       const className = document.getElementById("class-select").value;
       const table = document.getElementById("exam-table");
-      const filtered = data.filter((row, i) => i === 0 || (row[0] === className && cleanDate(row[1]) === date));
 
-      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${h}</th>`).join("") + "</tr>";
+      const filtered = data.filter((row, i) =>
+        i === 0 || (row[0] === className && cleanDate(row[1]) === date)
+      );
+
+      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${escapeHtml(h)}</th>`).join("") + "</tr>";
+
       for (let i = 1; i < filtered.length; i++) {
-        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) => `<td>${j === 1 ? cleanDate(cell) : cell}</td>`).join("") + "</tr>";
+        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) =>
+          `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
+        ).join("") + "</tr>";
       }
+
       html += "</table>";
       table.innerHTML = html;
     }
 
     async function loadRetest() {
-  const data = await fetchSheet("Retest");
-  const target = document.getElementById("retest-table");
+      const data = await fetchSheet("Retest");
+      const target = document.getElementById("retest-table");
 
-  // "재시험" 열만 제외하고 나머지는 다 표시
-  let html = "<table><tr>" 
-    + data[0].map(h => `<th>${h}</th>`).filter(h => !h.includes("재시험")).join("") 
-    + "</tr>";
+      let html = "<table><tr>"
+        + data[0].map(h => `<th>${escapeHtml(h)}</th>`).filter(h => !h.includes("재시험")).join("")
+        + "</tr>";
 
-  for (let i = 1; i < data.length; i++) {
-    html += "<tr>" + data[i].map((cell, j) => {
-      if (j === 2) return `<td>${cleanDate(cell)}</td>`; // 날짜만 변환
-      if (data[0][j] === "재시험") return null;          // 재시험 열은 제외
-      return `<td>${cell}</td>`;                        // 시험범위 포함 나머지 출력
-    }).filter(c => c).join("") + "</tr>";
-  }
+      for (let i = 1; i < data.length; i++) {
+        html += "<tr>" + data[i].map((cell, j) => {
+          if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
+          if (data[0][j] === "재시험") return null;
+          return `<td>${escapeHtml(cell)}</td>`;
+        }).filter(c => c).join("") + "</tr>";
+      }
 
-  html += "</table>";
-  target.innerHTML = html;
-}
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    async function loadVocabBooks() {
+      const target = document.getElementById("vocab-view");
+
+      try {
+        vocabData = await fetchSheet("Vocab");
+
+        if (!Array.isArray(vocabData) || vocabData.length < 2) {
+          target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
+          return;
+        }
+
+        const bookSelect = document.getElementById("vocab-book-select");
+        const daySelect = document.getElementById("vocab-day-select");
+
+        const books = [...new Set(vocabData.slice(1).map(row => row[0]).filter(Boolean))];
+
+        if (books.length === 0) {
+          target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
+          return;
+        }
+
+        bookSelect.innerHTML = books.map(book => `<option>${escapeHtml(book)}</option>`).join("");
+
+        bookSelect.addEventListener("change", loadVocabDays);
+        daySelect.addEventListener("change", showVocabList);
+
+        await loadVocabDays();
+      } catch (err) {
+        target.innerHTML = "<div class='card'>Vocab 시트를 불러오지 못했습니다. TestManager에 Vocab 시트가 있는지 확인하세요.</div>";
+      }
+    }
+
+    async function loadVocabDays() {
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const daySelect = document.getElementById("vocab-day-select");
+
+      const days = [...new Set(
+        vocabData.slice(1)
+          .filter(row => row[0] === selectedBook)
+          .map(row => row[1])
+          .filter(Boolean)
+      )];
+
+      daySelect.innerHTML = days.map(day => `<option>${escapeHtml(day)}</option>`).join("");
+
+      showVocabList();
+    }
+
+    function getSelectedVocabWords() {
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+
+      return vocabData.slice(1).filter(row =>
+        row[0] === selectedBook &&
+        row[1] === selectedDay &&
+        row[2] &&
+        row[3]
+      );
+    }
+
+    function showVocabList() {
+      const target = document.getElementById("vocab-view");
+      const words = getSelectedVocabWords();
+
+      if (words.length === 0) {
+        target.innerHTML = "<div class='card'>표시할 단어가 없습니다.</div>";
+        return;
+      }
+
+      let html = "<div class='card'><b>단어 보기</b><br>선택한 Day의 단어 목록입니다.</div>";
+      html += "<table><tr><th>영어</th><th>뜻</th></tr>";
+
+      words.forEach(row => {
+        html += `<tr><td>${escapeHtml(row[2])}</td><td>${escapeHtml(row[3])}</td></tr>`;
+      });
+
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    function shuffleArray(array) {
+      return array
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(item => item.value);
+    }
+
+    function normalizeAnswer(text) {
+      return String(text || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[.?!,;:'"()\[\]{}]/g, "")
+        .replace(/\s+/g, "");
+    }
+
+    function startVocabTest() {
+      const target = document.getElementById("vocab-view");
+      const words = getSelectedVocabWords();
+
+      if (words.length === 0) {
+        target.innerHTML = "<div class='card'>시험을 만들 단어가 없습니다.</div>";
+        return;
+      }
+
+      currentVocabWords = shuffleArray(words);
+
+      let html = `
+        <div class="card">
+          <b>직접 입력 단어시험</b><br>
+          뜻을 보고 알맞은 영어 단어를 입력하세요.<br>
+          총 ${currentVocabWords.length}문제입니다.
+        </div>
+      `;
+
+      currentVocabWords.forEach((row, index) => {
+        const meaning = row[3];
+
+        html += `
+          <div class="vocab-question">
+            <b>Q${index + 1}. ${escapeHtml(meaning)}</b>
+            <input type="text" id="answer-${index}" placeholder="영어 단어 입력" autocomplete="off">
+          </div>
+        `;
+      });
+
+      html += `
+        <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
+        <div id="vocab-result"></div>
+      `;
+
+      target.innerHTML = html;
+    }
+
+    function gradeVocabTest() {
+      let correctCount = 0;
+      let wrongHtml = "";
+
+      currentVocabWords.forEach((row, index) => {
+        const correctAnswer = row[2];
+        const meaning = row[3];
+        const input = document.getElementById(`answer-${index}`);
+        const userAnswer = input ? input.value : "";
+
+        if (normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer)) {
+          correctCount++;
+        } else {
+          wrongHtml += `
+            <tr>
+              <td>${escapeHtml(meaning)}</td>
+              <td>${escapeHtml(correctAnswer)}</td>
+              <td>${escapeHtml(userAnswer || "-")}</td>
+            </tr>
+          `;
+        }
+      });
+
+      let resultHtml = `
+        <div class="card">
+          <b>채점 결과</b><br>
+          ${currentVocabWords.length}문제 중 ${correctCount}개 정답<br>
+          점수: ${Math.round((correctCount / currentVocabWords.length) * 100)}점
+        </div>
+      `;
+
+      if (wrongHtml) {
+        resultHtml += `
+          <table>
+            <tr>
+              <th>뜻</th>
+              <th>정답</th>
+              <th>내 답</th>
+            </tr>
+            ${wrongHtml}
+          </table>
+        `;
+      } else {
+        resultHtml += `<div class="card result-correct">모두 맞았습니다.</div>`;
+      }
+
+      document.getElementById("vocab-result").innerHTML = resultHtml;
+      document.getElementById("vocab-result").scrollIntoView({ behavior: "smooth" });
+    }
 
     window.onload = async () => {
-      await Promise.all([
-        loadNotice(),
-        loadClassDropdown(),
-        loadRetest()
-      ]);
-      setTimeout(() => {
-        document.getElementById("loader").classList.add("hidden");
-      }, 500); // fallback: 0.5초 뒤 로딩 숨기기
-      document.getElementById("exam-date").addEventListener("change", loadExam);
-      document.getElementById("class-select").addEventListener("change", loadExam);
+      try {
+        await Promise.all([
+          loadNotice(),
+          loadClassDropdown(),
+          loadRetest(),
+          loadVocabBooks()
+        ]);
+
+        document.getElementById("exam-date").addEventListener("change", loadExam);
+        document.getElementById("class-select").addEventListener("change", loadExam);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setTimeout(() => {
+          document.getElementById("loader").classList.add("hidden");
+        }, 500);
+      }
     };
   </script>
 </body>
