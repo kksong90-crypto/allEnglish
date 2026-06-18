@@ -440,7 +440,7 @@ ${escapeHtml(content)}`;
 
       const days = [...new Set(
         vocabData.slice(1)
-          .filter(row => row[0] === selectedBook)
+          .filter(row => String(row[0]) === String(selectedBook))
           .map(row => row[1])
           .filter(Boolean)
       )];
@@ -451,16 +451,16 @@ ${escapeHtml(content)}`;
     }
 
     function getSelectedVocabWords() {
-      const selectedBook = document.getElementById("vocab-book-select").value;
-      const selectedDay = document.getElementById("vocab-day-select").value;
+  const selectedBook = document.getElementById("vocab-book-select").value;
+  const selectedDay = document.getElementById("vocab-day-select").value;
 
-      return vocabData.slice(1).filter(row =>
-        row[0] === selectedBook &&
-        row[1] === selectedDay &&
-        row[2] &&
-        row[3]
-      );
-    }
+  return vocabData.slice(1).filter(row =>
+    String(row[0]) === String(selectedBook) &&
+    String(row[1]) === String(selectedDay) &&
+    row[2] &&
+    row[3]
+  );
+}
 
     function showVocabList() {
       const target = document.getElementById("vocab-view");
