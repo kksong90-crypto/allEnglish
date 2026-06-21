@@ -13,6 +13,36 @@
   <link rel="manifest" href="manifest.json" />
 
   <style>
+body {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+table,
+.card,
+.section-title,
+nav,
+button {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* 입력칸은 글자를 입력해야 하므로 선택 허용 */
+input,
+textarea {
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
     .speak-word {
   cursor: pointer;
   font-weight: bold;
@@ -337,6 +367,26 @@ body.dark .speak-btn {
   </div>
 
   <script>
+
+document.addEventListener("dragstart", function(e) {
+  e.preventDefault();
+});
+
+document.addEventListener("selectstart", function(e) {
+  const tag = e.target.tagName;
+
+  if (tag !== "INPUT" && tag !== "TEXTAREA") {
+    e.preventDefault();
+  }
+});
+
+document.addEventListener("contextmenu", function(e) {
+  const tag = e.target.tagName;
+
+  if (tag !== "INPUT" && tag !== "TEXTAREA") {
+    e.preventDefault();
+  }
+});
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzyk-n_G93BJG1vlck6DNakEdZolCSoB9I3ylmyN2e6qX9NNHdQYgx6phA4OU9JAwfT/exec";
 
     let vocabData = [];
@@ -915,7 +965,15 @@ function removeFavorite(encodedKey) {
         html += `
           <div class="vocab-question">
             <b>Q${index + 1}. ${escapeHtml(meaning)}</b>
-            <input type="text" id="answer-${index}" placeholder="영어 단어 입력" autocomplete="off">
+            <input
+  type="text"
+  id="answer-${index}"
+  placeholder="영어 단어 입력"
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="none"
+  spellcheck="false"
+>
           </div>
         `;
       });
@@ -1068,10 +1126,15 @@ function startWrongWordTest() {
     html += `
       <div class="vocab-question">
         <b>Q${index + 1}. ${escapeHtml(row[3])}</b>
-        <input type="text"
-               id="answer-${index}"
-               placeholder="영어 단어 입력"
-               autocomplete="off">
+        <input
+  type="text"
+  id="answer-${index}"
+  placeholder="영어 단어 입력"
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="none"
+  spellcheck="false"
+>
       </div>
     `;
   });
@@ -1105,6 +1168,12 @@ function startWrongWordTest() {
         }, 500);
       }
     };
+document.addEventListener("paste", function(e) {
+  if (e.target && e.target.id && e.target.id.startsWith("answer-")) {
+    e.preventDefault();
+    alert("단어시험에서는 붙여넣기를 사용할 수 없습니다.");
+  }
+});
   </script>
 </body>
 </html>
