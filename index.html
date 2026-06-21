@@ -13,6 +13,38 @@
   <link rel="manifest" href="manifest.json" />
 
   <style>
+    .speak-word {
+  cursor: pointer;
+  font-weight: bold;
+  color: #2f5f53;
+}
+
+.speak-word:hover {
+  text-decoration: underline;
+}
+
+.speak-btn {
+  border: none;
+  background: #edf5f2;
+  color: #2f5f53;
+  border-radius: 8px;
+  padding: 0.35em 0.55em;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.speak-btn:hover {
+  background: #d9ebe5;
+}
+
+body.dark .speak-word {
+  color: #9fd6c7;
+}
+
+body.dark .speak-btn {
+  background: #333;
+  color: #d7fff4;
+}
     * { box-sizing: border-box; }
 
     html, body {
@@ -329,7 +361,45 @@ if (tabId === "favorites") {
     function toggleMode() {
       document.body.classList.toggle("dark");
     }
+function speakWord(text) {
+  if (!("speechSynthesis" in window)) {
+    alert("이 기기에서는 음성 재생을 지원하지 않습니다.");
+    return;
+  }
 
+  const word = String(text || "").trim();
+
+  if (!word) {
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(word);
+
+  utterance.lang = "en-US";
+  utterance.rate = 0.85;
+  utterance.pitch = 1;
+
+  const voices = window.speechSynthesis.getVoices();
+
+  const preferredVoice =
+    voices.find(v =>
+      v.lang === "en-US" &&
+      v.name.toLowerCase().includes("google")
+    )
+    ||
+    voices.find(v => v.lang === "en-US")
+    ||
+    voices.find(v => v.lang.startsWith("en"));
+
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+    
     function cleanDate(isoDate) {
       if (!isoDate) return "";
       const d = new Date(isoDate);
@@ -538,7 +608,7 @@ if (words.length === 0) {
   `;
 
   html += "<table>";
-  html += "<tr><th>영어</th><th>뜻</th><th>중요</th></tr>";
+html += "<tr><th>영어</th><th>발음</th><th>뜻</th><th>중요</th></tr>";
 
   words.forEach(row => {
     const english = vocabHiddenMode
@@ -549,23 +619,39 @@ if (words.length === 0) {
     const isFavorite = favoriteWords.includes(key);
 
     html += `
-      <tr>
-        <td>${escapeHtml(english)}</td>
-        <td>${escapeHtml(row[3])}</td>
-        <td>
-          <button
-            onclick="toggleFavorite('${encodeURIComponent(key)}')"
-            style="
-              border:none;
-              background:none;
-              font-size:1.3em;
-              cursor:pointer;
-            ">
-            ${isFavorite ? "⭐" : "☆"}
-          </button>
-        </td>
-      </tr>
-    `;
+  <tr>
+    <td>
+      <span
+        class="speak-word"
+        onclick='speakWord(${JSON.stringify(String(row[2]))})'>
+        ${escapeHtml(english)}
+      </span>
+    </td>
+
+    <td>
+      <button
+        class="speak-btn"
+        onclick='speakWord(${JSON.stringify(String(row[2]))})'>
+        🔊
+      </button>
+    </td>
+
+    <td>${escapeHtml(row[3])}</td>
+
+    <td>
+      <button
+        onclick="toggleFavorite('${encodeURIComponent(key)}')"
+        style="
+          border:none;
+          background:none;
+          font-size:1.3em;
+          cursor:pointer;
+        ">
+        ${isFavorite ? "⭐" : "☆"}
+      </button>
+    </td>
+  </tr>
+`;
   });
 
   html += "</table>";
