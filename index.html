@@ -592,7 +592,23 @@ function toggleFavorite(encodedKey) {
 
   showVocabList();
 }
+function toggleFavoriteFromTest(encodedKey, button) {
+  const key = decodeURIComponent(encodedKey);
 
+  if (favoriteWords.includes(key)) {
+    favoriteWords = favoriteWords.filter(x => x !== key);
+    button.textContent = "☆";
+  } else {
+    favoriteWords.push(key);
+    button.textContent = "⭐";
+  }
+
+  localStorage.setItem(
+    "favoriteWords",
+    JSON.stringify(favoriteWords)
+  );
+}
+    
 function showFavorites() {
 
   const target =
@@ -889,23 +905,44 @@ function removeFavorite(encodedKey) {
 
   if (wrongWords.length > 0) {
     let wrongNoteHtml = `
-      <div class="card">
-        <b>📕 오답노트</b><br><br>
-        <table>
-          <tr>
-            <th>뜻</th>
-            <th>정답</th>
-          </tr>
-    `;
+  <div class="card">
+    <b>📕 오답노트</b><br><br>
+    <table>
+      <tr>
+        <th>뜻</th>
+        <th>정답</th>
+        <th>중요</th>
+      </tr>
+`;
 
     wrongWords.forEach(word => {
-      wrongNoteHtml += `
-        <tr>
-          <td>${escapeHtml(word[3])}</td>
-          <td>${escapeHtml(word[2])}</td>
-        </tr>
-      `;
-    });
+  const key =
+    word[0] + "|" +
+    word[1] + "|" +
+    word[2];
+
+  const isFavorite =
+    favoriteWords.includes(key);
+
+  wrongNoteHtml += `
+    <tr>
+      <td>${escapeHtml(word[3])}</td>
+      <td>${escapeHtml(word[2])}</td>
+      <td>
+        <button
+          onclick="toggleFavoriteFromTest('${encodeURIComponent(key)}', this)"
+          style="
+            border:none;
+            background:none;
+            font-size:1.4em;
+            cursor:pointer;
+          ">
+          ${isFavorite ? "⭐" : "☆"}
+        </button>
+      </td>
+    </tr>
+  `;
+});
 
     wrongNoteHtml += `
         </table>
