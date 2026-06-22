@@ -3616,7 +3616,15 @@ async function loadHomeText() {
     /************************************************************
      *  14. 초기 실행
      ************************************************************/
-    window.onload = async () => {
+   window.onload = async () => {
+  if (sessionStorage.getItem("allbarun-login") === "Y") {
+    const loginScreen = document.getElementById("login-screen");
+
+    if (loginScreen) {
+      loginScreen.style.display = "none";
+    }
+  }
+
   loadHomeTextFromCache();
 
   try {
@@ -3628,16 +3636,18 @@ async function loadHomeText() {
       loadVocabBooks()
     ]);
 
-        document.getElementById("exam-date").addEventListener("change", loadExam);
-        document.getElementById("class-select").addEventListener("change", loadExam);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setTimeout(() => {
-          document.getElementById("loader").classList.add("hidden");
-        }, 500);
-      }
-    };
+    document.getElementById("exam-date").addEventListener("change", loadExam);
+    document.getElementById("class-select").addEventListener("change", loadExam);
+
+  } catch (err) {
+    console.error(err);
+
+  } finally {
+    setTimeout(() => {
+      document.getElementById("loader").classList.add("hidden");
+    }, 500);
+  }
+};
   </script>
 </body>
 </html>
