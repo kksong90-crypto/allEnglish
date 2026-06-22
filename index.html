@@ -20,6 +20,10 @@
     /************************************************************
      *  1. 기본 설정
      ************************************************************/
+    #heroTitle,
+#heroSubtitle {
+  white-space: pre-line;
+}
     * {
       box-sizing: border-box;
     }
@@ -231,10 +235,7 @@
     #admin-tab-button {
       display: none;
     }
-#heroTitle,
-#heroSubtitle {
-  white-space: pre-line;
-}
+
     /************************************************************
      *  4. 공통 화면 요소
      ************************************************************/
@@ -2159,7 +2160,47 @@
       }
     }
 
-    async function loadHomeText() {
+    function getDefaultHomeText() {
+  return {
+    heroKicker: "All바른 학습 관리",
+    heroTitle: "All바른 학습 습관이\nAll바른 결과를 만듭니다.",
+    heroSubtitle: "오늘도 All바른과 함께, 한 걸음 더 성장하세요.\n공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.",
+    heroButton: "영어 단어 시험 준비하기 ›"
+  };
+}
+
+function applyHomeText(textMap) {
+  const defaultText = getDefaultHomeText();
+  const finalText = {
+    ...defaultText,
+    ...textMap
+  };
+
+  Object.keys(finalText).forEach(key => {
+    const el = document.getElementById(key);
+
+    if (el) {
+      el.textContent = finalText[key];
+    }
+  });
+}
+
+function loadHomeTextFromCache() {
+  const cached = localStorage.getItem("allbarun-home-text");
+
+  if (cached) {
+    try {
+      applyHomeText(JSON.parse(cached));
+      return;
+    } catch (err) {
+      console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
+    }
+  }
+
+  applyHomeText(getDefaultHomeText());
+}
+
+async function loadHomeText() {
   try {
     const data = await fetchSheet("HomeText");
 
@@ -2174,38 +2215,15 @@
       }
     });
 
-    const defaultText = {
-      heroKicker: "All바른 학습 관리",
-      heroTitle: "바른 학습 습관이\n최고의 결과를 만듭니다.",
-      heroSubtitle: "오늘도 All바른과 함께, 한 걸음 더 성장하세요.\n공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.",
-      heroButton: "오늘의 학습 보기 ›"
-    };
+    localStorage.setItem(
+      "allbarun-home-text",
+      JSON.stringify(textMap)
+    );
 
-    Object.keys(defaultText).forEach(key => {
-      const el = document.getElementById(key);
-
-      if (el) {
-        el.textContent = textMap[key] || defaultText[key];
-      }
-    });
+    applyHomeText(textMap);
 
   } catch (err) {
     console.warn("HomeText 시트를 불러오지 못했습니다.", err);
-
-    const fallbackText = {
-      heroKicker: "All바른 학습 관리",
-      heroTitle: "All바른 학습 습관이\nAll바른 결과를 만듭니다.",
-      heroSubtitle: "오늘도 All바른과 함께, 한 걸음 더 성장하세요.\n공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.",
-      heroButton: "영어 단어 시험 준비하기 ›"
-    };
-
-    Object.keys(fallbackText).forEach(key => {
-      const el = document.getElementById(key);
-
-      if (el) {
-        el.textContent = fallbackText[key];
-      }
-    });
   }
 }
 
@@ -3599,16 +3617,16 @@
      *  14. 초기 실행
      ************************************************************/
     window.onload = async () => {
-      try {
-        restoreLogin();
+  loadHomeTextFromCache();
 
-        await Promise.all([
-          loadHomeText(),
-          loadNotice(),
-          loadClassDropdown(),
-          loadRetest(),
-          loadVocabBooks()
-        ]);
+  try {
+    await Promise.all([
+      loadHomeText(),
+      loadNotice(),
+      loadClassDropdown(),
+      loadRetest(),
+      loadVocabBooks()
+    ]);
 
         document.getElementById("exam-date").addEventListener("change", loadExam);
         document.getElementById("class-select").addEventListener("change", loadExam);
