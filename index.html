@@ -53,7 +53,71 @@
     }
 
     /************************************************************
-     *  2. 상단 제목 / 탭 메뉴
+     *  2. 로그인 화면
+     ************************************************************/
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f0f4f2;
+      padding: 1.3em;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 430px;
+      background: white;
+      border-radius: 18px;
+      padding: 1.8em;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+      text-align: center;
+    }
+
+    .login-box h2 {
+      margin: 0 0 0.4em;
+      color: #3f6158;
+      font-size: 1.65em;
+    }
+
+    .login-box p {
+      margin: 0.3em 0 1em;
+      color: #52645f;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 0.9em;
+      margin: 0.55em 0;
+      font-size: 1.05em;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+    }
+
+    .login-box button {
+      width: 100%;
+      margin-top: 0.8em;
+      background: #3f6158;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.9em;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .login-error {
+      margin-top: 1em;
+      color: #c0392b;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+
+    /************************************************************
+     *  3. 상단 제목 / 사용자 정보 / 탭 메뉴
      ************************************************************/
     header {
       background: #3f6158;
@@ -62,6 +126,76 @@
       text-align: center;
       font-size: 1.8em;
       font-weight: bold;
+    }
+
+    .top-user-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6em 0.9em;
+      background: #eef7f3;
+      color: #3f6158;
+      font-size: 0.95em;
+      border-bottom: 1px solid #c8ddd5;
+    }
+
+    .top-user-bar button {
+      border: 1px solid #3f6158;
+      background: white;
+      color: #3f6158;
+      border-radius: 8px;
+      padding: 0.4em 0.65em;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .top-user-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .modal-screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 1.2em;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 9998;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 430px;
+      background: white;
+      border-radius: 18px;
+      padding: 1.5em;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .modal-box h3 {
+      margin: 0 0 0.8em;
+      color: #3f6158;
+    }
+
+    .modal-box input {
+      width: 100%;
+    }
+
+    .modal-message {
+      min-height: 1.4em;
+      margin-top: 0.8em;
+      font-weight: bold;
+      color: #c0392b;
+    }
+
+    .modal-message.success {
+      color: #1b7f3a;
     }
 
     nav {
@@ -79,7 +213,7 @@
       min-width: 95px;
       background: none;
       border: none;
-      font-size: 1.15em;
+      font-size: 1.08em;
       font-weight: bold;
       color: #3f6158;
       cursor: pointer;
@@ -94,8 +228,12 @@
       background: #e6f4dc;
     }
 
+    #admin-tab-button {
+      display: none;
+    }
+
     /************************************************************
-     *  3. 공통 화면 요소
+     *  4. 공통 화면 요소
      ************************************************************/
     section {
       padding: 1.5em;
@@ -123,19 +261,45 @@
       line-height: 1.55;
     }
 
+    .mini-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      padding: 0.9em;
+      margin: 0.7em 0;
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: #6b7774;
+      font-size: 0.95em;
+    }
+
+    .notice-small {
+      font-size: 0.92em;
+      color: #52645f;
+      line-height: 1.45;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
+      margin-top: 0.7em;
     }
 
     th,
     td {
       border: 1px solid #ccc;
-      padding: 1em;
+      padding: 0.9em;
       text-align: center;
       word-break: break-word;
       line-height: 1.45;
+    }
+
+    th {
+      background: #eef7f3;
+      color: #2f5f53;
     }
 
     select,
@@ -144,7 +308,7 @@
     input[type="password"] {
       padding: 0.75em;
       margin: 0.8em 0;
-      font-size: 1.1em;
+      font-size: 1.05em;
       width: 100%;
       display: block;
       border: 1px solid #bbb;
@@ -156,34 +320,38 @@
       display: flex;
       gap: 10px;
       margin: 12px 0 18px;
+      align-items: stretch;
     }
 
-    .vocab-btn {
+    .vocab-btn,
+    .small-btn {
       flex: 1;
       background: #3f6158;
       color: white;
       border: none;
       border-radius: 10px;
       padding: 0.9em;
-      font-size: 1.05em;
+      font-size: 1.02em;
       font-weight: bold;
       cursor: pointer;
     }
 
-    .vocab-btn.secondary {
+    .small-btn {
+      flex: none;
+      padding: 0.55em 0.8em;
+      font-size: 0.9em;
+    }
+
+    .vocab-btn.secondary,
+    .small-btn.secondary {
       background: #6f8f86;
     }
 
-    .icon-btn {
-      border: none;
-      background: none;
-      font-size: 1.4em;
-      cursor: pointer;
+    .vocab-btn.warning,
+    .small-btn.warning {
+      background: #b0574f;
     }
 
-    /************************************************************
-     *  4. 단어장 / 단어시험
-     ************************************************************/
     .vocab-question {
       background: white;
       border-radius: 14px;
@@ -208,6 +376,9 @@
       font-weight: bold;
     }
 
+    /************************************************************
+     *  5. 발음 / 중요단어 / 검색
+     ************************************************************/
     .speak-word {
       cursor: pointer;
       font-weight: bold;
@@ -218,7 +389,8 @@
       text-decoration: underline;
     }
 
-    .speak-btn {
+    .speak-btn,
+    .star-btn {
       border: none;
       background: #edf5f2;
       color: #2f5f53;
@@ -228,30 +400,35 @@
       cursor: pointer;
     }
 
+    .star-btn {
+      background: none;
+      font-size: 1.35em;
+    }
+
     .speak-btn:hover {
       background: #d9ebe5;
     }
 
-
-    .folder-controls {
+    .folder-toolbar {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr auto auto auto;
       gap: 8px;
+      align-items: center;
+      margin: 0.8em 0;
     }
 
-    .folder-controls label {
-      font-weight: bold;
-      color: #3f6158;
-    }
-
-    .folder-help {
-      font-size: 0.9em;
-      color: #5f6f6a;
-      line-height: 1.45;
+    .progress-box {
+      background: #f8fcfa;
+      border: 1px solid #d6e8e1;
+      border-radius: 12px;
+      padding: 0.9em;
+      margin: 0.8em 0;
+      font-size: 0.95em;
+      line-height: 1.55;
     }
 
     /************************************************************
-     *  5. 로딩 / 다크모드 버튼
+     *  6. 로딩 / 모드 전환
      ************************************************************/
     #loader {
       display: flex;
@@ -287,15 +464,32 @@
     }
 
     /************************************************************
-     *  6. 다크모드
+     *  7. 다크모드
      ************************************************************/
     body.dark {
       background: #1a1a1a;
       color: #e0e0e0;
     }
 
+    body.dark #login-screen {
+      background: #1a1a1a;
+    }
+
+    body.dark .login-box,
+    body.dark .modal-box,
+    body.dark .card,
+    body.dark .mini-card,
+    body.dark table,
+    body.dark .vocab-question,
+    body.dark .progress-box {
+      background: #2a2a2a;
+      color: #f0f0f0;
+      border-color: #444;
+    }
+
     body.dark header,
-    body.dark nav {
+    body.dark nav,
+    body.dark .top-user-bar {
       background: #333;
       color: white;
     }
@@ -309,13 +503,6 @@
       border-bottom-color: #dcedc8;
     }
 
-    body.dark .card,
-    body.dark table,
-    body.dark .vocab-question {
-      background: #2a2a2a;
-      color: #f0f0f0;
-    }
-
     body.dark input,
     body.dark select {
       background: #222;
@@ -323,12 +510,15 @@
       border-color: #555;
     }
 
-    body.dark .vocab-question b {
+    body.dark .section-title,
+    body.dark .vocab-question b,
+    body.dark .speak-word {
       color: #dcedc8;
     }
 
-    body.dark .speak-word {
-      color: #9fd6c7;
+    body.dark th {
+      background: #333;
+      color: #dcedc8;
     }
 
     body.dark .speak-btn {
@@ -336,16 +526,13 @@
       color: #d7fff4;
     }
 
-    body.dark .folder-controls label {
-      color: #dcedc8;
-    }
-
-    body.dark .folder-help {
-      color: #cfd8d3;
+    body.dark .muted,
+    body.dark .notice-small {
+      color: #c8c8c8;
     }
 
     /************************************************************
-     *  7. 모바일 반응형
+     *  8. 모바일
      ************************************************************/
     @media (max-width: 600px) {
       html,
@@ -361,6 +548,7 @@
       nav button {
         font-size: 1em;
         padding: 0.8em 0.35em;
+        min-width: 88px;
       }
 
       section {
@@ -373,11 +561,13 @@
 
       th,
       td {
-        padding: 0.75em 0.45em;
-        font-size: 0.95em;
+        padding: 0.72em 0.42em;
+        font-size: 0.92em;
       }
 
-      .button-row {
+      .button-row,
+      .folder-toolbar {
+        display: flex;
         flex-direction: column;
       }
 
@@ -390,19 +580,91 @@
 </head>
 
 <body>
-  <!-- 다크모드 버튼 -->
+  <!-- 로그인 -->
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>All바른 English</h2>
+      <p>학생 ID와 비밀번호를 입력하세요.</p>
+
+      <input
+        type="text"
+        id="login-id"
+        placeholder="ID 입력"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+      />
+
+      <input
+        type="password"
+        id="login-pw"
+        placeholder="비밀번호 입력"
+        autocomplete="off"
+        onkeydown="if(event.key === 'Enter') checkLogin();"
+      />
+
+      <button onclick="checkLogin()">로그인</button>
+      <div id="login-error" class="login-error"></div>
+    </div>
+  </div>
+
+  <!-- 비밀번호 변경 -->
+  <div id="password-modal" class="modal-screen">
+    <div class="modal-box">
+      <h3>🔐 비밀번호 변경</h3>
+      <p>현재 비밀번호와 새 비밀번호를 입력하세요.</p>
+
+      <input
+        type="password"
+        id="old-password"
+        placeholder="현재 비밀번호"
+        autocomplete="current-password"
+      />
+
+      <input
+        type="password"
+        id="new-password"
+        placeholder="새 비밀번호"
+        autocomplete="new-password"
+      />
+
+      <input
+        type="password"
+        id="new-password-confirm"
+        placeholder="새 비밀번호 확인"
+        autocomplete="new-password"
+        onkeydown="if(event.key === 'Enter') changeMyPassword();"
+      />
+
+      <div class="button-row">
+        <button class="vocab-btn" onclick="changeMyPassword()">변경하기</button>
+        <button class="vocab-btn secondary" onclick="closePasswordModal()">닫기</button>
+      </div>
+
+      <div id="password-message" class="modal-message"></div>
+    </div>
+  </div>
+
   <button class="mode-toggle" onclick="toggleMode()">🌗 모드 전환</button>
 
-  <!-- 상단 제목 -->
   <header>All바른 English</header>
 
-  <!-- 탭 메뉴 -->
+  <div class="top-user-bar">
+    <div id="user-label">로그인이 필요합니다.</div>
+    <div class="top-user-buttons">
+      <button onclick="openPasswordModal()">비밀번호 변경</button>
+      <button onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
   <nav>
     <button onclick="showTab('notice')" class="active">공지사항</button>
     <button onclick="showTab('exam')">시험정보</button>
     <button onclick="showTab('retest')">재시험</button>
     <button onclick="showTab('vocab')">단어장</button>
     <button onclick="showTab('favorites')">⭐중요단어</button>
+    <button id="admin-tab-button" onclick="showTab('admin')">관리자</button>
   </nav>
 
   <!-- 공지사항 -->
@@ -428,38 +690,91 @@
   <!-- 단어장 -->
   <section id="vocab">
     <div class="section-title">📘 단어장</div>
+
     <select id="vocab-book-select"></select>
     <select id="vocab-day-select"></select>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="moveDay(-1)">← 이전 Day</button>
+      <button class="vocab-btn secondary" onclick="moveDay(1)">다음 Day →</button>
+    </div>
+
+    <div class="mini-card">
+      <b>중요단어 저장 폴더</b>
+      <div id="folder-control-vocab"></div>
+    </div>
+
+    <div class="mini-card">
+      <b>단어 검색</b>
+      <input
+        type="text"
+        id="vocab-search-input"
+        placeholder="영어 또는 뜻 검색"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        onkeydown="if(event.key === 'Enter') searchVocab();"
+      />
+      <select id="vocab-search-scope">
+        <option value="current-day">현재 Day에서 검색</option>
+        <option value="current-book">현재 단어장에서 검색</option>
+        <option value="all">전체 단어장에서 검색</option>
+      </select>
+      <div class="button-row">
+        <button class="vocab-btn" onclick="searchVocab()">검색</button>
+        <button class="vocab-btn secondary" onclick="clearVocabSearch()">검색 초기화</button>
+      </div>
+      <div id="vocab-search-result"></div>
+    </div>
+
+    <div id="vocab-progress"></div>
     <div id="vocab-view"></div>
   </section>
 
-  <!-- 중요 단어장 -->
+  <!-- 중요단어 -->
   <section id="favorites">
     <div class="section-title">⭐ 중요 단어장</div>
+    <div id="folder-control-favorites"></div>
     <div id="favorites-view"></div>
+
+    <div class="section-title" style="margin-top:1.4em;">📕 누적 오답노트</div>
+    <div class="button-row">
+      <button class="vocab-btn" onclick="loadMyWrongNote()">누적 오답 보기</button>
+      <button class="vocab-btn secondary" onclick="startServerWrongNoteTest()">누적 오답 시험</button>
+    </div>
+    <div id="wrong-note-view"></div>
   </section>
 
-  <!-- 로딩 화면 -->
+  <!-- 관리자 -->
+  <section id="admin">
+    <div class="section-title">⚙️ 관리자</div>
+    <div class="card">
+      관리자 계정으로 로그인한 경우에만 사용할 수 있습니다.
+      Users 시트의 권한 열에 admin 또는 teacher를 입력하면 관리자 기능이 열립니다.
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn" onclick="refreshAdminSummary()">관리자 현황 새로고침</button>
+      <button class="vocab-btn secondary" onclick="runVocabErrorCheck()">Vocab 오류 검사</button>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="fillOrderNumbersFromAdmin()">E열 정렬번호 채우기</button>
+      <button class="vocab-btn warning" onclick="makeSpreadsheetBackup()">TestManager 백업 만들기</button>
+    </div>
+
+    <div id="admin-view"></div>
+  </section>
+
+  <!-- 로딩 -->
   <div id="loader">
     <svg width="50" height="50" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-      <circle
-        cx="50"
-        cy="50"
-        r="35"
-        stroke-width="10"
-        stroke="#3f6158"
-        stroke-dasharray="164.93361431346415 56.97787143782138"
-        fill="none"
-        stroke-linecap="round"
-      >
-        <animateTransform
-          attributeName="transform"
-          type="rotate"
-          repeatCount="indefinite"
-          dur="1s"
-          values="0 50 50;360 50 50"
-          keyTimes="0;1"
-        />
+      <circle cx="50" cy="50" r="35" stroke-width="10" stroke="#3f6158"
+        stroke-dasharray="164.93361431346415 56.97787143782138" fill="none"
+        stroke-linecap="round">
+        <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite"
+          dur="1s" values="0 50 50;360 50 50" keyTimes="0;1" />
       </circle>
     </svg>
     <div class="loader-text">로딩중...</div>
@@ -471,28 +786,30 @@
      ************************************************************/
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzyk-n_G93BJG1vlck6DNakEdZolCSoB9I3ylmyN2e6qX9NNHdQYgx6phA4OU9JAwfT/exec";
 
+    const DEFAULT_FOLDER_NAME = "기본";
+    const MAX_RANDOM_TEST_COUNT = 25;
+
+    let currentUser = null;
     let vocabData = [];
     let currentVocabWords = [];
     let wrongWords = [];
+    let serverWrongWords = [];
     let vocabHiddenMode = false;
-    let activeTestContainerId = "vocab-view";
-
-    let favoriteFolders = loadFavoriteFolders();
-    let currentFavoriteFolder = localStorage.getItem("currentFavoriteFolder") || "기본";
+    let favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
+    let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
+    let currentTestMeta = null;
+    let testAlreadySaved = false;
 
     /************************************************************
      *  2. 공통 유틸 함수
      ************************************************************/
     function cleanDate(isoDate) {
       if (!isoDate) return "";
-
       const d = new Date(isoDate);
       if (isNaN(d.getTime())) return isoDate;
-
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const dd = String(d.getDate()).padStart(2, "0");
-
       return `${yyyy}-${mm}-${dd}`;
     }
 
@@ -514,13 +831,25 @@
     }
 
     function shuffleArray(array) {
-      return array
+      return [...array]
         .map(value => ({ value, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
         .map(item => item.value);
     }
 
-    function createAnswerInput(index) {
+    function makeWordKey(row) {
+      return [row[0], row[1], row[2]].map(x => String(x ?? "")).join("|");
+    }
+
+    function sortWordsByOrder(rows) {
+      return [...rows].sort((a, b) => {
+        const orderA = Number(a[4]) || 999999;
+        const orderB = Number(b[4]) || 999999;
+        return orderA - orderB;
+      });
+    }
+
+    function makeAnswerInput(index) {
       return `
         <input
           type="text"
@@ -535,32 +864,202 @@
     }
 
     async function fetchSheet(sheetName) {
-      const res = await fetch(
-        SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName)
-      );
+      const res = await fetch(SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName));
+      return await res.json();
+    }
+
+    async function apiGet(params) {
+      const query = new URLSearchParams(params);
+      if (currentUser && currentUser.token && !query.has("token")) {
+        query.set("token", currentUser.token);
+      }
+
+      const res = await fetch(SHEET_URL + "?" + query.toString());
+      return await res.json();
+    }
+
+    async function apiPost(params) {
+      const body = new URLSearchParams(params);
+      if (currentUser && currentUser.token && !body.has("token")) {
+        body.set("token", currentUser.token);
+      }
+
+      const res = await fetch(SHEET_URL, {
+        method: "POST",
+        body
+      });
       return await res.json();
     }
 
     /************************************************************
-     *  3. 화면 전환 / 다크모드 / 발음
+     *  3. 로그인 / 사용자 관리
+     ************************************************************/
+    function restoreLogin() {
+      try {
+        currentUser = JSON.parse(sessionStorage.getItem("allbarun-user") || "null");
+      } catch (err) {
+        currentUser = null;
+      }
+
+      if (currentUser && currentUser.token) {
+        afterLogin();
+      }
+    }
+
+    async function checkLogin() {
+      const id = document.getElementById("login-id").value.trim();
+      const pw = document.getElementById("login-pw").value.trim();
+      const error = document.getElementById("login-error");
+
+      if (!id || !pw) {
+        error.textContent = "ID와 비밀번호를 모두 입력하세요.";
+        return;
+      }
+
+      error.textContent = "로그인 확인 중입니다...";
+
+      try {
+        const result = await apiGet({ action: "login", id, pw });
+
+        if (!result.success) {
+          error.textContent = result.message || "로그인에 실패했습니다.";
+          return;
+        }
+
+        currentUser = {
+          id: result.id,
+          name: result.name,
+          className: result.className || "",
+          role: result.role || "student",
+          token: result.token
+        };
+
+        sessionStorage.setItem("allbarun-user", JSON.stringify(currentUser));
+        afterLogin();
+      } catch (err) {
+        error.textContent = "로그인 API 연결에 실패했습니다. Apps Script 배포 상태를 확인하세요.";
+      }
+    }
+
+    function afterLogin() {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("user-label").textContent =
+        `${currentUser.name || currentUser.id} ${currentUser.className ? "(" + currentUser.className + ")" : ""}`;
+
+      if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
+        document.getElementById("admin-tab-button").style.display = "block";
+      }
+
+      loadFavoriteFolders();
+      renderFolderControls();
+      if (document.getElementById("favorites").classList.contains("active")) {
+        showFavorites();
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem("allbarun-user");
+      currentUser = null;
+      document.getElementById("login-screen").style.display = "flex";
+      document.getElementById("user-label").textContent = "로그인이 필요합니다.";
+      document.getElementById("admin-tab-button").style.display = "none";
+      document.getElementById("login-id").value = "";
+      document.getElementById("login-pw").value = "";
+      document.getElementById("login-error").textContent = "";
+    }
+
+    function openPasswordModal() {
+      if (!currentUser || !currentUser.token) {
+        alert("로그인 후 사용할 수 있습니다.");
+        return;
+      }
+
+      document.getElementById("password-modal").style.display = "flex";
+      document.getElementById("old-password").value = "";
+      document.getElementById("new-password").value = "";
+      document.getElementById("new-password-confirm").value = "";
+      document.getElementById("password-message").textContent = "";
+      document.getElementById("password-message").classList.remove("success");
+      setTimeout(() => document.getElementById("old-password").focus(), 50);
+    }
+
+    function closePasswordModal() {
+      document.getElementById("password-modal").style.display = "none";
+    }
+
+    async function changeMyPassword() {
+      const oldPw = document.getElementById("old-password").value.trim();
+      const newPw = document.getElementById("new-password").value.trim();
+      const confirmPw = document.getElementById("new-password-confirm").value.trim();
+      const message = document.getElementById("password-message");
+
+      message.classList.remove("success");
+
+      if (!oldPw || !newPw || !confirmPw) {
+        message.textContent = "현재 비밀번호와 새 비밀번호를 모두 입력하세요.";
+        return;
+      }
+
+      if (newPw.length < 4) {
+        message.textContent = "새 비밀번호는 최소 4자리 이상으로 설정하세요.";
+        return;
+      }
+
+      if (newPw !== confirmPw) {
+        message.textContent = "새 비밀번호와 확인 입력이 서로 다릅니다.";
+        return;
+      }
+
+      if (oldPw === newPw) {
+        message.textContent = "현재 비밀번호와 다른 새 비밀번호를 입력하세요.";
+        return;
+      }
+
+      message.textContent = "비밀번호를 변경하는 중입니다...";
+
+      try {
+        const result = await apiPost({
+          action: "changePassword",
+          oldPw,
+          newPw
+        });
+
+        if (!result.success) {
+          message.textContent = result.message || "비밀번호 변경에 실패했습니다.";
+          return;
+        }
+
+        message.textContent = "비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용하세요.";
+        message.classList.add("success");
+
+        document.getElementById("old-password").value = "";
+        document.getElementById("new-password").value = "";
+        document.getElementById("new-password-confirm").value = "";
+      } catch (err) {
+        message.textContent = "비밀번호 변경 API 연결에 실패했습니다.";
+      }
+    }
+
+    /************************************************************
+     *  4. 화면 전환 / 모드 / 발음
      ************************************************************/
     function showTab(tabId) {
-      document
-        .querySelectorAll("nav button")
-        .forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
 
-      document
-        .querySelectorAll("section")
-        .forEach(sec => sec.classList.remove("active"));
+      const navButton = document.querySelector("nav button[onclick*='" + tabId + "']");
+      if (navButton) navButton.classList.add("active");
 
-      document
-        .querySelector(`nav button[onclick*="${tabId}"]`)
-        .classList.add("active");
-
-      document.getElementById(tabId).classList.add("active");
+      const section = document.getElementById(tabId);
+      if (section) section.classList.add("active");
 
       if (tabId === "favorites") {
+        renderFolderControls();
         showFavorites();
+      }
+
+      if (tabId === "admin") {
+        refreshAdminSummary();
       }
     }
 
@@ -586,9 +1085,7 @@
 
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice =
-        voices.find(v =>
-          v.lang === "en-US" && v.name.toLowerCase().includes("google")
-        ) ||
+        voices.find(v => v.lang === "en-US" && v.name.toLowerCase().includes("google")) ||
         voices.find(v => v.lang === "en-US") ||
         voices.find(v => v.lang.startsWith("en"));
 
@@ -600,7 +1097,7 @@
     }
 
     /************************************************************
-     *  4. Notice / TestInfo / Retest
+     *  5. 공지사항 / 시험정보 / 재시험
      ************************************************************/
     async function loadNotice() {
       const data = await fetchSheet("Notice");
@@ -619,14 +1116,8 @@
     async function loadClassDropdown() {
       const data = await fetchSheet("TestInfo");
       const select = document.getElementById("class-select");
-
-      const uniqueClasses = [
-        ...new Set(data.slice(1).map(row => row[0]).filter(Boolean))
-      ];
-
-      select.innerHTML = uniqueClasses
-        .map(c => `<option>${escapeHtml(c)}</option>`)
-        .join("");
+      const uniqueClasses = [...new Set(data.slice(1).map(row => row[0]).filter(Boolean))];
+      select.innerHTML = uniqueClasses.map(c => `<option>${escapeHtml(c)}</option>`).join("");
     }
 
     async function loadExam() {
@@ -639,24 +1130,12 @@
         i === 0 || (row[0] === className && cleanDate(row[1]) === date)
       );
 
-      let html =
-        "<table><tr>" +
-        data[0]
-          .slice(0, 4)
-          .map(h => `<th>${escapeHtml(h)}</th>`)
-          .join("") +
-        "</tr>";
+      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${escapeHtml(h)}</th>`).join("") + "</tr>";
 
       for (let i = 1; i < filtered.length; i++) {
-        html +=
-          "<tr>" +
-          filtered[i]
-            .slice(0, 4)
-            .map((cell, j) =>
-              `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
-            )
-            .join("") +
-          "</tr>";
+        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) =>
+          `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
+        ).join("") + "</tr>";
       }
 
       html += "</table>";
@@ -667,26 +1146,16 @@
       const data = await fetchSheet("Retest");
       const target = document.getElementById("retest-table");
 
-      let html =
-        "<table><tr>" +
-        data[0]
-          .map(h => `<th>${escapeHtml(h)}</th>`)
-          .filter(h => !h.includes("재시험"))
-          .join("") +
-        "</tr>";
+      let html = "<table><tr>"
+        + data[0].map(h => `<th>${escapeHtml(h)}</th>`).filter(h => !h.includes("재시험")).join("")
+        + "</tr>";
 
       for (let i = 1; i < data.length; i++) {
-        html +=
-          "<tr>" +
-          data[i]
-            .map((cell, j) => {
-              if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-              if (data[0][j] === "재시험") return null;
-              return `<td>${escapeHtml(cell)}</td>`;
-            })
-            .filter(c => c)
-            .join("") +
-          "</tr>";
+        html += "<tr>" + data[i].map((cell, j) => {
+          if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
+          if (data[0][j] === "재시험") return null;
+          return `<td>${escapeHtml(cell)}</td>`;
+        }).filter(c => c).join("") + "</tr>";
       }
 
       html += "</table>";
@@ -694,7 +1163,7 @@
     }
 
     /************************************************************
-     *  5. 단어장 불러오기 / Day 선택 / 단어 목록
+     *  6. 단어장 불러오기 / Day 이동
      ************************************************************/
     async function loadVocabBooks() {
       const target = document.getElementById("vocab-view");
@@ -710,14 +1179,18 @@
         const bookSelect = document.getElementById("vocab-book-select");
         const daySelect = document.getElementById("vocab-day-select");
 
-        const books = [
-          ...new Set(
-            vocabData
-              .slice(1)
-              .map(row => row[0])
-              .filter(book => book && String(book).trim() !== "")
-          )
-        ];
+        const bookMap = new Map();
+        vocabData.slice(1).forEach(row => {
+          const book = row[0];
+          const order = Number(row[4]) || 999999;
+          if (!book || String(book).trim() === "") return;
+          if (!bookMap.has(book)) bookMap.set(book, order);
+          else bookMap.set(book, Math.min(bookMap.get(book), order));
+        });
+
+        const books = [...bookMap.entries()]
+          .sort((a, b) => a[1] - b[1])
+          .map(item => item[0]);
 
         if (books.length === 0) {
           target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
@@ -726,9 +1199,7 @@
 
         bookSelect.innerHTML =
           `<option value="">단어장 선택</option>` +
-          books
-            .map(book => `<option value="${escapeHtml(book)}">${escapeHtml(book)}</option>`)
-            .join("");
+          books.map(book => `<option value="${escapeHtml(book)}">${escapeHtml(book)}</option>`).join("");
 
         daySelect.innerHTML = `<option value="">Day 선택</option>`;
         target.innerHTML = "<div class='card'>단어장과 Day를 선택하세요.</div>";
@@ -744,6 +1215,8 @@
       const selectedBook = document.getElementById("vocab-book-select").value;
       const daySelect = document.getElementById("vocab-day-select");
       const target = document.getElementById("vocab-view");
+      document.getElementById("vocab-progress").innerHTML = "";
+      document.getElementById("vocab-search-result").innerHTML = "";
 
       if (!selectedBook) {
         daySelect.innerHTML = `<option value="">Day 선택</option>`;
@@ -751,21 +1224,24 @@
         return;
       }
 
-      const days = [
-        ...new Set(
-          vocabData
-            .slice(1)
-            .filter(row => String(row[0]) === String(selectedBook))
-            .map(row => row[1])
-            .filter(day => day !== "" && day !== null && day !== undefined)
-        )
-      ];
+      const dayMap = new Map();
+      vocabData.slice(1)
+        .filter(row => String(row[0]) === String(selectedBook))
+        .forEach(row => {
+          const day = row[1];
+          const order = Number(row[4]) || 999999;
+          if (day === "" || day === null || day === undefined) return;
+          if (!dayMap.has(day)) dayMap.set(day, order);
+          else dayMap.set(day, Math.min(dayMap.get(day), order));
+        });
+
+      const days = [...dayMap.entries()]
+        .sort((a, b) => a[1] - b[1])
+        .map(item => item[0]);
 
       daySelect.innerHTML =
         `<option value="">Day 선택</option>` +
-        days
-          .map(day => `<option value="${escapeHtml(day)}">${escapeHtml(day)}</option>`)
-          .join("");
+        days.map(day => `<option value="${escapeHtml(day)}">${escapeHtml(day)}</option>`).join("");
 
       target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
     }
@@ -776,243 +1252,114 @@
 
       if (!selectedBook || !selectedDay) return [];
 
-      return vocabData.slice(1).filter(row =>
-        String(row[0]) === String(selectedBook) &&
-        String(row[1]) === String(selectedDay) &&
-        row[2] &&
-        row[3]
+      return sortWordsByOrder(
+        vocabData.slice(1).filter(row =>
+          String(row[0]) === String(selectedBook) &&
+          String(row[1]) === String(selectedDay) &&
+          row[2] &&
+          row[3]
+        )
       );
     }
 
-    function showVocabList() {
-      const target = document.getElementById("vocab-view");
-      const selectedBook = document.getElementById("vocab-book-select").value;
-      const selectedDay = document.getElementById("vocab-day-select").value;
-      const words = getSelectedVocabWords();
+    function moveDay(direction) {
+      const daySelect = document.getElementById("vocab-day-select");
+      const options = [...daySelect.options].filter(opt => opt.value !== "");
+      if (options.length === 0) return;
 
-      if (!selectedBook) {
-        target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
-        return;
+      const currentValue = daySelect.value;
+      let index = options.findIndex(opt => opt.value === currentValue);
+
+      if (index === -1) {
+        index = direction > 0 ? 0 : options.length - 1;
+      } else {
+        index += direction;
+        if (index < 0) index = 0;
+        if (index >= options.length) index = options.length - 1;
       }
 
-      if (!selectedDay) {
-        target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
-        return;
-      }
-
-      if (words.length === 0) {
-        target.innerHTML = "<div class='card'>표시할 단어가 없습니다.</div>";
-        return;
-      }
-
-      let html = renderFavoriteFolderControls(false);
-
-      html += `
-        <div class="button-row">
-          <button class="vocab-btn secondary" onclick="toggleWordHide()">
-            ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
-          </button>
-          <button class="vocab-btn" onclick="startVocabTest()">
-            단어시험 시작
-          </button>
-        </div>
-      `;
-
-      html += "<table>";
-      html += "<tr><th>영어</th><th>발음</th><th>뜻</th><th>중요</th></tr>";
-
-      words.forEach(row => {
-        const english = vocabHiddenMode
-          ? "?".repeat(String(row[2]).length)
-          : row[2];
-
-        const key = row[0] + "|" + row[1] + "|" + row[2];
-        const isFavorite = isFavoriteInCurrentFolder(key);
-
-        html += `
-          <tr>
-            <td>
-              <span
-                class="speak-word"
-                onclick='speakWord(${JSON.stringify(String(row[2]))})'
-              >
-                ${escapeHtml(english)}
-              </span>
-            </td>
-            <td>
-              <button
-                class="speak-btn"
-                onclick='speakWord(${JSON.stringify(String(row[2]))})'
-              >
-                🔊
-              </button>
-            </td>
-            <td>${escapeHtml(row[3])}</td>
-            <td>
-              <button
-                class="icon-btn"
-                onclick="toggleFavorite('${encodeURIComponent(key)}')"
-              >
-                ${isFavorite ? "⭐" : "☆"}
-              </button>
-            </td>
-          </tr>
-        `;
-      });
-
-      html += "</table>";
-      target.innerHTML = html;
-    }
-
-    function toggleWordHide() {
-      vocabHiddenMode = !vocabHiddenMode;
+      daySelect.value = options[index].value;
       showVocabList();
     }
 
     /************************************************************
-     *  6. 중요단어 폴더
+     *  7. 중요단어 폴더
      ************************************************************/
+    function favoriteStorageKey() {
+      const userId = currentUser?.id || "guest";
+      return `favoriteFolders:${userId}`;
+    }
+
+    function currentFolderStorageKey() {
+      const userId = currentUser?.id || "guest";
+      return `currentFavoriteFolder:${userId}`;
+    }
+
     function loadFavoriteFolders() {
-      let folders = {};
-
       try {
-        folders = JSON.parse(localStorage.getItem("favoriteFolders") || "{}");
+        favoriteFolders = JSON.parse(localStorage.getItem(favoriteStorageKey()) || "null");
       } catch (err) {
-        folders = {};
+        favoriteFolders = null;
       }
 
-      if (!folders || typeof folders !== "object" || Array.isArray(folders)) {
-        folders = {};
+      if (!favoriteFolders || typeof favoriteFolders !== "object" || Array.isArray(favoriteFolders)) {
+        favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
       }
 
-      if (!folders["기본"]) {
-        folders["기본"] = [];
+      if (!favoriteFolders[DEFAULT_FOLDER_NAME]) {
+        favoriteFolders[DEFAULT_FOLDER_NAME] = [];
       }
 
-      // 기존 중요단어 방식(favoriteWords)을 쓰던 학생들의 데이터를 기본 폴더로 자동 이전
-      try {
-        const oldFavoriteWords = JSON.parse(localStorage.getItem("favoriteWords") || "[]");
-        if (Array.isArray(oldFavoriteWords)) {
-          oldFavoriteWords.forEach(key => {
-            if (key && !folders["기본"].includes(key)) {
-              folders["기본"].push(key);
-            }
-          });
-        }
-      } catch (err) {
-        // 기존 데이터가 깨져 있으면 무시
+      const legacy = JSON.parse(localStorage.getItem("favoriteWords") || "[]");
+      if (Array.isArray(legacy) && legacy.length > 0 && !localStorage.getItem("favoriteWordsMigrated")) {
+        favoriteFolders[DEFAULT_FOLDER_NAME] = [...new Set([...favoriteFolders[DEFAULT_FOLDER_NAME], ...legacy])];
+        localStorage.setItem("favoriteWordsMigrated", "Y");
       }
 
-      localStorage.setItem("favoriteFolders", JSON.stringify(folders));
-      return folders;
+      const savedFolder = localStorage.getItem(currentFolderStorageKey());
+      currentFavoriteFolder = favoriteFolders[savedFolder] ? savedFolder : DEFAULT_FOLDER_NAME;
+      saveFavoriteFolders();
     }
 
     function saveFavoriteFolders() {
-      ensureCurrentFolder();
-
-      localStorage.setItem("favoriteFolders", JSON.stringify(favoriteFolders));
-      localStorage.setItem("currentFavoriteFolder", currentFavoriteFolder);
-
-      // 예전 코드와의 호환용: 현재 폴더의 목록을 favoriteWords에도 저장
-      localStorage.setItem(
-        "favoriteWords",
-        JSON.stringify(getCurrentFavoriteKeys())
-      );
+      localStorage.setItem(favoriteStorageKey(), JSON.stringify(favoriteFolders));
+      localStorage.setItem(currentFolderStorageKey(), currentFavoriteFolder);
     }
 
-    function ensureCurrentFolder() {
-      const folderNames = Object.keys(favoriteFolders);
-
-      if (folderNames.length === 0) {
-        favoriteFolders["기본"] = [];
-      }
-
-      if (!currentFavoriteFolder || !favoriteFolders[currentFavoriteFolder]) {
-        currentFavoriteFolder = Object.keys(favoriteFolders)[0] || "기본";
-      }
-
-      if (!favoriteFolders[currentFavoriteFolder]) {
-        favoriteFolders[currentFavoriteFolder] = [];
-      }
-    }
-
-    function getFolderNames() {
-      ensureCurrentFolder();
-      return Object.keys(favoriteFolders);
-    }
-
-    function getCurrentFavoriteKeys() {
-      ensureCurrentFolder();
-      return favoriteFolders[currentFavoriteFolder];
-    }
-
-    function makeFavoriteKey(row) {
-      return row[0] + "|" + row[1] + "|" + row[2];
+    function getCurrentFolderWords() {
+      return favoriteFolders[currentFavoriteFolder] || [];
     }
 
     function isFavoriteInCurrentFolder(key) {
-      return getCurrentFavoriteKeys().includes(key);
+      return getCurrentFolderWords().includes(key);
     }
 
-    function getCurrentFavoriteRows() {
-      const keys = getCurrentFavoriteKeys();
-
-      return vocabData.slice(1).filter(row =>
-        keys.includes(makeFavoriteKey(row))
-      );
-    }
-
-    function makeFolderOptionHtml() {
-      return getFolderNames()
-        .map(folder => {
-          const selected = folder === currentFavoriteFolder ? "selected" : "";
-          return `<option value="${escapeHtml(folder)}" ${selected}>${escapeHtml(folder)}</option>`;
-        })
+    function renderFolderControls() {
+      const folderNames = Object.keys(favoriteFolders);
+      const options = folderNames
+        .map(name => `<option value="${escapeHtml(name)}" ${name === currentFavoriteFolder ? "selected" : ""}>${escapeHtml(name)}</option>`)
         .join("");
-    }
 
-    function renderFavoriteFolderControls(showManageButtons) {
-      const folderCount = getFolderNames().length;
-      const wordCount = getCurrentFavoriteKeys().length;
-
-      let html = `
-        <div class="card folder-controls">
-          <label>중요단어 폴더</label>
-          <select onchange="changeFavoriteFolder(this.value)">
-            ${makeFolderOptionHtml()}
-          </select>
-          <div class="folder-help">
-            현재 폴더: <b>${escapeHtml(currentFavoriteFolder)}</b> / 저장된 단어 ${wordCount}개 / 폴더 ${folderCount}개
-          </div>
-      `;
-
-      html += `
-          <div class="button-row">
-            <button class="vocab-btn secondary" onclick="createFavoriteFolder()">
-              새 폴더
-            </button>
-      `;
-
-      if (showManageButtons) {
-        html += `
-            <button class="vocab-btn secondary" onclick="renameFavoriteFolder()">
-              이름 변경
-            </button>
-            <button class="vocab-btn secondary" onclick="deleteFavoriteFolder()">
-              폴더 삭제
-            </button>
-        `;
-      }
-
-      html += `
-          </div>
+      const html = `
+        <div class="folder-toolbar">
+          <select onchange="changeFavoriteFolder(this.value)">${options}</select>
+          <button class="small-btn" onclick="createFavoriteFolder()">새 폴더</button>
+          <button class="small-btn secondary" onclick="renameFavoriteFolder()">이름 변경</button>
+          <button class="small-btn warning" onclick="deleteFavoriteFolder()">삭제</button>
         </div>
+        <div class="notice-small">현재 선택된 폴더에 중요단어가 저장됩니다.</div>
       `;
 
-      return html;
+      document.getElementById("folder-control-vocab").innerHTML = html;
+      document.getElementById("folder-control-favorites").innerHTML = html;
     }
 
-    function refreshFavoriteRelatedViews() {
+    function changeFavoriteFolder(folderName) {
+      if (!favoriteFolders[folderName]) return;
+      currentFavoriteFolder = folderName;
+      saveFavoriteFolders();
+      renderFolderControls();
+
       if (document.getElementById("favorites").classList.contains("active")) {
         showFavorites();
       }
@@ -1022,119 +1369,72 @@
       }
     }
 
-    function changeFavoriteFolder(folderName) {
-      if (!favoriteFolders[folderName]) return;
-
-      currentFavoriteFolder = folderName;
-      saveFavoriteFolders();
-      refreshFavoriteRelatedViews();
-    }
-
     function createFavoriteFolder() {
       const name = prompt("새 중요단어 폴더 이름을 입력하세요.");
-      if (name === null) return;
+      if (!name) return;
 
       const folderName = name.trim();
-
-      if (!folderName) {
-        alert("폴더 이름을 입력하세요.");
-        return;
-      }
-
-      if (folderName.includes("|")) {
-        alert("폴더 이름에는 | 기호를 사용할 수 없습니다.");
-        return;
-      }
-
+      if (!folderName) return;
       if (favoriteFolders[folderName]) {
-        alert("이미 같은 이름의 폴더가 있습니다.");
+        alert("이미 있는 폴더 이름입니다.");
         return;
       }
 
       favoriteFolders[folderName] = [];
       currentFavoriteFolder = folderName;
       saveFavoriteFolders();
-      refreshFavoriteRelatedViews();
+      renderFolderControls();
+      showFavorites();
     }
 
     function renameFavoriteFolder() {
-      ensureCurrentFolder();
+      if (currentFavoriteFolder === DEFAULT_FOLDER_NAME) {
+        alert("기본 폴더 이름은 변경하지 않는 것을 권장합니다.");
+      }
 
-      const name = prompt(
-        "새 폴더 이름을 입력하세요.",
-        currentFavoriteFolder
-      );
+      const newName = prompt("새 폴더 이름을 입력하세요.", currentFavoriteFolder);
+      if (!newName) return;
 
-      if (name === null) return;
-
-      const newName = name.trim();
-
-      if (!newName) {
-        alert("폴더 이름을 입력하세요.");
+      const folderName = newName.trim();
+      if (!folderName || folderName === currentFavoriteFolder) return;
+      if (favoriteFolders[folderName]) {
+        alert("이미 있는 폴더 이름입니다.");
         return;
       }
 
-      if (newName.includes("|")) {
-        alert("폴더 이름에는 | 기호를 사용할 수 없습니다.");
-        return;
-      }
-
-      if (newName !== currentFavoriteFolder && favoriteFolders[newName]) {
-        alert("이미 같은 이름의 폴더가 있습니다.");
-        return;
-      }
-
-      if (newName === currentFavoriteFolder) return;
-
-      const copiedFolders = {};
-
-      Object.keys(favoriteFolders).forEach(folder => {
-        if (folder === currentFavoriteFolder) {
-          copiedFolders[newName] = favoriteFolders[folder];
-        } else {
-          copiedFolders[folder] = favoriteFolders[folder];
-        }
-      });
-
-      favoriteFolders = copiedFolders;
-      currentFavoriteFolder = newName;
+      favoriteFolders[folderName] = favoriteFolders[currentFavoriteFolder];
+      delete favoriteFolders[currentFavoriteFolder];
+      currentFavoriteFolder = folderName;
       saveFavoriteFolders();
+      renderFolderControls();
       showFavorites();
     }
 
     function deleteFavoriteFolder() {
-      ensureCurrentFolder();
-
-      const wordCount = getCurrentFavoriteKeys().length;
-      const message =
-        `현재 폴더 "${currentFavoriteFolder}"를 삭제할까요?\n` +
-        `이 폴더 안의 중요단어 ${wordCount}개도 함께 삭제됩니다.`;
-
-      if (!confirm(message)) return;
-
-      delete favoriteFolders[currentFavoriteFolder];
-
-      const folderNames = Object.keys(favoriteFolders);
-
-      if (folderNames.length === 0) {
-        favoriteFolders["기본"] = [];
-        currentFavoriteFolder = "기본";
-      } else {
-        currentFavoriteFolder = folderNames[0];
+      if (currentFavoriteFolder === DEFAULT_FOLDER_NAME) {
+        alert("기본 폴더는 삭제할 수 없습니다.");
+        return;
       }
 
+      if (!confirm(`'${currentFavoriteFolder}' 폴더를 삭제할까요? 폴더 안의 중요단어도 함께 삭제됩니다.`)) {
+        return;
+      }
+
+      delete favoriteFolders[currentFavoriteFolder];
+      currentFavoriteFolder = DEFAULT_FOLDER_NAME;
       saveFavoriteFolders();
+      renderFolderControls();
       showFavorites();
     }
 
     function toggleFavorite(encodedKey) {
       const key = decodeURIComponent(encodedKey);
-      const currentKeys = getCurrentFavoriteKeys();
+      const list = getCurrentFolderWords();
 
-      if (currentKeys.includes(key)) {
-        favoriteFolders[currentFavoriteFolder] = currentKeys.filter(x => x !== key);
+      if (list.includes(key)) {
+        favoriteFolders[currentFavoriteFolder] = list.filter(x => x !== key);
       } else {
-        currentKeys.push(key);
+        favoriteFolders[currentFavoriteFolder] = [...list, key];
       }
 
       saveFavoriteFolders();
@@ -1148,50 +1448,211 @@
 
     function toggleFavoriteFromTest(encodedKey, button) {
       const key = decodeURIComponent(encodedKey);
-      const currentKeys = getCurrentFavoriteKeys();
+      const list = getCurrentFolderWords();
 
-      if (currentKeys.includes(key)) {
-        favoriteFolders[currentFavoriteFolder] = currentKeys.filter(x => x !== key);
+      if (list.includes(key)) {
+        favoriteFolders[currentFavoriteFolder] = list.filter(x => x !== key);
         button.textContent = "☆";
       } else {
-        currentKeys.push(key);
+        favoriteFolders[currentFavoriteFolder] = [...list, key];
         button.textContent = "⭐";
       }
 
       saveFavoriteFolders();
     }
 
-    function removeFavorite(encodedKey) {
-      const key = decodeURIComponent(encodedKey);
-      favoriteFolders[currentFavoriteFolder] = getCurrentFavoriteKeys().filter(x => x !== key);
-      saveFavoriteFolders();
-      showFavorites();
+    /************************************************************
+     *  8. 단어장 표시 / 검색 / 진행률
+     ************************************************************/
+    function showVocabList() {
+      const target = document.getElementById("vocab-view");
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+      const words = getSelectedVocabWords();
+
+      if (!selectedBook) {
+        target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
+        document.getElementById("vocab-progress").innerHTML = "";
+        return;
+      }
+
+      if (!selectedDay) {
+        target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
+        document.getElementById("vocab-progress").innerHTML = "";
+        return;
+      }
+
+      if (words.length === 0) {
+        target.innerHTML = "<div class='card'>표시할 단어가 없습니다.</div>";
+        document.getElementById("vocab-progress").innerHTML = "";
+        return;
+      }
+
+      renderStudentProgress(selectedBook, selectedDay);
+
+      let html = `
+        <div class="button-row">
+          <button class="vocab-btn secondary" onclick="toggleWordHide()">
+            ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
+          </button>
+          <button class="vocab-btn" onclick="startVocabTest('meaning', 'random')">랜덤 25문제</button>
+        </div>
+
+        <div class="button-row">
+          <button class="vocab-btn" onclick="startVocabTest('meaning', 'all')">Day 전체 시험</button>
+          <button class="vocab-btn secondary" onclick="startVocabTest('listening', 'random')">발음 듣고 입력</button>
+          <button class="vocab-btn secondary" onclick="startMeaningCheck()">뜻 확인 카드</button>
+        </div>
+      `;
+
+      html += "<table>";
+      html += "<tr><th>영어</th><th>발음</th><th>뜻</th><th>중요</th></tr>";
+
+      words.forEach(row => {
+        const english = vocabHiddenMode ? "?".repeat(String(row[2]).length) : row[2];
+        const key = makeWordKey(row);
+        const isFavorite = isFavoriteInCurrentFolder(key);
+
+        html += renderWordRow(row, english, isFavorite);
+      });
+
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    function renderWordRow(row, shownEnglish, isFavorite) {
+      const key = makeWordKey(row);
+      return `
+        <tr>
+          <td>
+            <span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>
+              ${escapeHtml(shownEnglish)}
+            </span>
+          </td>
+          <td>
+            <button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button>
+          </td>
+          <td>${escapeHtml(row[3])}</td>
+          <td>
+            <button class="star-btn" onclick="toggleFavorite('${encodeURIComponent(key)}')">
+              ${isFavorite ? "⭐" : "☆"}
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function toggleWordHide() {
+      vocabHiddenMode = !vocabHiddenMode;
+      showVocabList();
+    }
+
+    async function renderStudentProgress(book, day) {
+      const target = document.getElementById("vocab-progress");
+      target.innerHTML = "<div class='progress-box'>학습 기록을 불러오는 중입니다...</div>";
+
+      try {
+        const result = await apiGet({ action: "getStudentStats", book, day });
+
+        if (!result.success) {
+          target.innerHTML = "";
+          return;
+        }
+
+        target.innerHTML = `
+          <div class="progress-box">
+            <b>학습 현황</b><br>
+            최근 점수: ${escapeHtml(result.latestScore || "기록 없음")}<br>
+            이 Day 응시 횟수: ${escapeHtml(result.testCount || 0)}회<br>
+            누적 오답 단어: ${escapeHtml(result.wrongCount || 0)}개
+          </div>
+        `;
+      } catch (err) {
+        target.innerHTML = "";
+      }
+    }
+
+    function searchVocab() {
+      const query = document.getElementById("vocab-search-input").value.trim().toLowerCase();
+      const scope = document.getElementById("vocab-search-scope").value;
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+      const target = document.getElementById("vocab-search-result");
+
+      if (!query) {
+        target.innerHTML = "<div class='mini-card'>검색어를 입력하세요.</div>";
+        return;
+      }
+
+      let rows = vocabData.slice(1).filter(row => row[2] && row[3]);
+
+      if (scope === "current-day") {
+        rows = rows.filter(row => String(row[0]) === String(selectedBook) && String(row[1]) === String(selectedDay));
+      } else if (scope === "current-book") {
+        rows = rows.filter(row => String(row[0]) === String(selectedBook));
+      }
+
+      const found = sortWordsByOrder(rows.filter(row =>
+        String(row[2]).toLowerCase().includes(query) ||
+        String(row[3]).toLowerCase().includes(query)
+      ));
+
+      if (found.length === 0) {
+        target.innerHTML = "<div class='mini-card'>검색 결과가 없습니다.</div>";
+        return;
+      }
+
+      let html = `<div class="mini-card"><b>검색 결과 ${found.length}개</b></div>`;
+      html += "<table><tr><th>단어장</th><th>Day</th><th>영어</th><th>발음</th><th>뜻</th></tr>";
+
+      found.forEach(row => {
+        html += `
+          <tr>
+            <td>${escapeHtml(row[0])}</td>
+            <td>${escapeHtml(row[1])}</td>
+            <td><span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>${escapeHtml(row[2])}</span></td>
+            <td><button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button></td>
+            <td>${escapeHtml(row[3])}</td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    function clearVocabSearch() {
+      document.getElementById("vocab-search-input").value = "";
+      document.getElementById("vocab-search-result").innerHTML = "";
+    }
+
+    /************************************************************
+     *  9. 중요단어 보기 / 중요단어 시험
+     ************************************************************/
+    function getFavoriteRows(folderName = currentFavoriteFolder) {
+      const keys = favoriteFolders[folderName] || [];
+      const keySet = new Set(keys);
+      return sortWordsByOrder(vocabData.slice(1).filter(row => keySet.has(makeWordKey(row))));
     }
 
     function showFavorites() {
       const target = document.getElementById("favorites-view");
-      const favorites = getCurrentFavoriteRows();
-
-      let html = renderFavoriteFolderControls(true);
-
-      html += `
-        <div class="card">
-          <b>⭐ ${escapeHtml(currentFavoriteFolder)}</b><br>
-          이 폴더에 저장된 중요 단어 ${favorites.length}개
-        </div>
-      `;
+      const favorites = getFavoriteRows();
 
       if (favorites.length === 0) {
-        html += "<div class='card'>이 폴더에 저장된 중요 단어가 없습니다.</div>";
-        target.innerHTML = html;
+        target.innerHTML = `<div class='card'>'${escapeHtml(currentFavoriteFolder)}' 폴더에 저장된 중요 단어가 없습니다.</div>`;
         return;
       }
 
-      html += `
+      let html = `
+        <div class="card">
+          <b>⭐ ${escapeHtml(currentFavoriteFolder)} 폴더</b><br>
+          저장된 중요 단어 ${favorites.length}개
+        </div>
+
         <div class="button-row">
-          <button class="vocab-btn" onclick="startFavoriteTest()">
-            이 폴더 단어시험
-          </button>
+          <button class="vocab-btn" onclick="startFavoriteTest()">이 폴더 시험</button>
+          <button class="vocab-btn secondary" onclick="startFavoriteMeaningCheck()">이 폴더 뜻 확인</button>
         </div>
       `;
 
@@ -1208,30 +1669,15 @@
       `;
 
       favorites.forEach(row => {
-        const key = makeFavoriteKey(row);
-
+        const key = makeWordKey(row);
         html += `
           <tr>
             <td>${escapeHtml(row[0])}</td>
             <td>${escapeHtml(row[1])}</td>
-            <td>${escapeHtml(row[2])}</td>
-            <td>
-              <button
-                class="speak-btn"
-                onclick='speakWord(${JSON.stringify(String(row[2]))})'
-              >
-                🔊
-              </button>
-            </td>
+            <td><span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>${escapeHtml(row[2])}</span></td>
+            <td><button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button></td>
             <td>${escapeHtml(row[3])}</td>
-            <td>
-              <button
-                class="icon-btn"
-                onclick="removeFavorite('${encodeURIComponent(key)}')"
-              >
-                ⭐
-              </button>
-            </td>
+            <td><button class="star-btn" onclick="toggleFavorite('${encodeURIComponent(key)}')">⭐</button></td>
           </tr>
         `;
       });
@@ -1240,92 +1686,98 @@
       target.innerHTML = html;
     }
 
-    /************************************************************
-     *  7. 단어시험
-     ************************************************************/
-    function renderVocabTest(words, containerId, title, description) {
-      activeTestContainerId = containerId;
-      currentVocabWords = words;
-
-      let html = `
-        <div class="card">
-          <b>${title}</b><br>
-          ${description}<br>
-          총 ${currentVocabWords.length}문제입니다.
-        </div>
-      `;
-
-      currentVocabWords.forEach((row, index) => {
-        html += `
-          <div class="vocab-question">
-            <b>Q${index + 1}. ${escapeHtml(row[3])}</b>
-            ${createAnswerInput(index)}
-          </div>
-        `;
-      });
-
-      html += `
-        <button class="vocab-btn" onclick="gradeVocabTest()">
-          채점하기
-        </button>
-        <div id="vocab-result"></div>
-      `;
-
-      document.getElementById(containerId).innerHTML = html;
-    }
-
-    function startVocabTest() {
-      const words = getSelectedVocabWords();
-
-      if (words.length === 0) {
-        document.getElementById("vocab-view").innerHTML =
-          "<div class='card'>시험을 만들 단어가 없습니다.</div>";
-        return;
-      }
-
-      const testWords = shuffleArray(words).slice(0, Math.min(25, words.length));
-
-      renderVocabTest(
-        testWords,
-        "vocab-view",
-        "직접 입력 단어시험",
-        "뜻을 보고 알맞은 영어 단어를 입력하세요."
-      );
-    }
-
     function startFavoriteTest() {
-      const favorites = getCurrentFavoriteRows();
-
+      const favorites = getFavoriteRows();
       if (favorites.length === 0) {
         alert("현재 폴더에 중요 단어가 없습니다.");
         return;
       }
 
-      const testWords = shuffleArray(favorites).slice(
-        0,
-        Math.min(25, favorites.length)
-      );
-
-      renderVocabTest(
-        testWords,
-        "favorites-view",
-        `⭐ ${escapeHtml(currentFavoriteFolder)} 단어시험`,
-        "현재 폴더의 중요 단어 중에서 무작위로 출제됩니다."
-      );
+      const selected = shuffleArray(favorites).slice(0, Math.min(MAX_RANDOM_TEST_COUNT, favorites.length));
+      renderTest(selected, {
+        mode: "favorite-folder",
+        modeLabel: `중요단어 폴더 시험 - ${currentFavoriteFolder}`,
+        targetId: "favorites-view",
+        source: currentFavoriteFolder
+      });
     }
 
-    function startWrongWordTest() {
-      if (wrongWords.length === 0) {
-        alert("틀린 문제가 없습니다.");
+    function startFavoriteMeaningCheck() {
+      const favorites = getFavoriteRows();
+      if (favorites.length === 0) {
+        alert("현재 폴더에 중요 단어가 없습니다.");
+        return;
+      }
+      renderMeaningCheck(favorites, "favorites-view", `중요단어 뜻 확인 - ${currentFavoriteFolder}`);
+    }
+
+    /************************************************************
+     *  10. 단어시험 / 채점 / 결과 저장
+     ************************************************************/
+    function startVocabTest(mode = "meaning", amount = "random") {
+      const target = document.getElementById("vocab-view");
+      const words = getSelectedVocabWords();
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+
+      if (words.length === 0) {
+        target.innerHTML = "<div class='card'>시험을 만들 단어가 없습니다.</div>";
         return;
       }
 
-      renderVocabTest(
-        [...wrongWords],
-        activeTestContainerId,
-        "오답 재시험",
-        `틀린 ${wrongWords.length}개 단어만 다시 시험합니다.`
-      );
+      const selectedWords = amount === "all"
+        ? words
+        : shuffleArray(words).slice(0, Math.min(MAX_RANDOM_TEST_COUNT, words.length));
+
+      const modeLabel = mode === "listening"
+        ? "발음 듣고 영어 입력"
+        : amount === "all"
+          ? "Day 전체 단어시험"
+          : "랜덤 25문제 단어시험";
+
+      renderTest(selectedWords, {
+        mode: mode === "listening" ? "listening" : "meaning",
+        modeLabel,
+        targetId: "vocab-view",
+        book: selectedBook,
+        day: selectedDay,
+        source: amount
+      });
+    }
+
+    function renderTest(words, meta) {
+      currentVocabWords = words;
+      wrongWords = [];
+      testAlreadySaved = false;
+      currentTestMeta = meta;
+
+      let html = `
+        <div class="card">
+          <b>${escapeHtml(meta.modeLabel)}</b><br>
+          총 ${currentVocabWords.length}문제입니다.<br>
+          ${meta.mode === "listening" ? "발음을 듣고 알맞은 영어 단어를 입력하세요." : "뜻을 보고 알맞은 영어 단어를 입력하세요."}
+        </div>
+      `;
+
+      currentVocabWords.forEach((row, index) => {
+        const question = meta.mode === "listening"
+          ? `<button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊 발음 듣기</button>`
+          : escapeHtml(row[3]);
+
+        html += `
+          <div class="vocab-question">
+            <b>Q${index + 1}. ${question}</b>
+            ${makeAnswerInput(index)}
+          </div>
+        `;
+      });
+
+      html += `
+        <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
+        <div id="vocab-result"></div>
+      `;
+
+      document.getElementById(meta.targetId).innerHTML = html;
     }
 
     function gradeVocabTest() {
@@ -1338,20 +1790,16 @@
         const meaning = row[3];
         const input = document.getElementById(`answer-${index}`);
         const userAnswer = input ? input.value : "";
-
-        const isCorrect =
-          normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+        const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
 
         if (isCorrect) {
           correctCount++;
-
           if (input) {
             input.style.border = "3px solid #1b7f3a";
             input.style.backgroundColor = "#e8f8ee";
           }
         } else {
           wrongWords.push(row);
-
           if (input) {
             input.style.border = "3px solid #c0392b";
             input.style.backgroundColor = "#fdecea";
@@ -1363,18 +1811,19 @@
             <td>${escapeHtml(meaning)}</td>
             <td>${escapeHtml(userAnswer || "-")}</td>
             <td>${escapeHtml(correctAnswer)}</td>
-            <td class="${isCorrect ? "result-correct" : "result-wrong"}">
-              ${isCorrect ? "정답" : "오답"}
-            </td>
+            <td class="${isCorrect ? "result-correct" : "result-wrong"}">${isCorrect ? "정답" : "오답"}</td>
           </tr>
         `;
       });
+
+      const score = Math.round((correctCount / currentVocabWords.length) * 100);
 
       let resultHtml = `
         <div class="card">
           <b>채점 결과</b><br>
           ${currentVocabWords.length}문제 중 ${correctCount}개 정답<br>
-          점수: ${Math.round((correctCount / currentVocabWords.length) * 100)}점
+          점수: ${score}점
+          <div id="save-result-status" class="notice-small">결과 저장 중...</div>
         </div>
 
         <table>
@@ -1389,16 +1838,18 @@
       `;
 
       if (wrongWords.length > 0) {
-        resultHtml += makeWrongNoteHtml();
+        resultHtml += renderWrongNoteHtml();
       }
 
       const resultTarget = document.getElementById("vocab-result");
       resultTarget.innerHTML = resultHtml;
       resultTarget.scrollIntoView({ behavior: "smooth" });
+
+      saveResultToServer(correctCount, score);
     }
 
-    function makeWrongNoteHtml() {
-      let html = `
+    function renderWrongNoteHtml() {
+      let wrongNoteHtml = `
         <div style="margin-top:15px;">
           <button class="vocab-btn" onclick="startWrongWordTest()">
             틀린 단어 다시 시험 (${wrongWords.length}개)
@@ -1411,23 +1862,22 @@
             <tr>
               <th>뜻</th>
               <th>정답</th>
-              <th>중요<br>(${escapeHtml(currentFavoriteFolder)})</th>
+              <th>발음</th>
+              <th>중요</th>
             </tr>
       `;
 
       wrongWords.forEach(word => {
-        const key = makeFavoriteKey(word);
+        const key = makeWordKey(word);
         const isFavorite = isFavoriteInCurrentFolder(key);
 
-        html += `
+        wrongNoteHtml += `
           <tr>
             <td>${escapeHtml(word[3])}</td>
             <td>${escapeHtml(word[2])}</td>
+            <td><button class="speak-btn" onclick='speakWord(${JSON.stringify(String(word[2]))})'>🔊</button></td>
             <td>
-              <button
-                class="icon-btn"
-                onclick="toggleFavoriteFromTest('${encodeURIComponent(key)}', this)"
-              >
+              <button class="star-btn" onclick="toggleFavoriteFromTest('${encodeURIComponent(key)}', this)">
                 ${isFavorite ? "⭐" : "☆"}
               </button>
             </td>
@@ -1435,16 +1885,277 @@
         `;
       });
 
-      html += `
-          </table>
-        </div>
-      `;
+      wrongNoteHtml += "</table></div>";
+      return wrongNoteHtml;
+    }
 
-      return html;
+    async function saveResultToServer(correctCount, score) {
+      if (testAlreadySaved) return;
+      testAlreadySaved = true;
+
+      const status = document.getElementById("save-result-status");
+      const meta = currentTestMeta || {};
+      const first = currentVocabWords[0] || [];
+      const book = meta.book || first[0] || "";
+      const day = meta.day || first[1] || "";
+
+      try {
+        const wrongPayload = wrongWords.map(row => ({
+          book: row[0],
+          day: row[1],
+          english: row[2],
+          meaning: row[3]
+        }));
+
+        const result = await apiPost({
+          action: "saveVocabResult",
+          book,
+          day,
+          mode: meta.modeLabel || meta.mode || "단어시험",
+          total: currentVocabWords.length,
+          correct: correctCount,
+          score,
+          wrongJson: JSON.stringify(wrongPayload)
+        });
+
+        if (status) {
+          status.textContent = result.success ? "결과가 저장되었습니다." : (result.message || "결과 저장 실패");
+        }
+      } catch (err) {
+        if (status) status.textContent = "결과 저장에 실패했습니다. Apps Script 설정을 확인하세요.";
+      }
+    }
+
+    function startWrongWordTest() {
+      if (wrongWords.length === 0) {
+        alert("틀린 문제가 없습니다.");
+        return;
+      }
+
+      const targetId = currentTestMeta?.targetId || "vocab-view";
+      renderTest([...wrongWords], {
+        mode: "wrong-retest",
+        modeLabel: "오답 재시험",
+        targetId,
+        source: "wrongWords"
+      });
     }
 
     /************************************************************
-     *  8. 복사 / 드래그 / 붙여넣기 제한
+     *  11. 뜻 확인 카드 / 누적 오답
+     ************************************************************/
+    function startMeaningCheck() {
+      const words = getSelectedVocabWords();
+      if (words.length === 0) {
+        alert("확인할 단어가 없습니다.");
+        return;
+      }
+      renderMeaningCheck(words, "vocab-view", "뜻 확인 카드");
+    }
+
+    function renderMeaningCheck(words, targetId, title) {
+      let html = `
+        <div class="card">
+          <b>${escapeHtml(title)}</b><br>
+          영어 단어를 보고 뜻을 스스로 떠올린 뒤, 뜻 보기를 누르세요.
+        </div>
+      `;
+
+      words.forEach((row, index) => {
+        html += `
+          <div class="vocab-question">
+            <b>${index + 1}. <span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>${escapeHtml(row[2])}</span>
+              <button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button>
+            </b>
+            <button class="small-btn secondary" onclick="document.getElementById('meaning-${index}').style.display='block'">뜻 보기</button>
+            <div id="meaning-${index}" class="mini-card" style="display:none;">${escapeHtml(row[3])}</div>
+          </div>
+        `;
+      });
+
+      document.getElementById(targetId).innerHTML = html;
+    }
+
+    async function loadMyWrongNote() {
+      const target = document.getElementById("wrong-note-view");
+      target.innerHTML = "<div class='card'>누적 오답노트를 불러오는 중입니다...</div>";
+
+      try {
+        const result = await apiGet({ action: "getWrongNote" });
+        if (!result.success) {
+          target.innerHTML = `<div class='card'>${escapeHtml(result.message || "누적 오답을 불러오지 못했습니다.")}</div>`;
+          return;
+        }
+
+        serverWrongWords = result.items || [];
+
+        if (serverWrongWords.length === 0) {
+          target.innerHTML = "<div class='card'>누적 오답 단어가 없습니다.</div>";
+          return;
+        }
+
+        let html = `<div class="card"><b>누적 오답 ${serverWrongWords.length}개</b></div>`;
+        html += "<table><tr><th>단어장</th><th>Day</th><th>영어</th><th>뜻</th><th>틀린 횟수</th><th>마지막 오답</th></tr>";
+
+        serverWrongWords.forEach(item => {
+          html += `
+            <tr>
+              <td>${escapeHtml(item.book)}</td>
+              <td>${escapeHtml(item.day)}</td>
+              <td><span class="speak-word" onclick='speakWord(${JSON.stringify(String(item.english))})'>${escapeHtml(item.english)}</span></td>
+              <td>${escapeHtml(item.meaning)}</td>
+              <td>${escapeHtml(item.count)}</td>
+              <td>${escapeHtml(item.lastWrongAt || "")}</td>
+            </tr>
+          `;
+        });
+
+        html += "</table>";
+        target.innerHTML = html;
+      } catch (err) {
+        target.innerHTML = "<div class='card'>누적 오답 API 연결에 실패했습니다.</div>";
+      }
+    }
+
+    async function startServerWrongNoteTest() {
+      if (serverWrongWords.length === 0) {
+        await loadMyWrongNote();
+      }
+
+      if (serverWrongWords.length === 0) {
+        alert("누적 오답 단어가 없습니다.");
+        return;
+      }
+
+      const rows = serverWrongWords.map(item => [item.book, item.day, item.english, item.meaning, ""]);
+      const selected = shuffleArray(rows).slice(0, Math.min(MAX_RANDOM_TEST_COUNT, rows.length));
+
+      renderTest(selected, {
+        mode: "server-wrong-note",
+        modeLabel: "누적 오답 시험",
+        targetId: "wrong-note-view",
+        source: "serverWrongNote"
+      });
+    }
+
+    /************************************************************
+     *  12. 관리자 기능
+     ************************************************************/
+    function isAdmin() {
+      return ["admin", "teacher"].includes(String(currentUser?.role || "").toLowerCase());
+    }
+
+    async function refreshAdminSummary() {
+      const target = document.getElementById("admin-view");
+
+      if (!isAdmin()) {
+        target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+        return;
+      }
+
+      target.innerHTML = "<div class='card'>관리자 현황을 불러오는 중입니다...</div>";
+
+      try {
+        const result = await apiGet({ action: "getAdminSummary" });
+        if (!result.success) {
+          target.innerHTML = `<div class='card'>${escapeHtml(result.message || "관리자 현황을 불러오지 못했습니다.")}</div>`;
+          return;
+        }
+
+        let html = `
+          <div class="card">
+            <b>오늘 단어시험 현황</b><br>
+            오늘 응시 기록: ${escapeHtml(result.todayCount || 0)}건<br>
+            전체 누적 기록: ${escapeHtml(result.totalCount || 0)}건
+          </div>
+        `;
+
+        html += "<div class='mini-card'><b>최근 단어시험 기록</b></div>";
+        html += "<table><tr><th>날짜</th><th>이름</th><th>반</th><th>단어장</th><th>Day</th><th>점수</th><th>모드</th></tr>";
+        (result.recentResults || []).forEach(row => {
+          html += `
+            <tr>
+              <td>${escapeHtml(row.timestamp)}</td>
+              <td>${escapeHtml(row.name)}</td>
+              <td>${escapeHtml(row.className)}</td>
+              <td>${escapeHtml(row.book)}</td>
+              <td>${escapeHtml(row.day)}</td>
+              <td>${escapeHtml(row.score)}</td>
+              <td>${escapeHtml(row.mode)}</td>
+            </tr>
+          `;
+        });
+        html += "</table>";
+
+        html += "<div class='mini-card'><b>많이 틀린 단어 TOP 20</b></div>";
+        html += "<table><tr><th>영어</th><th>뜻</th><th>단어장</th><th>Day</th><th>누적 오답</th></tr>";
+        (result.topWrong || []).forEach(row => {
+          html += `
+            <tr>
+              <td>${escapeHtml(row.english)}</td>
+              <td>${escapeHtml(row.meaning)}</td>
+              <td>${escapeHtml(row.book)}</td>
+              <td>${escapeHtml(row.day)}</td>
+              <td>${escapeHtml(row.count)}</td>
+            </tr>
+          `;
+        });
+        html += "</table>";
+
+        target.innerHTML = html;
+      } catch (err) {
+        target.innerHTML = "<div class='card'>관리자 API 연결에 실패했습니다.</div>";
+      }
+    }
+
+    async function runVocabErrorCheck() {
+      const target = document.getElementById("admin-view");
+      if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
+
+      target.innerHTML = "<div class='card'>Vocab 오류를 검사하는 중입니다...</div>";
+
+      const result = await apiGet({ action: "checkVocabErrors" });
+      if (!result.success) {
+        target.innerHTML = `<div class='card'>${escapeHtml(result.message || "검사 실패")}</div>`;
+        return;
+      }
+
+      if ((result.errors || []).length === 0) {
+        target.innerHTML = "<div class='card'>Vocab 오류가 발견되지 않았습니다.</div>";
+        return;
+      }
+
+      let html = `<div class='card'><b>Vocab 오류 ${result.errors.length}개 발견</b></div>`;
+      html += "<table><tr><th>행</th><th>내용</th></tr>";
+      result.errors.forEach(err => {
+        html += `<tr><td>${escapeHtml(err.row)}</td><td>${escapeHtml(err.message)}</td></tr>`;
+      });
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    async function fillOrderNumbersFromAdmin() {
+      if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
+      if (!confirm("Vocab 시트의 A열 단어장명을 기준으로 F:G index표를 찾아 E열 정렬번호를 채울까요?")) return;
+
+      const result = await apiGet({ action: "fillVocabOrderNumbers" });
+      alert(result.message || (result.success ? "완료" : "실패"));
+    }
+
+    async function makeSpreadsheetBackup() {
+      if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
+      if (!confirm("현재 TestManager 스프레드시트 백업 사본을 만들까요?")) return;
+
+      const result = await apiGet({ action: "backupSpreadsheet" });
+      if (result.success) {
+        alert("백업이 완료되었습니다.\n" + (result.url || ""));
+      } else {
+        alert(result.message || "백업 실패");
+      }
+    }
+
+    /************************************************************
+     *  13. 복사 / 붙여넣기 / 드래그 제한
      ************************************************************/
     document.addEventListener("dragstart", function(e) {
       e.preventDefault();
@@ -1452,7 +2163,6 @@
 
     document.addEventListener("selectstart", function(e) {
       const tag = e.target.tagName;
-
       if (tag !== "INPUT" && tag !== "TEXTAREA") {
         e.preventDefault();
       }
@@ -1460,7 +2170,6 @@
 
     document.addEventListener("contextmenu", function(e) {
       const tag = e.target.tagName;
-
       if (tag !== "INPUT" && tag !== "TEXTAREA") {
         e.preventDefault();
       }
@@ -1474,10 +2183,12 @@
     });
 
     /************************************************************
-     *  9. 앱 시작
+     *  14. 초기 실행
      ************************************************************/
     window.onload = async () => {
       try {
+        restoreLogin();
+
         await Promise.all([
           loadNotice(),
           loadClassDropdown(),
@@ -1485,13 +2196,8 @@
           loadVocabBooks()
         ]);
 
-        document
-          .getElementById("exam-date")
-          .addEventListener("change", loadExam);
-
-        document
-          .getElementById("class-select")
-          .addEventListener("change", loadExam);
+        document.getElementById("exam-date").addEventListener("change", loadExam);
+        document.getElementById("class-select").addEventListener("change", loadExam);
       } catch (err) {
         console.error(err);
       } finally {
