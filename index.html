@@ -1126,7 +1126,91 @@
         font-size: 2.1em;
       }
     }
+/************************************************************
+ *  메인 팝업
+ ************************************************************/
+.main-popup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 1.2em;
+  background: rgba(0, 0, 0, 0.48);
+}
 
+.main-popup-box {
+  width: min(92vw, 460px);
+  max-height: 82vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+  padding: 1.35em;
+  border: 1px solid #dce9e5;
+}
+
+.main-popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8em;
+  margin-bottom: 0.8em;
+}
+
+.main-popup-title {
+  color: #24534a;
+  font-size: 1.35em;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.main-popup-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: #eaf5f1;
+  color: #24534a;
+  font-size: 1.45em;
+  font-weight: bold;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.main-popup-message {
+  color: #263f3a;
+  font-size: 1.02em;
+  line-height: 1.65;
+  white-space: pre-line;
+  margin: 0.7em 0 1.1em;
+}
+
+.main-popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+body.dark .main-popup-box {
+  background: #1f2a27;
+  color: #eef8f5;
+  border-color: #2e443f;
+}
+
+body.dark .main-popup-title {
+  color: #dcedc8;
+}
+
+body.dark .main-popup-message {
+  color: #eef8f5;
+}
+
+body.dark .main-popup-close {
+  background: #243d37;
+  color: #dcedc8;
+}
 
     /************************************************************
      *  10. 로고 기반 디자인 v3 - All바른 브랜드 UI
@@ -1889,7 +1973,31 @@
       </div>
     </div>
   </section>
+<!-- 메인 팝업 -->
+<div id="main-popup" class="main-popup-screen">
+  <div class="main-popup-box">
+    <div class="main-popup-header">
+      <div id="popup-title" class="main-popup-title"></div>
+      <button class="main-popup-close" onclick="closeMainPopup()">×</button>
+    </div>
 
+    <div id="popup-message" class="main-popup-message"></div>
+
+    <div class="main-popup-actions">
+      <button id="popup-link-button" class="vocab-btn" onclick="openPopupLink()">
+        확인
+      </button>
+
+      <button class="vocab-btn secondary" onclick="hidePopupToday()">
+        오늘 하루 보지 않기
+      </button>
+
+      <button class="vocab-btn secondary" onclick="closeMainPopup()">
+        닫기
+      </button>
+    </div>
+  </div>
+</div>
   <!-- 공지사항 -->
   <section id="notice">
     <div class="section-title">📌 공지사항</div>
@@ -2190,8 +2298,9 @@ function loadHomeTextFromCache() {
 
   if (cached) {
     try {
-      applyHomeText(JSON.parse(cached));
-      return;
+      homeTextMap = JSON.parse(cached);
+applyHomeText(homeTextMap);
+return;
     } catch (err) {
       console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
     }
@@ -2214,7 +2323,8 @@ async function loadHomeText() {
         textMap[key] = text;
       }
     });
-
+homeTextMap = textMap;
+    
     localStorage.setItem(
       "allbarun-home-text",
       JSON.stringify(textMap)
@@ -2249,7 +2359,91 @@ async function loadHomeText() {
       });
       return await res.json();
     }
+let homeTextMap = {};
+let currentPopupLink = "";
 
+function getTodayString() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isTodayInRange(startDate, endDate) {
+  const today = getTodayString();
+
+  const start = String(startDate || "").trim();
+  const end = String(endDate || "").trim();
+
+  if (start && today < start) return false;
+  if (end && today > end) return false;
+
+  return true;
+}
+
+function getHomeTextValue(key) {
+  return String(homeTextMap[key] || "").trim();
+}
+
+function loadMainPopupFromHomeText() {
+  const today = getTodayString();
+  const hiddenDate = localStorage.getItem("allbarun-popup-hidden-date");
+
+  if (hiddenDate === today) {
+    return;
+  }
+
+  const enabled = getHomeTextValue("popupEnabled").toUpperCase();
+  const title = getHomeTextValue("popupTitle");
+  const message = getHomeTextValue("popupMessage");
+  const startDate = getHomeTextValue("popupStartDate");
+  const endDate = getHomeTextValue("popupEndDate");
+  const buttonText = getHomeTextValue("popupButtonText") || "확인";
+  const buttonLink = getHomeTextValue("popupButtonLink");
+
+  if (enabled !== "Y") return;
+  if (!title || !message) return;
+  if (!isTodayInRange(startDate, endDate)) return;
+
+  document.getElementById("popup-title").textContent = title;
+  document.getElementById("popup-message").textContent = message;
+
+  const linkButton = document.getElementById("popup-link-button");
+  linkButton.textContent = buttonText;
+
+  currentPopupLink = buttonLink;
+
+  if (buttonLink) {
+    linkButton.style.display = "block";
+  } else {
+    linkButton.style.display = "none";
+  }
+
+  document.getElementById("main-popup").style.display = "flex";
+}
+
+function closeMainPopup() {
+  const popup = document.getElementById("main-popup");
+
+  if (popup) {
+    popup.style.display = "none";
+  }
+}
+
+function hidePopupToday() {
+  localStorage.setItem("allbarun-popup-hidden-date", getTodayString());
+  closeMainPopup();
+}
+
+function openPopupLink() {
+  if (currentPopupLink) {
+    window.open(currentPopupLink, "_blank");
+  } else {
+    closeMainPopup();
+  }
+}
     /************************************************************
      *  3. 로그인 / 사용자 관리
      ************************************************************/
@@ -3631,6 +3825,10 @@ async function loadHomeText() {
 
     document.getElementById("exam-date").addEventListener("change", loadExam);
     document.getElementById("class-select").addEventListener("change", loadExam);
+
+    setTimeout(() => {
+      loadMainPopupFromHomeText();
+    }, 600);
 
   } catch (err) {
     console.error(err);
