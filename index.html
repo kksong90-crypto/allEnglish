@@ -3617,14 +3617,7 @@ async function loadHomeText() {
      *  14. 초기 실행
      ************************************************************/
    window.onload = async () => {
-  if (sessionStorage.getItem("allbarun-login") === "Y") {
-    const loginScreen = document.getElementById("login-screen");
-
-    if (loginScreen) {
-      loginScreen.style.display = "none";
-    }
-  }
-
+  restoreLogin();
   loadHomeTextFromCache();
 
   try {
