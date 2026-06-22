@@ -576,6 +576,1111 @@
         padding: 0.45em 0.7em;
       }
     }
+
+
+    /************************************************************
+     *  9. 디자인 개선 v2 - 가시성 / 모바일 사용성 강화
+     ************************************************************/
+    :root {
+      --main: #2f5f53;
+      --main-strong: #234a41;
+      --main-soft: #e9f5f1;
+      --accent: #f3b642;
+      --accent-soft: #fff4d7;
+      --danger: #c84b45;
+      --danger-soft: #fdebea;
+      --success: #1f8a4c;
+      --success-soft: #e6f7ed;
+      --info: #316b86;
+      --info-soft: #e7f3f8;
+      --bg: #eef5f2;
+      --card: #ffffff;
+      --line: #d7e4df;
+      --text: #243b35;
+      --muted: #71807b;
+      --shadow: 0 10px 28px rgba(36, 59, 53, 0.10);
+      --shadow-soft: 0 5px 16px rgba(36, 59, 53, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(220, 237, 200, 0.7), transparent 36%),
+        linear-gradient(180deg, #f7fbf9 0%, var(--bg) 38%, #edf4f1 100%);
+      color: var(--text);
+    }
+
+    header {
+      position: relative;
+      background:
+        linear-gradient(135deg, var(--main-strong), var(--main) 64%, #4f8174);
+      padding: 1.15em 1em 1.05em;
+      letter-spacing: -0.02em;
+      box-shadow: 0 10px 26px rgba(47, 95, 83, 0.25);
+    }
+
+    header::after {
+      content: "학생용 학습 · 단어시험 · 재시험 관리";
+      display: block;
+      margin-top: 0.35em;
+      font-size: 0.42em;
+      font-weight: 600;
+      opacity: 0.88;
+      letter-spacing: 0;
+    }
+
+    .top-user-bar {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      padding: 0.72em 1em;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 4px 14px rgba(35, 74, 65, 0.06);
+    }
+
+    #user-label {
+      font-weight: 800;
+      color: var(--main-strong);
+    }
+
+    .top-user-bar button,
+    .mode-toggle {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--main);
+      border-radius: 999px;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .top-user-bar button:active,
+    .mode-toggle:active,
+    .vocab-btn:active,
+    .small-btn:active,
+    .speak-btn:active,
+    .star-btn:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    nav {
+      position: sticky;
+      top: 50px;
+      z-index: 70;
+      gap: 6px;
+      justify-content: flex-start;
+      padding: 0.48em 0.55em;
+      background: rgba(233, 245, 241, 0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 18px rgba(35, 74, 65, 0.07);
+      scrollbar-width: none;
+    }
+
+    nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    nav button {
+      flex: 0 0 auto;
+      min-width: 94px;
+      border-radius: 999px;
+      padding: 0.78em 0.85em;
+      border-bottom: none;
+      background: rgba(255, 255, 255, 0.68);
+      color: var(--main);
+      font-size: 1.01em;
+    }
+
+    nav button.active {
+      border-bottom: none;
+      background: var(--main);
+      color: #fff;
+      box-shadow: 0 7px 16px rgba(47, 95, 83, 0.23);
+    }
+
+    section {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      padding: 1.45em 1.1em 2.5em;
+    }
+
+    .section-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35em;
+      margin: 0.4em 0 0.85em;
+      padding: 0.45em 0.75em;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--line);
+      color: var(--main-strong);
+      box-shadow: var(--shadow-soft);
+      letter-spacing: -0.02em;
+    }
+
+    .card,
+    .mini-card,
+    .vocab-question,
+    .progress-box,
+    .control-card,
+    .summary-card {
+      border: 1px solid rgba(215, 228, 223, 0.95);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      padding: 1.25em;
+      margin: 1em 0;
+    }
+
+    .mini-card,
+    .progress-box,
+    .control-card,
+    .summary-card {
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .control-card {
+      padding: 1em;
+      margin: 0.85em 0 1em;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85em;
+      align-items: end;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 0.35em;
+      color: var(--main-strong);
+      font-size: 0.92em;
+      font-weight: 800;
+    }
+
+    .empty-card {
+      border: 1px dashed #b8cfc7;
+      background: rgba(255,255,255,0.74);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    select,
+    input[type="date"],
+    input[type="text"],
+    input[type="password"] {
+      min-height: 48px;
+      border: 1px solid #c9d9d4;
+      border-radius: 13px;
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    select:focus,
+    input[type="date"]:focus,
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--main);
+      box-shadow: 0 0 0 4px rgba(47, 95, 83, 0.12);
+    }
+
+    .button-row {
+      gap: 0.7em;
+    }
+
+    .vocab-btn,
+    .small-btn {
+      min-height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--main), var(--main-strong));
+      box-shadow: 0 8px 18px rgba(47, 95, 83, 0.18);
+      letter-spacing: -0.01em;
+    }
+
+    .vocab-btn.secondary,
+    .small-btn.secondary {
+      background: linear-gradient(135deg, #6f8f86, #567c72);
+    }
+
+    .vocab-btn.warning,
+    .small-btn.warning {
+      background: linear-gradient(135deg, #c65d54, #9d3f39);
+    }
+
+    .table-wrap,
+    table {
+      overflow: hidden;
+      border-radius: var(--radius-md);
+    }
+
+    table {
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    th {
+      background: linear-gradient(180deg, #f2faf7, #e5f3ee);
+      color: var(--main-strong);
+      font-weight: 900;
+      border-color: var(--line);
+    }
+
+    td {
+      border-color: #e1ebe7;
+      background: #fff;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdfc;
+    }
+
+    .word-english {
+      font-size: 1.08em;
+      font-weight: 900;
+      color: var(--main-strong);
+    }
+
+    .meaning-cell {
+      text-align: left;
+      color: #344d47;
+    }
+
+    .speak-btn {
+      min-width: 44px;
+      min-height: 36px;
+      border-radius: 999px;
+      background: var(--info-soft);
+      color: var(--info);
+      font-weight: 900;
+    }
+
+    .star-btn {
+      width: 44px;
+      height: 40px;
+      border-radius: 999px;
+      font-size: 1.35em;
+    }
+
+    .star-btn:hover {
+      background: var(--accent-soft);
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.7em;
+      margin: 0.75em 0;
+    }
+
+    .status-item {
+      padding: 0.85em;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .status-label {
+      display: block;
+      margin-bottom: 0.25em;
+      color: var(--muted);
+      font-size: 0.82em;
+      font-weight: 800;
+    }
+
+    .status-value {
+      color: var(--main-strong);
+      font-size: 1.12em;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0.28em 0.65em;
+      border-radius: 999px;
+      font-size: 0.9em;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge-danger {
+      color: #9a2c28;
+      background: var(--danger-soft);
+      border: 1px solid #f2c3c0;
+    }
+
+    .badge-warning {
+      color: #8b5b00;
+      background: var(--accent-soft);
+      border: 1px solid #f3d17d;
+    }
+
+    .badge-success {
+      color: #176c3d;
+      background: var(--success-soft);
+      border: 1px solid #bce5cd;
+    }
+
+    .notice-card {
+      position: relative;
+      padding-left: 1.4em;
+      overflow: hidden;
+    }
+
+    .notice-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 7px;
+      background: linear-gradient(180deg, var(--main), #8eb9aa);
+    }
+
+    .notice-date {
+      display: inline-block;
+      margin-bottom: 0.45em;
+      color: var(--muted);
+      font-size: 0.9em;
+      font-weight: 800;
+    }
+
+    .notice-title {
+      display: block;
+      margin-bottom: 0.45em;
+      color: var(--main-strong);
+      font-size: 1.18em;
+      font-weight: 900;
+    }
+
+    .score-card {
+      text-align: center;
+      background: linear-gradient(135deg, #ffffff, #f4fbf8);
+    }
+
+    .score-number {
+      font-size: 2.4em;
+      line-height: 1;
+      font-weight: 1000;
+      color: var(--main-strong);
+      letter-spacing: -0.04em;
+    }
+
+    .score-sub {
+      margin-top: 0.5em;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .score-bar {
+      height: 14px;
+      margin: 1em 0 0.35em;
+      border-radius: 999px;
+      background: #e7f0ec;
+      overflow: hidden;
+      border: 1px solid #d2e2dc;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+    }
+
+    .test-action-bar {
+      position: sticky;
+      bottom: 0;
+      padding: 0.75em 0 0.3em;
+      background: linear-gradient(180deg, rgba(238,245,242,0), rgba(238,245,242,0.96) 28%, rgba(238,245,242,1));
+      z-index: 60;
+    }
+
+    #vocab-search-result table,
+    #admin-view table,
+    #favorites-view table,
+    #retest-table table,
+    #exam-table table {
+      font-size: 0.96em;
+    }
+
+    #admin .card:first-of-type {
+      background: linear-gradient(135deg, #f2f7ff, #ffffff);
+      border-color: #cfdcf7;
+    }
+
+    body.dark {
+      --bg: #151c1a;
+      --card: #222b28;
+      --line: #374844;
+      --text: #eef5f2;
+      --muted: #b2bfba;
+      background: linear-gradient(180deg, #151c1a 0%, #101514 100%);
+    }
+
+    body.dark .top-user-bar,
+    body.dark nav {
+      background: rgba(31, 40, 37, 0.94);
+      border-color: #33443f;
+    }
+
+    body.dark .section-title,
+    body.dark .control-card,
+    body.dark .summary-card,
+    body.dark .empty-card {
+      background: #222b28;
+      border-color: #374844;
+      color: #dcedc8;
+    }
+
+    body.dark td,
+    body.dark tr:nth-child(even) td {
+      background: #222b28;
+      border-color: #374844;
+      color: #edf6f2;
+    }
+
+    body.dark .word-english,
+    body.dark .meaning-cell,
+    body.dark .status-value,
+    body.dark .notice-title,
+    body.dark #user-label {
+      color: #dcedc8;
+    }
+
+    body.dark .status-item,
+    body.dark .score-card {
+      background: #1f2825;
+      border-color: #374844;
+    }
+
+    body.dark .test-action-bar {
+      background: linear-gradient(180deg, rgba(21,28,26,0), rgba(21,28,26,0.96) 28%, #151c1a);
+    }
+
+    @media (max-width: 720px) {
+      .control-grid,
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-user-bar {
+        top: 0;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      nav {
+        top: 74px;
+      }
+
+      nav button {
+        min-width: 98px;
+      }
+
+      section {
+        padding: 1em 0.75em 2.2em;
+      }
+
+      .card,
+      .mini-card,
+      .progress-box,
+      .control-card {
+        padding: 1em;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      th,
+      td {
+        white-space: normal;
+      }
+
+      .score-number {
+        font-size: 2.1em;
+      }
+    }
+
+
+    /************************************************************
+     *  10. 로고 기반 디자인 v3 - All바른 브랜드 UI
+     ************************************************************/
+    :root {
+      --brand: #356f63;
+      --brand-dark: #24534a;
+      --brand-deep: #1d433c;
+      --brand-mint: #eaf5f1;
+      --brand-mint-2: #f4faf8;
+      --brand-line: #dce9e5;
+      --brand-text: #173b35;
+      --brand-muted: #6d817b;
+      --brand-shadow: 0 12px 30px rgba(29, 67, 60, 0.12);
+      --brand-shadow-soft: 0 6px 18px rgba(29, 67, 60, 0.08);
+    }
+
+    body {
+      min-height: 100vh;
+      padding-bottom: 86px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(53, 111, 99, 0.09), transparent 34%),
+        linear-gradient(180deg, #ffffff 0%, #f7fbf9 38%, #eef6f3 100%);
+      color: var(--brand-text);
+    }
+
+    .brand-header {
+      position: sticky;
+      top: 0;
+      z-index: 110;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+      padding: 0.78em 1.05em;
+      box-shadow: 0 1px 0 var(--brand-line);
+    }
+
+    .brand-header::after {
+      display: none;
+    }
+
+    .brand-wrap {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.7em;
+    }
+
+    .brand-logo-wide {
+      width: min(430px, 72vw);
+      max-height: 58px;
+      object-fit: contain;
+      object-position: left center;
+      display: block;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex-shrink: 0;
+    }
+
+    .header-action,
+    .brand-mode-toggle {
+      position: static !important;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--brand-line);
+      border-radius: 50%;
+      background: #fff;
+      color: var(--brand);
+      font-size: 1.05em;
+      padding: 0 !important;
+      box-shadow: var(--brand-shadow-soft);
+      cursor: pointer;
+    }
+
+    .top-user-bar {
+      position: sticky;
+      top: 73px;
+      z-index: 100;
+      background: rgba(244, 250, 248, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--brand-line);
+      box-shadow: none;
+    }
+
+    .top-user-bar button {
+      box-shadow: none;
+    }
+
+    nav.app-tabs {
+      top: 125px;
+      padding: 0.58em 0.75em;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--brand-line);
+      box-shadow: 0 8px 20px rgba(29, 67, 60, 0.06);
+    }
+
+    nav.app-tabs button {
+      min-width: 92px;
+      background: transparent;
+      color: #263f3a;
+      border-radius: 0;
+      border-bottom: 3px solid transparent;
+      box-shadow: none;
+      padding: 0.85em 0.65em;
+      font-weight: 800;
+    }
+
+    nav.app-tabs button.active {
+      background: transparent;
+      color: var(--brand);
+      border-bottom: 3px solid var(--brand);
+      box-shadow: none;
+    }
+
+    .home-section {
+      max-width: 1100px;
+      padding-top: 1.25em;
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      padding: clamp(1.35em, 4vw, 2.5em);
+      color: #fff;
+      background:
+        linear-gradient(135deg, rgba(36, 83, 74, 0.97), rgba(53, 111, 99, 0.94)),
+        radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.16), transparent 36%);
+      box-shadow: 0 18px 34px rgba(29, 67, 60, 0.24);
+      min-height: 245px;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 42%),
+        linear-gradient(315deg, rgba(255,255,255,0.06) 0%, transparent 36%);
+      pointer-events: none;
+    }
+
+    .hero-card::after {
+      content: "📖";
+      position: absolute;
+      right: clamp(0.25em, 5vw, 1.8em);
+      bottom: 0.35em;
+      font-size: clamp(5.5rem, 20vw, 9rem);
+      opacity: 0.14;
+      filter: grayscale(1);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      padding: 0.42em 0.75em;
+      margin-bottom: 1em;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.23);
+      font-size: 0.95em;
+      font-weight: 800;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.05rem);
+      line-height: 1.22;
+      letter-spacing: -0.06em;
+      font-weight: 900;
+    }
+
+    .hero-subtitle {
+      margin: 1em 0 1.25em;
+      color: rgba(255, 255, 255, 0.82);
+      line-height: 1.65;
+      font-size: 1.06em;
+    }
+
+    .hero-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55em;
+      min-width: 170px;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      background: rgba(255, 255, 255, 0.10);
+      color: #fff;
+      border-radius: 999px;
+      padding: 0.82em 1.35em;
+      font-size: 1.02em;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .quick-panel {
+      margin-top: 1.1em;
+      padding: 1.15em;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--brand-line);
+      box-shadow: var(--brand-shadow);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.8em;
+    }
+
+    .quick-tile {
+      border: none;
+      background: #fff;
+      border-radius: 18px;
+      padding: 1em 0.6em;
+      box-shadow: 0 6px 16px rgba(29, 67, 60, 0.06);
+      cursor: pointer;
+      color: var(--brand-text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5em;
+      min-height: 112px;
+      position: relative;
+    }
+
+    .quick-icon {
+      width: 56px;
+      height: 56px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      background: var(--brand-mint);
+      color: var(--brand);
+      font-size: 1.8em;
+      font-weight: 900;
+    }
+
+    .quick-tile b {
+      font-size: 0.98em;
+      white-space: nowrap;
+    }
+
+    .quick-badge {
+      position: absolute;
+      top: 0.72em;
+      right: 0.72em;
+      min-width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 0.78em;
+      font-weight: 900;
+      padding: 0 0.45em;
+    }
+
+    .dashboard-grid {
+      margin-top: 1.1em;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85em;
+    }
+
+    .dashboard-card {
+      display: grid;
+      grid-template-columns: 82px 1fr auto;
+      gap: 1.05em;
+      align-items: center;
+      padding: 1.15em;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid var(--brand-line);
+      box-shadow: var(--brand-shadow-soft);
+    }
+
+    .dashboard-icon {
+      width: 72px;
+      height: 72px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--brand-mint);
+      color: var(--brand);
+      font-size: 2em;
+      flex-shrink: 0;
+    }
+
+    .dashboard-card h3 {
+      margin: 0 0 0.35em;
+      font-size: 1.35em;
+      letter-spacing: -0.03em;
+      color: #111;
+    }
+
+    .dashboard-card p,
+    .dashboard-card ul {
+      margin: 0;
+      color: #3f4e4a;
+      line-height: 1.62;
+      padding-left: 1.1em;
+    }
+
+    .dashboard-card p {
+      padding-left: 0;
+    }
+
+    .dashboard-action {
+      min-width: 104px;
+      border: 1px solid #bdd2cc;
+      background: #f7fbfa;
+      color: var(--brand);
+      border-radius: 999px;
+      padding: 0.72em 0.95em;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .dashboard-meta {
+      display: flex;
+      gap: 0.45em;
+      flex-wrap: wrap;
+      margin-top: 0.45em;
+    }
+
+    .dashboard-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.22em 0.7em;
+      border-radius: 999px;
+      border: 1px solid #a9cbc2;
+      color: var(--brand);
+      background: #f4fbf8;
+      font-weight: 900;
+      font-size: 0.88em;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 120;
+      display: none;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: end;
+      min-height: 76px;
+      padding: 0.38em 0.55em max(0.38em, env(safe-area-inset-bottom));
+      background: linear-gradient(135deg, var(--brand-deep), var(--brand));
+      box-shadow: 0 -12px 30px rgba(29, 67, 60, 0.22);
+    }
+
+    .bottom-nav button {
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.64);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25em;
+      font-size: 0.78em;
+      font-weight: 800;
+      padding: 0.35em 0.2em;
+      cursor: pointer;
+    }
+
+    .bottom-nav button .bottom-icon {
+      font-size: 1.45em;
+    }
+
+    .bottom-nav button.active {
+      color: #fff;
+    }
+
+    .bottom-logo-button {
+      transform: translateY(-17px);
+    }
+
+    .bottom-logo {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.2);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+      background: var(--brand);
+      object-fit: cover;
+    }
+
+    .section-title {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding-left: 0;
+      padding-right: 0;
+      font-size: 1.5em;
+    }
+
+    .card,
+    .mini-card,
+    .progress-box,
+    .control-card {
+      border-radius: 20px;
+      border: 1px solid var(--brand-line);
+      box-shadow: var(--brand-shadow-soft);
+    }
+
+    .vocab-btn {
+      border-radius: 999px;
+      background: var(--brand);
+      box-shadow: 0 7px 16px rgba(53, 111, 99, 0.18);
+    }
+
+    .vocab-btn.secondary {
+      background: #688d85;
+    }
+
+    .vocab-btn.warning {
+      background: #be6a42;
+    }
+
+    th {
+      background: var(--brand-mint);
+      color: var(--brand-dark);
+      font-weight: 900;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdfc;
+    }
+
+    body.dark {
+      background: linear-gradient(180deg, #121816 0%, #17231f 100%);
+    }
+
+    body.dark .brand-header,
+    body.dark nav.app-tabs,
+    body.dark .top-user-bar {
+      background: rgba(25, 35, 32, 0.95);
+      border-color: #2e443f;
+    }
+
+    body.dark .quick-panel,
+    body.dark .quick-tile,
+    body.dark .dashboard-card {
+      background: #1f2a27;
+      border-color: #2e443f;
+    }
+
+    body.dark .dashboard-card h3,
+    body.dark .dashboard-card p,
+    body.dark .dashboard-card ul {
+      color: #eef8f5;
+    }
+
+    body.dark .quick-icon,
+    body.dark .dashboard-icon {
+      background: #243d37;
+      color: #aee3d5;
+    }
+
+    body.dark .dashboard-action {
+      background: #1a2623;
+      border-color: #3f5f57;
+      color: #bfeee2;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding-bottom: 88px;
+      }
+
+      .brand-header {
+        padding: 0.62em 0.78em;
+      }
+
+      .brand-logo-wide {
+        width: min(315px, 68vw);
+        max-height: 49px;
+      }
+
+      .header-action,
+      .brand-mode-toggle {
+        width: 38px;
+        height: 38px;
+      }
+
+      .top-user-bar {
+        top: 62px;
+      }
+
+      nav.app-tabs {
+        top: 117px;
+      }
+
+      .quick-panel {
+        grid-template-columns: repeat(5, minmax(78px, 1fr));
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .quick-panel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .quick-tile {
+        min-width: 78px;
+        min-height: 95px;
+        padding: 0.82em 0.38em;
+      }
+
+      .quick-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.55em;
+      }
+
+      .dashboard-card {
+        grid-template-columns: 56px 1fr;
+        align-items: start;
+      }
+
+      .dashboard-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.55em;
+      }
+
+      .dashboard-action {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .bottom-nav {
+        display: grid;
+      }
+    }
+
   </style>
 </head>
 
@@ -646,9 +1751,20 @@
     </div>
   </div>
 
-  <button class="mode-toggle" onclick="toggleMode()">🌗 모드 전환</button>
+  <header class="brand-header">
+    <div class="brand-wrap">
+      <img
+        class="brand-logo-wide"
+        src="data:image/png;base64,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"
+        alt="All바른 영수 전문학원"
+      />
 
-  <header>All바른 English</header>
+      <div class="header-actions">
+        <button class="header-action" onclick="showTab('notice')" aria-label="공지사항">🔔</button>
+        <button class="mode-toggle brand-mode-toggle" onclick="toggleMode()" aria-label="다크모드">🌗</button>
+      </div>
+    </div>
+  </header>
 
   <div class="top-user-bar">
     <div id="user-label">로그인이 필요합니다.</div>
@@ -658,17 +1774,125 @@
     </div>
   </div>
 
-  <nav>
-    <button onclick="showTab('notice')" class="active">공지사항</button>
-    <button onclick="showTab('exam')">시험정보</button>
-    <button onclick="showTab('retest')">재시험</button>
-    <button onclick="showTab('vocab')">단어장</button>
-    <button onclick="showTab('favorites')">⭐중요단어</button>
-    <button id="admin-tab-button" onclick="showTab('admin')">관리자</button>
+  <nav class="app-tabs">
+    <button data-tab="home" onclick="showTab('home')" class="active">홈</button>
+    <button data-tab="notice" onclick="showTab('notice')">공지사항</button>
+    <button data-tab="exam" onclick="showTab('exam')">시험정보</button>
+    <button data-tab="retest" onclick="showTab('retest')">재시험</button>
+    <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
+    <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
+    <button data-tab="admin" id="admin-tab-button" onclick="showTab('admin')">관리자</button>
   </nav>
 
+  <!-- 홈 -->
+  <section id="home" class="active home-section">
+    <div class="hero-card">
+      <div class="hero-content">
+        <div class="hero-kicker">All바른 학습 관리</div>
+        <h1 class="hero-title">
+          바른 학습 습관이<br />
+          최고의 결과를 만듭니다.
+        </h1>
+        <p class="hero-subtitle">
+          오늘도 All바른과 함께, 한 걸음 더 성장하세요.<br />
+          공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.
+        </p>
+        <button class="hero-button" onclick="showTab('vocab')">
+          오늘의 학습 보기 <span>›</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="quick-panel">
+      <button class="quick-tile" onclick="showTab('notice')">
+        <span class="quick-icon">📢</span>
+        <b>공지사항</b>
+        <span class="quick-badge">N</span>
+      </button>
+
+      <button class="quick-tile" onclick="showTab('exam')">
+        <span class="quick-icon">📅</span>
+        <b>시험정보</b>
+      </button>
+
+      <button class="quick-tile" onclick="showTab('retest')">
+        <span class="quick-icon">🧾</span>
+        <b>재시험</b>
+      </button>
+
+      <button class="quick-tile" onclick="showTab('vocab')">
+        <span class="quick-icon">📘</span>
+        <b>단어장</b>
+      </button>
+
+      <button class="quick-tile" onclick="showTab('favorites')">
+        <span class="quick-icon">⭐</span>
+        <b>중요단어</b>
+      </button>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <div class="dashboard-icon">📢</div>
+        <div>
+          <h3>공지사항</h3>
+          <ul>
+            <li>학원 주요 공지와 수업 안내를 확인하세요.</li>
+            <li>새 공지가 있으면 가장 먼저 확인하는 공간입니다.</li>
+          </ul>
+        </div>
+        <button class="dashboard-action" onclick="showTab('notice')">더보기</button>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-icon">📅</div>
+        <div>
+          <h3>시험정보</h3>
+          <p>반별 시험 일정과 시험범위를 빠르게 확인할 수 있습니다.</p>
+          <div class="dashboard-meta">
+            <span class="dashboard-pill">날짜별 조회</span>
+            <span class="dashboard-pill">반별 조회</span>
+          </div>
+        </div>
+        <button class="dashboard-action" onclick="showTab('exam')">확인하기</button>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-icon">🧾</div>
+        <div>
+          <h3>재시험</h3>
+          <p>재시험 대상 여부와 시험범위를 한눈에 확인하세요.</p>
+        </div>
+        <button class="dashboard-action" onclick="showTab('retest')">바로가기</button>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-icon">📘</div>
+        <div>
+          <h3>단어장</h3>
+          <p>Day별 단어 학습, 발음 듣기, 직접 입력 단어시험을 진행합니다.</p>
+          <div class="dashboard-meta">
+            <span class="dashboard-pill">발음</span>
+            <span class="dashboard-pill">오답</span>
+            <span class="dashboard-pill">진행률</span>
+          </div>
+        </div>
+        <button class="dashboard-action" onclick="showTab('vocab')">학습하기</button>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-icon">⭐</div>
+        <div>
+          <h3>중요단어</h3>
+          <p>학생이 직접 만든 폴더별 중요단어와 누적 오답노트를 복습합니다.</p>
+        </div>
+        <button class="dashboard-action" onclick="showTab('favorites')">복습하기</button>
+      </div>
+    </div>
+  </section>
+
   <!-- 공지사항 -->
-  <section id="notice" class="active">
+  <section id="notice">
     <div class="section-title">📌 공지사항</div>
     <div id="notice-content"></div>
   </section>
@@ -676,8 +1900,20 @@
   <!-- 시험정보 -->
   <section id="exam">
     <div class="section-title">📝 시험정보</div>
-    <input type="date" id="exam-date" />
-    <select id="class-select"></select>
+
+    <div class="control-card">
+      <div class="control-grid">
+        <div>
+          <label class="field-label" for="exam-date">시험 날짜</label>
+          <input type="date" id="exam-date" />
+        </div>
+        <div>
+          <label class="field-label" for="class-select">반 선택</label>
+          <select id="class-select"></select>
+        </div>
+      </div>
+    </div>
+
     <div id="exam-table"></div>
   </section>
 
@@ -691,21 +1927,31 @@
   <section id="vocab">
     <div class="section-title">📘 단어장</div>
 
-    <select id="vocab-book-select"></select>
-    <select id="vocab-day-select"></select>
+    <div class="control-card">
+      <div class="control-grid">
+        <div>
+          <label class="field-label" for="vocab-book-select">단어장 선택</label>
+          <select id="vocab-book-select"></select>
+        </div>
+        <div>
+          <label class="field-label" for="vocab-day-select">Day 선택</label>
+          <select id="vocab-day-select"></select>
+        </div>
+      </div>
 
-    <div class="button-row">
-      <button class="vocab-btn secondary" onclick="moveDay(-1)">← 이전 Day</button>
-      <button class="vocab-btn secondary" onclick="moveDay(1)">다음 Day →</button>
+      <div class="button-row">
+        <button class="vocab-btn secondary" onclick="moveDay(-1)">← 이전 Day</button>
+        <button class="vocab-btn secondary" onclick="moveDay(1)">다음 Day →</button>
+      </div>
     </div>
 
     <div class="mini-card">
-      <b>중요단어 저장 폴더</b>
+      <b>⭐ 중요단어 저장 폴더</b>
       <div id="folder-control-vocab"></div>
     </div>
 
     <div class="mini-card">
-      <b>단어 검색</b>
+      <b>🔎 단어 검색</b>
       <input
         type="text"
         id="vocab-search-input"
@@ -766,6 +2012,33 @@
 
     <div id="admin-view"></div>
   </section>
+
+  <!-- 모바일 하단 바로가기 -->
+  <div class="bottom-nav" aria-label="하단 바로가기">
+    <button data-tab="home" onclick="showTab('home')" class="active">
+      <span class="bottom-icon">🏠</span>
+      <span>홈</span>
+    </button>
+
+    <button data-tab="exam" onclick="showTab('exam')">
+      <span class="bottom-icon">📅</span>
+      <span>시험정보</span>
+    </button>
+
+    <button data-tab="vocab" onclick="showTab('vocab')" class="bottom-logo-button">
+      <img class="bottom-logo" src="data:image/jpeg;base64,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" alt="All바른" />
+    </button>
+
+    <button data-tab="favorites" onclick="showTab('favorites')">
+      <span class="bottom-icon">⭐</span>
+      <span>중요단어</span>
+    </button>
+
+    <button data-tab="retest" onclick="showTab('retest')">
+      <span class="bottom-icon">🧾</span>
+      <span>재시험</span>
+    </button>
+  </div>
 
   <!-- 로딩 -->
   <div id="loader">
@@ -1044,14 +2317,16 @@
      *  4. 화면 전환 / 모드 / 발음
      ************************************************************/
     function showTab(tabId) {
-      document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
-      document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+      document.querySelectorAll("[data-tab]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabId);
+      });
 
-      const navButton = document.querySelector("nav button[onclick*='" + tabId + "']");
-      if (navButton) navButton.classList.add("active");
+      document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
 
       const section = document.getElementById(tabId);
       if (section) section.classList.add("active");
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
 
       if (tabId === "favorites") {
         renderFolderControls();
@@ -1130,16 +2405,22 @@
         i === 0 || (row[0] === className && cleanDate(row[1]) === date)
       );
 
+      if (filtered.length <= 1) {
+        table.innerHTML = "<div class='card empty-card'>선택한 날짜와 반에 해당하는 시험정보가 없습니다.</div>";
+        return;
+      }
+
       let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${escapeHtml(h)}</th>`).join("") + "</tr>";
 
       for (let i = 1; i < filtered.length; i++) {
-        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) =>
-          `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
-        ).join("") + "</tr>";
+        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) => {
+          const value = j === 1 ? cleanDate(cell) : cell;
+          return `<td>${escapeHtml(value)}</td>`;
+        }).join("") + "</tr>";
       }
 
       html += "</table>";
-      table.innerHTML = html;
+      table.innerHTML = `<div class="mini-card"><b>검색 결과 ${filtered.length - 1}건</b></div>${html}`;
     }
 
     async function loadRetest() {
@@ -1152,14 +2433,23 @@
 
       for (let i = 1; i < data.length; i++) {
         html += "<tr>" + data[i].map((cell, j) => {
+          const header = data[0][j];
           if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-          if (data[0][j] === "재시험") return null;
+          if (header === "재시험") return null;
+          if (header === "판정결과") {
+            const value = String(cell || "");
+            const badgeClass = value.includes("단어쓰기") ? "badge-warning" : value.includes("대상") ? "badge-danger" : "badge-success";
+            return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
+          }
+          if (header === "시험범위") return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
           return `<td>${escapeHtml(cell)}</td>`;
         }).filter(c => c).join("") + "</tr>";
       }
 
       html += "</table>";
-      target.innerHTML = html;
+      target.innerHTML = data.length <= 1
+        ? "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>"
+        : html;
     }
 
     /************************************************************
@@ -1491,6 +2781,23 @@
       renderStudentProgress(selectedBook, selectedDay);
 
       let html = `
+        <div class="summary-card" style="padding:1em; margin:0.8em 0 1em;">
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">현재 단어장</span>
+              <span class="status-value">${escapeHtml(selectedBook)}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">현재 Day</span>
+              <span class="status-value">${escapeHtml(selectedDay)}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">단어 수</span>
+              <span class="status-value">${words.length}개</span>
+            </div>
+          </div>
+        </div>
+
         <div class="button-row">
           <button class="vocab-btn secondary" onclick="toggleWordHide()">
             ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
@@ -1525,14 +2832,14 @@
       return `
         <tr>
           <td>
-            <span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>
+            <span class="speak-word word-english" onclick='speakWord(${JSON.stringify(String(row[2]))})'>
               ${escapeHtml(shownEnglish)}
             </span>
           </td>
           <td>
             <button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button>
           </td>
-          <td>${escapeHtml(row[3])}</td>
+          <td class="meaning-cell">${escapeHtml(row[3])}</td>
           <td>
             <button class="star-btn" onclick="toggleFavorite('${encodeURIComponent(key)}')">
               ${isFavorite ? "⭐" : "☆"}
@@ -1561,10 +2868,21 @@
 
         target.innerHTML = `
           <div class="progress-box">
-            <b>학습 현황</b><br>
-            최근 점수: ${escapeHtml(result.latestScore || "기록 없음")}<br>
-            이 Day 응시 횟수: ${escapeHtml(result.testCount || 0)}회<br>
-            누적 오답 단어: ${escapeHtml(result.wrongCount || 0)}개
+            <b>📊 학습 현황</b>
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">최근 점수</span>
+                <span class="status-value">${escapeHtml(result.latestScore || "기록 없음")}</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">이 Day 응시</span>
+                <span class="status-value">${escapeHtml(result.testCount || 0)}회</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">누적 오답</span>
+                <span class="status-value">${escapeHtml(result.wrongCount || 0)}개</span>
+              </div>
+            </div>
           </div>
         `;
       } catch (err) {
@@ -1645,9 +2963,21 @@
       }
 
       let html = `
-        <div class="card">
-          <b>⭐ ${escapeHtml(currentFavoriteFolder)} 폴더</b><br>
-          저장된 중요 단어 ${favorites.length}개
+        <div class="summary-card" style="padding:1em; margin:0.8em 0 1em;">
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">현재 폴더</span>
+              <span class="status-value">⭐ ${escapeHtml(currentFavoriteFolder)}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">저장 단어</span>
+              <span class="status-value">${favorites.length}개</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">학습 방식</span>
+              <span class="status-value">시험 / 뜻 확인</span>
+            </div>
+          </div>
         </div>
 
         <div class="button-row">
@@ -1752,8 +3082,9 @@
       currentTestMeta = meta;
 
       let html = `
-        <div class="card">
-          <b>${escapeHtml(meta.modeLabel)}</b><br>
+        <div class="card test-header-card">
+          <span class="badge badge-success">단어시험</span><br><br>
+          <b style="font-size:1.2em;">${escapeHtml(meta.modeLabel)}</b><br>
           총 ${currentVocabWords.length}문제입니다.<br>
           ${meta.mode === "listening" ? "발음을 듣고 알맞은 영어 단어를 입력하세요." : "뜻을 보고 알맞은 영어 단어를 입력하세요."}
         </div>
@@ -1773,7 +3104,9 @@
       });
 
       html += `
-        <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
+        <div class="test-action-bar">
+          <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
+        </div>
         <div id="vocab-result"></div>
       `;
 
@@ -1819,10 +3152,11 @@
       const score = Math.round((correctCount / currentVocabWords.length) * 100);
 
       let resultHtml = `
-        <div class="card">
-          <b>채점 결과</b><br>
-          ${currentVocabWords.length}문제 중 ${correctCount}개 정답<br>
-          점수: ${score}점
+        <div class="card score-card">
+          <b>채점 결과</b><br><br>
+          <div class="score-number">${score}점</div>
+          <div class="score-sub">${currentVocabWords.length}문제 중 ${correctCount}개 정답 · 오답 ${wrongWords.length}개</div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${score}%"></div></div>
           <div id="save-result-status" class="notice-small">결과 저장 중...</div>
         </div>
 
@@ -2063,10 +3397,21 @@
         }
 
         let html = `
-          <div class="card">
-            <b>오늘 단어시험 현황</b><br>
-            오늘 응시 기록: ${escapeHtml(result.todayCount || 0)}건<br>
-            전체 누적 기록: ${escapeHtml(result.totalCount || 0)}건
+          <div class="summary-card" style="padding:1em; margin:0.8em 0 1em;">
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="status-label">오늘 응시 기록</span>
+                <span class="status-value">${escapeHtml(result.todayCount || 0)}건</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">전체 누적 기록</span>
+                <span class="status-value">${escapeHtml(result.totalCount || 0)}건</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">관리자 메뉴</span>
+                <span class="status-value">활성화</span>
+              </div>
+            </div>
           </div>
         `;
 
