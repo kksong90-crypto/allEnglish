@@ -4,80 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
+
   <title>All바른 English</title>
+
+  <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="All바른 English" />
-  <link rel="manifest" href="manifest.json" />
 
   <style>
-body {
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
+    /************************************************************
+     *  1. 기본 설정
+     ************************************************************/
+    * {
+      box-sizing: border-box;
+    }
 
-table,
-.card,
-.section-title,
-nav,
-button {
-  -webkit-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-img {
-  -webkit-user-drag: none;
-  user-drag: none;
-}
-
-/* 입력칸은 글자를 입력해야 하므로 선택 허용 */
-input,
-textarea {
-  -webkit-user-select: text;
-  -ms-user-select: text;
-  user-select: text;
-}
-
-    .speak-word {
-  cursor: pointer;
-  font-weight: bold;
-  color: #2f5f53;
-}
-
-.speak-word:hover {
-  text-decoration: underline;
-}
-
-.speak-btn {
-  border: none;
-  background: #edf5f2;
-  color: #2f5f53;
-  border-radius: 8px;
-  padding: 0.35em 0.55em;
-  font-size: 1em;
-  cursor: pointer;
-}
-
-.speak-btn:hover {
-  background: #d9ebe5;
-}
-
-body.dark .speak-word {
-  color: #9fd6c7;
-}
-
-body.dark .speak-btn {
-  background: #333;
-  color: #d7fff4;
-}
-    * { box-sizing: border-box; }
-
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', sans-serif;
@@ -85,6 +33,28 @@ body.dark .speak-btn {
       font-size: 18px;
     }
 
+    body {
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    input,
+    textarea {
+      -webkit-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+
+    img {
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+
+    /************************************************************
+     *  2. 상단 제목 / 탭 메뉴
+     ************************************************************/
     header {
       background: #3f6158;
       color: white;
@@ -124,6 +94,9 @@ body.dark .speak-btn {
       background: #e6f4dc;
     }
 
+    /************************************************************
+     *  3. 공통 화면 요소
+     ************************************************************/
     section {
       padding: 1.5em;
       display: none;
@@ -143,7 +116,7 @@ body.dark .speak-btn {
     .card {
       background: white;
       border-radius: 16px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       margin: 1em 0;
       padding: 1.2em;
       white-space: pre-wrap;
@@ -156,15 +129,19 @@ body.dark .speak-btn {
       background: white;
     }
 
-    th, td {
+    th,
+    td {
       border: 1px solid #ccc;
-      padding: 1.0em;
+      padding: 1em;
       text-align: center;
       word-break: break-word;
       line-height: 1.45;
     }
 
-    select, input[type="date"], input[type="text"] {
+    select,
+    input[type="date"],
+    input[type="text"],
+    input[type="password"] {
       padding: 0.75em;
       margin: 0.8em 0;
       font-size: 1.1em;
@@ -197,12 +174,22 @@ body.dark .speak-btn {
       background: #6f8f86;
     }
 
+    .icon-btn {
+      border: none;
+      background: none;
+      font-size: 1.4em;
+      cursor: pointer;
+    }
+
+    /************************************************************
+     *  4. 단어장 / 단어시험
+     ************************************************************/
     .vocab-question {
       background: white;
       border-radius: 14px;
       padding: 1em;
       margin: 1em 0;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
     }
 
     .vocab-question b {
@@ -221,6 +208,51 @@ body.dark .speak-btn {
       font-weight: bold;
     }
 
+    .speak-word {
+      cursor: pointer;
+      font-weight: bold;
+      color: #2f5f53;
+    }
+
+    .speak-word:hover {
+      text-decoration: underline;
+    }
+
+    .speak-btn {
+      border: none;
+      background: #edf5f2;
+      color: #2f5f53;
+      border-radius: 8px;
+      padding: 0.35em 0.55em;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    .speak-btn:hover {
+      background: #d9ebe5;
+    }
+
+
+    .folder-controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .folder-controls label {
+      font-weight: bold;
+      color: #3f6158;
+    }
+
+    .folder-help {
+      font-size: 0.9em;
+      color: #5f6f6a;
+      line-height: 1.45;
+    }
+
+    /************************************************************
+     *  5. 로딩 / 다크모드 버튼
+     ************************************************************/
     #loader {
       display: flex;
       flex-direction: column;
@@ -230,7 +262,9 @@ body.dark .speak-btn {
       transition: opacity 0.3s ease;
     }
 
-    #loader.hidden { display: none; }
+    #loader.hidden {
+      display: none;
+    }
 
     .loader-text {
       margin-top: 1em;
@@ -252,6 +286,9 @@ body.dark .speak-btn {
       z-index: 100;
     }
 
+    /************************************************************
+     *  6. 다크모드
+     ************************************************************/
     body.dark {
       background: #1a1a1a;
       color: #e0e0e0;
@@ -289,174 +326,173 @@ body.dark .speak-btn {
     body.dark .vocab-question b {
       color: #dcedc8;
     }
-.result-correct {
-  color: #1b7f3a;
-  font-weight: bold;
-}
 
-.result-wrong {
-  color: #c0392b;
-  font-weight: bold;
-}
+    body.dark .speak-word {
+      color: #9fd6c7;
+    }
+
+    body.dark .speak-btn {
+      background: #333;
+      color: #d7fff4;
+    }
+
+    body.dark .folder-controls label {
+      color: #dcedc8;
+    }
+
+    body.dark .folder-help {
+      color: #cfd8d3;
+    }
+
+    /************************************************************
+     *  7. 모바일 반응형
+     ************************************************************/
     @media (max-width: 600px) {
-      html, body { font-size: 17px; }
-      header { font-size: 1.55em; padding: 0.9em; }
-      nav button { font-size: 1.0em; padding: 0.8em 0.35em; }
-      section { padding: 1em; }
-      .section-title { font-size: 1.2em; }
-      th, td { padding: 0.75em 0.45em; font-size: 0.95em; }
-      .button-row { flex-direction: column; }
-      .mode-toggle { font-size: 0.85em; padding: 0.45em 0.7em; }
+      html,
+      body {
+        font-size: 17px;
+      }
+
+      header {
+        font-size: 1.55em;
+        padding: 0.9em;
+      }
+
+      nav button {
+        font-size: 1em;
+        padding: 0.8em 0.35em;
+      }
+
+      section {
+        padding: 1em;
+      }
+
+      .section-title {
+        font-size: 1.2em;
+      }
+
+      th,
+      td {
+        padding: 0.75em 0.45em;
+        font-size: 0.95em;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+
+      .mode-toggle {
+        font-size: 0.85em;
+        padding: 0.45em 0.7em;
+      }
     }
   </style>
 </head>
 
 <body>
+  <!-- 다크모드 버튼 -->
   <button class="mode-toggle" onclick="toggleMode()">🌗 모드 전환</button>
 
+  <!-- 상단 제목 -->
   <header>All바른 English</header>
 
+  <!-- 탭 메뉴 -->
   <nav>
     <button onclick="showTab('notice')" class="active">공지사항</button>
     <button onclick="showTab('exam')">시험정보</button>
     <button onclick="showTab('retest')">재시험</button>
     <button onclick="showTab('vocab')">단어장</button>
-<button onclick="showTab('favorites')">⭐중요단어</button>
+    <button onclick="showTab('favorites')">⭐중요단어</button>
   </nav>
 
+  <!-- 공지사항 -->
   <section id="notice" class="active">
     <div class="section-title">📌 공지사항</div>
     <div id="notice-content"></div>
   </section>
 
+  <!-- 시험정보 -->
   <section id="exam">
     <div class="section-title">📝 시험정보</div>
-    <input type="date" id="exam-date">
+    <input type="date" id="exam-date" />
     <select id="class-select"></select>
     <div id="exam-table"></div>
   </section>
 
+  <!-- 재시험 -->
   <section id="retest">
     <div class="section-title">🔁 재시험 명단</div>
     <div id="retest-table"></div>
   </section>
 
+  <!-- 단어장 -->
   <section id="vocab">
     <div class="section-title">📘 단어장</div>
-
     <select id="vocab-book-select"></select>
     <select id="vocab-day-select"></select>
-
     <div id="vocab-view"></div>
   </section>
-<section id="favorites">
-  <div class="section-title">⭐ 중요 단어장</div>
 
-  <div id="favorites-view"></div>
-</section>
+  <!-- 중요 단어장 -->
+  <section id="favorites">
+    <div class="section-title">⭐ 중요 단어장</div>
+    <div id="favorites-view"></div>
+  </section>
+
+  <!-- 로딩 화면 -->
   <div id="loader">
     <svg width="50" height="50" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-      <circle cx="50" cy="50" r="35" stroke-width="10" stroke="#3f6158"
-        stroke-dasharray="164.93361431346415 56.97787143782138" fill="none"
-        stroke-linecap="round">
-        <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite"
-          dur="1s" values="0 50 50;360 50 50" keyTimes="0;1"/>
+      <circle
+        cx="50"
+        cy="50"
+        r="35"
+        stroke-width="10"
+        stroke="#3f6158"
+        stroke-dasharray="164.93361431346415 56.97787143782138"
+        fill="none"
+        stroke-linecap="round"
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          repeatCount="indefinite"
+          dur="1s"
+          values="0 50 50;360 50 50"
+          keyTimes="0;1"
+        />
       </circle>
     </svg>
     <div class="loader-text">로딩중...</div>
   </div>
 
   <script>
-
-document.addEventListener("dragstart", function(e) {
-  e.preventDefault();
-});
-
-document.addEventListener("selectstart", function(e) {
-  const tag = e.target.tagName;
-
-  if (tag !== "INPUT" && tag !== "TEXTAREA") {
-    e.preventDefault();
-  }
-});
-
-document.addEventListener("contextmenu", function(e) {
-  const tag = e.target.tagName;
-
-  if (tag !== "INPUT" && tag !== "TEXTAREA") {
-    e.preventDefault();
-  }
-});
+    /************************************************************
+     *  1. 기본 설정 / 전역 변수
+     ************************************************************/
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzyk-n_G93BJG1vlck6DNakEdZolCSoB9I3ylmyN2e6qX9NNHdQYgx6phA4OU9JAwfT/exec";
 
     let vocabData = [];
-let currentVocabWords = [];
-let wrongWords = [];
-let vocabHiddenMode = false;
+    let currentVocabWords = [];
+    let wrongWords = [];
+    let vocabHiddenMode = false;
+    let activeTestContainerId = "vocab-view";
 
-let favoriteWords = JSON.parse(
-  localStorage.getItem("favoriteWords") || "[]"
-);
+    let favoriteFolders = loadFavoriteFolders();
+    let currentFavoriteFolder = localStorage.getItem("currentFavoriteFolder") || "기본";
 
-    function showTab(tabId) {
-      document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
-      document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
-      document.querySelector("nav button[onclick*='" + tabId + "']").classList.add("active");
-      document.getElementById(tabId).classList.add("active");
-if (tabId === "favorites") {
-  showFavorites();
-}
-    }
-
-    function toggleMode() {
-      document.body.classList.toggle("dark");
-    }
-function speakWord(text) {
-  if (!("speechSynthesis" in window)) {
-    alert("이 기기에서는 음성 재생을 지원하지 않습니다.");
-    return;
-  }
-
-  const word = String(text || "").trim();
-
-  if (!word) {
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(word);
-
-  utterance.lang = "en-US";
-  utterance.rate = 0.85;
-  utterance.pitch = 1;
-
-  const voices = window.speechSynthesis.getVoices();
-
-  const preferredVoice =
-    voices.find(v =>
-      v.lang === "en-US" &&
-      v.name.toLowerCase().includes("google")
-    )
-    ||
-    voices.find(v => v.lang === "en-US")
-    ||
-    voices.find(v => v.lang.startsWith("en"));
-
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
-  }
-
-  window.speechSynthesis.speak(utterance);
-}
-    
+    /************************************************************
+     *  2. 공통 유틸 함수
+     ************************************************************/
     function cleanDate(isoDate) {
       if (!isoDate) return "";
+
       const d = new Date(isoDate);
       if (isNaN(d.getTime())) return isoDate;
+
       const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+
       return `${yyyy}-${mm}-${dd}`;
     }
 
@@ -469,11 +505,103 @@ function speakWord(text) {
         .replaceAll("'", "&#039;");
     }
 
+    function normalizeAnswer(text) {
+      return String(text || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[.?!,;:'"()\[\]{}]/g, "")
+        .replace(/\s+/g, "");
+    }
+
+    function shuffleArray(array) {
+      return array
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(item => item.value);
+    }
+
+    function createAnswerInput(index) {
+      return `
+        <input
+          type="text"
+          id="answer-${index}"
+          placeholder="영어 단어 입력"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+        >
+      `;
+    }
+
     async function fetchSheet(sheetName) {
-      const res = await fetch(SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName));
+      const res = await fetch(
+        SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName)
+      );
       return await res.json();
     }
 
+    /************************************************************
+     *  3. 화면 전환 / 다크모드 / 발음
+     ************************************************************/
+    function showTab(tabId) {
+      document
+        .querySelectorAll("nav button")
+        .forEach(btn => btn.classList.remove("active"));
+
+      document
+        .querySelectorAll("section")
+        .forEach(sec => sec.classList.remove("active"));
+
+      document
+        .querySelector(`nav button[onclick*="${tabId}"]`)
+        .classList.add("active");
+
+      document.getElementById(tabId).classList.add("active");
+
+      if (tabId === "favorites") {
+        showFavorites();
+      }
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    function speakWord(text) {
+      if (!("speechSynthesis" in window)) {
+        alert("이 기기에서는 음성 재생을 지원하지 않습니다.");
+        return;
+      }
+
+      const word = String(text || "").trim();
+      if (!word) return;
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.rate = 0.85;
+      utterance.pitch = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice =
+        voices.find(v =>
+          v.lang === "en-US" && v.name.toLowerCase().includes("google")
+        ) ||
+        voices.find(v => v.lang === "en-US") ||
+        voices.find(v => v.lang.startsWith("en"));
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /************************************************************
+     *  4. Notice / TestInfo / Retest
+     ************************************************************/
     async function loadNotice() {
       const data = await fetchSheet("Notice");
       const target = document.getElementById("notice-content");
@@ -483,9 +611,7 @@ function speakWord(text) {
         const [date, title, content] = data[i];
         const card = document.createElement("div");
         card.className = "card";
-        card.innerHTML = `📅 ${escapeHtml(cleanDate(date))}
-<b>${escapeHtml(title)}</b>
-${escapeHtml(content)}`;
+        card.innerHTML = `📅 ${escapeHtml(cleanDate(date))}\n<b>${escapeHtml(title)}</b>\n${escapeHtml(content)}`;
         target.appendChild(card);
       }
     }
@@ -493,8 +619,14 @@ ${escapeHtml(content)}`;
     async function loadClassDropdown() {
       const data = await fetchSheet("TestInfo");
       const select = document.getElementById("class-select");
-      const uniqueClasses = [...new Set(data.slice(1).map(row => row[0]).filter(Boolean))];
-      select.innerHTML = uniqueClasses.map(c => `<option>${escapeHtml(c)}</option>`).join("");
+
+      const uniqueClasses = [
+        ...new Set(data.slice(1).map(row => row[0]).filter(Boolean))
+      ];
+
+      select.innerHTML = uniqueClasses
+        .map(c => `<option>${escapeHtml(c)}</option>`)
+        .join("");
     }
 
     async function loadExam() {
@@ -507,12 +639,24 @@ ${escapeHtml(content)}`;
         i === 0 || (row[0] === className && cleanDate(row[1]) === date)
       );
 
-      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${escapeHtml(h)}</th>`).join("") + "</tr>";
+      let html =
+        "<table><tr>" +
+        data[0]
+          .slice(0, 4)
+          .map(h => `<th>${escapeHtml(h)}</th>`)
+          .join("") +
+        "</tr>";
 
       for (let i = 1; i < filtered.length; i++) {
-        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) =>
-          `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
-        ).join("") + "</tr>";
+        html +=
+          "<tr>" +
+          filtered[i]
+            .slice(0, 4)
+            .map((cell, j) =>
+              `<td>${escapeHtml(j === 1 ? cleanDate(cell) : cell)}</td>`
+            )
+            .join("") +
+          "</tr>";
       }
 
       html += "</table>";
@@ -523,632 +667,815 @@ ${escapeHtml(content)}`;
       const data = await fetchSheet("Retest");
       const target = document.getElementById("retest-table");
 
-      let html = "<table><tr>"
-        + data[0].map(h => `<th>${escapeHtml(h)}</th>`).filter(h => !h.includes("재시험")).join("")
-        + "</tr>";
+      let html =
+        "<table><tr>" +
+        data[0]
+          .map(h => `<th>${escapeHtml(h)}</th>`)
+          .filter(h => !h.includes("재시험"))
+          .join("") +
+        "</tr>";
 
       for (let i = 1; i < data.length; i++) {
-        html += "<tr>" + data[i].map((cell, j) => {
-          if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-          if (data[0][j] === "재시험") return null;
-          return `<td>${escapeHtml(cell)}</td>`;
-        }).filter(c => c).join("") + "</tr>";
+        html +=
+          "<tr>" +
+          data[i]
+            .map((cell, j) => {
+              if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
+              if (data[0][j] === "재시험") return null;
+              return `<td>${escapeHtml(cell)}</td>`;
+            })
+            .filter(c => c)
+            .join("") +
+          "</tr>";
       }
 
       html += "</table>";
       target.innerHTML = html;
     }
 
+    /************************************************************
+     *  5. 단어장 불러오기 / Day 선택 / 단어 목록
+     ************************************************************/
     async function loadVocabBooks() {
-  const target = document.getElementById("vocab-view");
+      const target = document.getElementById("vocab-view");
 
-  try {
-    vocabData = await fetchSheet("Vocab");
+      try {
+        vocabData = await fetchSheet("Vocab");
 
-    if (!Array.isArray(vocabData) || vocabData.length < 2) {
-      target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
-      return;
+        if (!Array.isArray(vocabData) || vocabData.length < 2) {
+          target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
+          return;
+        }
+
+        const bookSelect = document.getElementById("vocab-book-select");
+        const daySelect = document.getElementById("vocab-day-select");
+
+        const books = [
+          ...new Set(
+            vocabData
+              .slice(1)
+              .map(row => row[0])
+              .filter(book => book && String(book).trim() !== "")
+          )
+        ];
+
+        if (books.length === 0) {
+          target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
+          return;
+        }
+
+        bookSelect.innerHTML =
+          `<option value="">단어장 선택</option>` +
+          books
+            .map(book => `<option value="${escapeHtml(book)}">${escapeHtml(book)}</option>`)
+            .join("");
+
+        daySelect.innerHTML = `<option value="">Day 선택</option>`;
+        target.innerHTML = "<div class='card'>단어장과 Day를 선택하세요.</div>";
+
+        bookSelect.addEventListener("change", loadVocabDays);
+        daySelect.addEventListener("change", showVocabList);
+      } catch (err) {
+        target.innerHTML = "<div class='card'>Vocab 시트를 불러오지 못했습니다. TestManager에 Vocab 시트가 있는지 확인하세요.</div>";
+      }
     }
-
-    const bookSelect = document.getElementById("vocab-book-select");
-    const daySelect = document.getElementById("vocab-day-select");
-
-    const books = [...new Set(
-      vocabData
-        .slice(1)
-        .map(row => row[0])
-        .filter(book => book && String(book).trim() !== "")
-    )];
-
-    if (books.length === 0) {
-      target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
-      return;
-    }
-
-    bookSelect.innerHTML =
-      `<option value="">단어장 선택</option>` +
-      books.map(book => `<option value="${escapeHtml(book)}">${escapeHtml(book)}</option>`).join("");
-
-    daySelect.innerHTML = `<option value="">Day 선택</option>`;
-
-    target.innerHTML = "<div class='card'>단어장과 Day를 선택하세요.</div>";
-
-    bookSelect.addEventListener("change", loadVocabDays);
-    daySelect.addEventListener("change", showVocabList);
-
-  } catch (err) {
-    target.innerHTML = "<div class='card'>Vocab 시트를 불러오지 못했습니다. TestManager에 Vocab 시트가 있는지 확인하세요.</div>";
-  }
-}
 
     async function loadVocabDays() {
-  const selectedBook = document.getElementById("vocab-book-select").value;
-  const daySelect = document.getElementById("vocab-day-select");
-  const target = document.getElementById("vocab-view");
-
-  if (!selectedBook) {
-    daySelect.innerHTML = `<option value="">Day 선택</option>`;
-    target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
-    return;
-  }
-
-  const days = [...new Set(
-    vocabData
-      .slice(1)
-      .filter(row => String(row[0]) === String(selectedBook))
-      .map(row => row[1])
-      .filter(day => day !== "" && day !== null && day !== undefined)
-  )];
-
-  daySelect.innerHTML =
-    `<option value="">Day 선택</option>` +
-    days.map(day => `<option value="${escapeHtml(day)}">${escapeHtml(day)}</option>`).join("");
-
-  target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
-}
-
-    function getSelectedVocabWords() {
-  const selectedBook = document.getElementById("vocab-book-select").value;
-  const selectedDay = document.getElementById("vocab-day-select").value;
-
-  if (!selectedBook || !selectedDay) {
-    return [];
-  }
-
-  return vocabData.slice(1).filter(row =>
-    String(row[0]) === String(selectedBook) &&
-    String(row[1]) === String(selectedDay) &&
-    row[2] &&
-    row[3]
-  );
-}
-
-    function showVocabList() {
-  const target = document.getElementById("vocab-view");
-const selectedBook = document.getElementById("vocab-book-select").value;
-const selectedDay = document.getElementById("vocab-day-select").value;
-const words = getSelectedVocabWords();
-
-if (!selectedBook) {
-  target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
-  return;
-}
-
-if (!selectedDay) {
-  target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
-  return;
-}
-
-if (words.length === 0) {
-  target.innerHTML = "<div class='card'>표시할 단어가 없습니다.</div>";
-  return;
-}
-
-  let html = `
-    <div class="button-row">
-      <button class="vocab-btn secondary" onclick="toggleWordHide()">
-        ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
-      </button>
-
-      <button class="vocab-btn" onclick="startVocabTest()">
-        단어시험 시작
-      </button>
-
-    </div>
-  `;
-
-  html += "<table>";
-html += "<tr><th>영어</th><th>발음</th><th>뜻</th><th>중요</th></tr>";
-
-  words.forEach(row => {
-    const english = vocabHiddenMode
-      ? "?".repeat(String(row[2]).length)
-      : row[2];
-
-    const key = row[0] + "|" + row[1] + "|" + row[2];
-    const isFavorite = favoriteWords.includes(key);
-
-    html += `
-  <tr>
-    <td>
-      <span
-        class="speak-word"
-        onclick='speakWord(${JSON.stringify(String(row[2]))})'>
-        ${escapeHtml(english)}
-      </span>
-    </td>
-
-    <td>
-      <button
-        class="speak-btn"
-        onclick='speakWord(${JSON.stringify(String(row[2]))})'>
-        🔊
-      </button>
-    </td>
-
-    <td>${escapeHtml(row[3])}</td>
-
-    <td>
-      <button
-        onclick="toggleFavorite('${encodeURIComponent(key)}')"
-        style="
-          border:none;
-          background:none;
-          font-size:1.3em;
-          cursor:pointer;
-        ">
-        ${isFavorite ? "⭐" : "☆"}
-      </button>
-    </td>
-  </tr>
-`;
-  });
-
-  html += "</table>";
-  target.innerHTML = html;
-}
-function toggleWordHide() {
-  vocabHiddenMode = !vocabHiddenMode;
-  showVocabList();
-}
-
-function toggleFavorite(encodedKey) {
-  const key = decodeURIComponent(encodedKey);
-
-  if (favoriteWords.includes(key)) {
-    favoriteWords = favoriteWords.filter(x => x !== key);
-  } else {
-    favoriteWords.push(key);
-  }
-
-  localStorage.setItem(
-    "favoriteWords",
-    JSON.stringify(favoriteWords)
-  );
-
-  showVocabList();
-}
-function toggleFavoriteFromTest(encodedKey, button) {
-  const key = decodeURIComponent(encodedKey);
-
-  if (favoriteWords.includes(key)) {
-    favoriteWords = favoriteWords.filter(x => x !== key);
-    button.textContent = "☆";
-  } else {
-    favoriteWords.push(key);
-    button.textContent = "⭐";
-  }
-
-  localStorage.setItem(
-    "favoriteWords",
-    JSON.stringify(favoriteWords)
-  );
-}
-    
-function showFavorites() {
-
-  const target =
-    document.getElementById("favorites-view");
-
-  let favorites = [];
-
-  vocabData.slice(1).forEach(row => {
-
-    const key =
-      row[0] + "|" +
-      row[1] + "|" +
-      row[2];
-
-    if (favoriteWords.includes(key)) {
-      favorites.push(row);
-    }
-
-  });
-
-  if (favorites.length === 0) {
-
-    target.innerHTML =
-      "<div class='card'>저장된 중요 단어가 없습니다.</div>";
-
-    return;
-  }
-
-  let html = `
-
-<div class="card">
-  <b>⭐ 나의 중요 단어장</b><br>
-  저장된 중요 단어 ${favorites.length}개
-</div>
-
-<div class="button-row">
-
-  <button
-    class="vocab-btn"
-    onclick="startFavoriteTest()">
-    중요단어 시험
-  </button>
-
-</div>
-`;
-
-  html += `
-    <table>
-      <tr>
-        <th>단어장</th>
-        <th>Day</th>
-        <th>영어</th>
-        <th>뜻</th>
-        <th>해제</th>
-      </tr>
-  `;
-
-  favorites.forEach(row => {
-
-  const key =
-    row[0] + "|" +
-    row[1] + "|" +
-    row[2];
-
-  html += `
-    <tr>
-      <td>${escapeHtml(row[0])}</td>
-      <td>${escapeHtml(row[1])}</td>
-      <td>${escapeHtml(row[2])}</td>
-      <td>${escapeHtml(row[3])}</td>
-
-      <td>
-        <button
-          onclick="removeFavorite('${encodeURIComponent(key)}')"
-          style="
-            border:none;
-            background:none;
-            font-size:1.4em;
-            cursor:pointer;
-          ">
-          ⭐
-        </button>
-      </td>
-
-    </tr>
-  `;
-
-});
-  html += "</table>";
-
-  target.innerHTML = html;
-}
-    function shuffleArray(array) {
-      return array
-        .map(value => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(item => item.value);
-    }
-
-function startFavoriteTest() {
-
-  const favorites =
-    vocabData.slice(1).filter(row => {
-
-      const key =
-        row[0] + "|" +
-        row[1] + "|" +
-        row[2];
-
-      return favoriteWords.includes(key);
-
-    });
-
-  if (favorites.length === 0) {
-
-    alert("중요 단어가 없습니다.");
-
-    return;
-  }
-
-  currentVocabWords =
-    shuffleArray(favorites)
-      .slice(
-        0,
-        Math.min(25, favorites.length)
-      );
-
-  let html = `
-    <div class="card">
-      <b>⭐ 중요단어 시험</b><br>
-      ${currentVocabWords.length}문제
-    </div>
-  `;
-
-  currentVocabWords.forEach((row, index) => {
-
-    html += `
-      <div class="vocab-question">
-
-        <b>
-          Q${index + 1}.
-          ${escapeHtml(row[3])}
-        </b>
-
-        <input
-          type="text"
-          id="answer-${index}"
-          placeholder="영어 단어 입력">
-
-      </div>
-    `;
-
-  });
-
-  html += `
-    <button
-      class="vocab-btn"
-      onclick="gradeVocabTest()">
-      채점하기
-    </button>
-
-    <div id="vocab-result"></div>
-  `;
-
-  document.getElementById("favorites-view").innerHTML =
-    html;
-}
-function removeFavorite(encodedKey) {
-
-  const key =
-    decodeURIComponent(encodedKey);
-
-  favoriteWords =
-    favoriteWords.filter(
-      x => x !== key
-    );
-
-  localStorage.setItem(
-    "favoriteWords",
-    JSON.stringify(favoriteWords)
-  );
-
-  showFavorites();
-}
-    function normalizeAnswer(text) {
-      return String(text || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[.?!,;:'"()\[\]{}]/g, "")
-        .replace(/\s+/g, "");
-    }
-
-    function startVocabTest() {
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const daySelect = document.getElementById("vocab-day-select");
       const target = document.getElementById("vocab-view");
-      const words = getSelectedVocabWords();
 
-      if (words.length === 0) {
-        target.innerHTML = "<div class='card'>시험을 만들 단어가 없습니다.</div>";
+      if (!selectedBook) {
+        daySelect.innerHTML = `<option value="">Day 선택</option>`;
+        target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
         return;
       }
 
-      currentVocabWords = shuffleArray(words).slice(
-  0,
-  Math.min(25, words.length)
-);
+      const days = [
+        ...new Set(
+          vocabData
+            .slice(1)
+            .filter(row => String(row[0]) === String(selectedBook))
+            .map(row => row[1])
+            .filter(day => day !== "" && day !== null && day !== undefined)
+        )
+      ];
+
+      daySelect.innerHTML =
+        `<option value="">Day 선택</option>` +
+        days
+          .map(day => `<option value="${escapeHtml(day)}">${escapeHtml(day)}</option>`)
+          .join("");
+
+      target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
+    }
+
+    function getSelectedVocabWords() {
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+
+      if (!selectedBook || !selectedDay) return [];
+
+      return vocabData.slice(1).filter(row =>
+        String(row[0]) === String(selectedBook) &&
+        String(row[1]) === String(selectedDay) &&
+        row[2] &&
+        row[3]
+      );
+    }
+
+    function showVocabList() {
+      const target = document.getElementById("vocab-view");
+      const selectedBook = document.getElementById("vocab-book-select").value;
+      const selectedDay = document.getElementById("vocab-day-select").value;
+      const words = getSelectedVocabWords();
+
+      if (!selectedBook) {
+        target.innerHTML = "<div class='card'>단어장을 먼저 선택하세요.</div>";
+        return;
+      }
+
+      if (!selectedDay) {
+        target.innerHTML = "<div class='card'>Day를 선택하세요.</div>";
+        return;
+      }
+
+      if (words.length === 0) {
+        target.innerHTML = "<div class='card'>표시할 단어가 없습니다.</div>";
+        return;
+      }
+
+      let html = renderFavoriteFolderControls(false);
+
+      html += `
+        <div class="button-row">
+          <button class="vocab-btn secondary" onclick="toggleWordHide()">
+            ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
+          </button>
+          <button class="vocab-btn" onclick="startVocabTest()">
+            단어시험 시작
+          </button>
+        </div>
+      `;
+
+      html += "<table>";
+      html += "<tr><th>영어</th><th>발음</th><th>뜻</th><th>중요</th></tr>";
+
+      words.forEach(row => {
+        const english = vocabHiddenMode
+          ? "?".repeat(String(row[2]).length)
+          : row[2];
+
+        const key = row[0] + "|" + row[1] + "|" + row[2];
+        const isFavorite = isFavoriteInCurrentFolder(key);
+
+        html += `
+          <tr>
+            <td>
+              <span
+                class="speak-word"
+                onclick='speakWord(${JSON.stringify(String(row[2]))})'
+              >
+                ${escapeHtml(english)}
+              </span>
+            </td>
+            <td>
+              <button
+                class="speak-btn"
+                onclick='speakWord(${JSON.stringify(String(row[2]))})'
+              >
+                🔊
+              </button>
+            </td>
+            <td>${escapeHtml(row[3])}</td>
+            <td>
+              <button
+                class="icon-btn"
+                onclick="toggleFavorite('${encodeURIComponent(key)}')"
+              >
+                ${isFavorite ? "⭐" : "☆"}
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    function toggleWordHide() {
+      vocabHiddenMode = !vocabHiddenMode;
+      showVocabList();
+    }
+
+    /************************************************************
+     *  6. 중요단어 폴더
+     ************************************************************/
+    function loadFavoriteFolders() {
+      let folders = {};
+
+      try {
+        folders = JSON.parse(localStorage.getItem("favoriteFolders") || "{}");
+      } catch (err) {
+        folders = {};
+      }
+
+      if (!folders || typeof folders !== "object" || Array.isArray(folders)) {
+        folders = {};
+      }
+
+      if (!folders["기본"]) {
+        folders["기본"] = [];
+      }
+
+      // 기존 중요단어 방식(favoriteWords)을 쓰던 학생들의 데이터를 기본 폴더로 자동 이전
+      try {
+        const oldFavoriteWords = JSON.parse(localStorage.getItem("favoriteWords") || "[]");
+        if (Array.isArray(oldFavoriteWords)) {
+          oldFavoriteWords.forEach(key => {
+            if (key && !folders["기본"].includes(key)) {
+              folders["기본"].push(key);
+            }
+          });
+        }
+      } catch (err) {
+        // 기존 데이터가 깨져 있으면 무시
+      }
+
+      localStorage.setItem("favoriteFolders", JSON.stringify(folders));
+      return folders;
+    }
+
+    function saveFavoriteFolders() {
+      ensureCurrentFolder();
+
+      localStorage.setItem("favoriteFolders", JSON.stringify(favoriteFolders));
+      localStorage.setItem("currentFavoriteFolder", currentFavoriteFolder);
+
+      // 예전 코드와의 호환용: 현재 폴더의 목록을 favoriteWords에도 저장
+      localStorage.setItem(
+        "favoriteWords",
+        JSON.stringify(getCurrentFavoriteKeys())
+      );
+    }
+
+    function ensureCurrentFolder() {
+      const folderNames = Object.keys(favoriteFolders);
+
+      if (folderNames.length === 0) {
+        favoriteFolders["기본"] = [];
+      }
+
+      if (!currentFavoriteFolder || !favoriteFolders[currentFavoriteFolder]) {
+        currentFavoriteFolder = Object.keys(favoriteFolders)[0] || "기본";
+      }
+
+      if (!favoriteFolders[currentFavoriteFolder]) {
+        favoriteFolders[currentFavoriteFolder] = [];
+      }
+    }
+
+    function getFolderNames() {
+      ensureCurrentFolder();
+      return Object.keys(favoriteFolders);
+    }
+
+    function getCurrentFavoriteKeys() {
+      ensureCurrentFolder();
+      return favoriteFolders[currentFavoriteFolder];
+    }
+
+    function makeFavoriteKey(row) {
+      return row[0] + "|" + row[1] + "|" + row[2];
+    }
+
+    function isFavoriteInCurrentFolder(key) {
+      return getCurrentFavoriteKeys().includes(key);
+    }
+
+    function getCurrentFavoriteRows() {
+      const keys = getCurrentFavoriteKeys();
+
+      return vocabData.slice(1).filter(row =>
+        keys.includes(makeFavoriteKey(row))
+      );
+    }
+
+    function makeFolderOptionHtml() {
+      return getFolderNames()
+        .map(folder => {
+          const selected = folder === currentFavoriteFolder ? "selected" : "";
+          return `<option value="${escapeHtml(folder)}" ${selected}>${escapeHtml(folder)}</option>`;
+        })
+        .join("");
+    }
+
+    function renderFavoriteFolderControls(showManageButtons) {
+      const folderCount = getFolderNames().length;
+      const wordCount = getCurrentFavoriteKeys().length;
+
+      let html = `
+        <div class="card folder-controls">
+          <label>중요단어 폴더</label>
+          <select onchange="changeFavoriteFolder(this.value)">
+            ${makeFolderOptionHtml()}
+          </select>
+          <div class="folder-help">
+            현재 폴더: <b>${escapeHtml(currentFavoriteFolder)}</b> / 저장된 단어 ${wordCount}개 / 폴더 ${folderCount}개
+          </div>
+      `;
+
+      html += `
+          <div class="button-row">
+            <button class="vocab-btn secondary" onclick="createFavoriteFolder()">
+              새 폴더
+            </button>
+      `;
+
+      if (showManageButtons) {
+        html += `
+            <button class="vocab-btn secondary" onclick="renameFavoriteFolder()">
+              이름 변경
+            </button>
+            <button class="vocab-btn secondary" onclick="deleteFavoriteFolder()">
+              폴더 삭제
+            </button>
+        `;
+      }
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      return html;
+    }
+
+    function refreshFavoriteRelatedViews() {
+      if (document.getElementById("favorites").classList.contains("active")) {
+        showFavorites();
+      }
+
+      if (document.getElementById("vocab").classList.contains("active")) {
+        showVocabList();
+      }
+    }
+
+    function changeFavoriteFolder(folderName) {
+      if (!favoriteFolders[folderName]) return;
+
+      currentFavoriteFolder = folderName;
+      saveFavoriteFolders();
+      refreshFavoriteRelatedViews();
+    }
+
+    function createFavoriteFolder() {
+      const name = prompt("새 중요단어 폴더 이름을 입력하세요.");
+      if (name === null) return;
+
+      const folderName = name.trim();
+
+      if (!folderName) {
+        alert("폴더 이름을 입력하세요.");
+        return;
+      }
+
+      if (folderName.includes("|")) {
+        alert("폴더 이름에는 | 기호를 사용할 수 없습니다.");
+        return;
+      }
+
+      if (favoriteFolders[folderName]) {
+        alert("이미 같은 이름의 폴더가 있습니다.");
+        return;
+      }
+
+      favoriteFolders[folderName] = [];
+      currentFavoriteFolder = folderName;
+      saveFavoriteFolders();
+      refreshFavoriteRelatedViews();
+    }
+
+    function renameFavoriteFolder() {
+      ensureCurrentFolder();
+
+      const name = prompt(
+        "새 폴더 이름을 입력하세요.",
+        currentFavoriteFolder
+      );
+
+      if (name === null) return;
+
+      const newName = name.trim();
+
+      if (!newName) {
+        alert("폴더 이름을 입력하세요.");
+        return;
+      }
+
+      if (newName.includes("|")) {
+        alert("폴더 이름에는 | 기호를 사용할 수 없습니다.");
+        return;
+      }
+
+      if (newName !== currentFavoriteFolder && favoriteFolders[newName]) {
+        alert("이미 같은 이름의 폴더가 있습니다.");
+        return;
+      }
+
+      if (newName === currentFavoriteFolder) return;
+
+      const copiedFolders = {};
+
+      Object.keys(favoriteFolders).forEach(folder => {
+        if (folder === currentFavoriteFolder) {
+          copiedFolders[newName] = favoriteFolders[folder];
+        } else {
+          copiedFolders[folder] = favoriteFolders[folder];
+        }
+      });
+
+      favoriteFolders = copiedFolders;
+      currentFavoriteFolder = newName;
+      saveFavoriteFolders();
+      showFavorites();
+    }
+
+    function deleteFavoriteFolder() {
+      ensureCurrentFolder();
+
+      const wordCount = getCurrentFavoriteKeys().length;
+      const message =
+        `현재 폴더 "${currentFavoriteFolder}"를 삭제할까요?\n` +
+        `이 폴더 안의 중요단어 ${wordCount}개도 함께 삭제됩니다.`;
+
+      if (!confirm(message)) return;
+
+      delete favoriteFolders[currentFavoriteFolder];
+
+      const folderNames = Object.keys(favoriteFolders);
+
+      if (folderNames.length === 0) {
+        favoriteFolders["기본"] = [];
+        currentFavoriteFolder = "기본";
+      } else {
+        currentFavoriteFolder = folderNames[0];
+      }
+
+      saveFavoriteFolders();
+      showFavorites();
+    }
+
+    function toggleFavorite(encodedKey) {
+      const key = decodeURIComponent(encodedKey);
+      const currentKeys = getCurrentFavoriteKeys();
+
+      if (currentKeys.includes(key)) {
+        favoriteFolders[currentFavoriteFolder] = currentKeys.filter(x => x !== key);
+      } else {
+        currentKeys.push(key);
+      }
+
+      saveFavoriteFolders();
+
+      if (document.getElementById("favorites").classList.contains("active")) {
+        showFavorites();
+      } else {
+        showVocabList();
+      }
+    }
+
+    function toggleFavoriteFromTest(encodedKey, button) {
+      const key = decodeURIComponent(encodedKey);
+      const currentKeys = getCurrentFavoriteKeys();
+
+      if (currentKeys.includes(key)) {
+        favoriteFolders[currentFavoriteFolder] = currentKeys.filter(x => x !== key);
+        button.textContent = "☆";
+      } else {
+        currentKeys.push(key);
+        button.textContent = "⭐";
+      }
+
+      saveFavoriteFolders();
+    }
+
+    function removeFavorite(encodedKey) {
+      const key = decodeURIComponent(encodedKey);
+      favoriteFolders[currentFavoriteFolder] = getCurrentFavoriteKeys().filter(x => x !== key);
+      saveFavoriteFolders();
+      showFavorites();
+    }
+
+    function showFavorites() {
+      const target = document.getElementById("favorites-view");
+      const favorites = getCurrentFavoriteRows();
+
+      let html = renderFavoriteFolderControls(true);
+
+      html += `
+        <div class="card">
+          <b>⭐ ${escapeHtml(currentFavoriteFolder)}</b><br>
+          이 폴더에 저장된 중요 단어 ${favorites.length}개
+        </div>
+      `;
+
+      if (favorites.length === 0) {
+        html += "<div class='card'>이 폴더에 저장된 중요 단어가 없습니다.</div>";
+        target.innerHTML = html;
+        return;
+      }
+
+      html += `
+        <div class="button-row">
+          <button class="vocab-btn" onclick="startFavoriteTest()">
+            이 폴더 단어시험
+          </button>
+        </div>
+      `;
+
+      html += `
+        <table>
+          <tr>
+            <th>단어장</th>
+            <th>Day</th>
+            <th>영어</th>
+            <th>발음</th>
+            <th>뜻</th>
+            <th>해제</th>
+          </tr>
+      `;
+
+      favorites.forEach(row => {
+        const key = makeFavoriteKey(row);
+
+        html += `
+          <tr>
+            <td>${escapeHtml(row[0])}</td>
+            <td>${escapeHtml(row[1])}</td>
+            <td>${escapeHtml(row[2])}</td>
+            <td>
+              <button
+                class="speak-btn"
+                onclick='speakWord(${JSON.stringify(String(row[2]))})'
+              >
+                🔊
+              </button>
+            </td>
+            <td>${escapeHtml(row[3])}</td>
+            <td>
+              <button
+                class="icon-btn"
+                onclick="removeFavorite('${encodeURIComponent(key)}')"
+              >
+                ⭐
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+      target.innerHTML = html;
+    }
+
+    /************************************************************
+     *  7. 단어시험
+     ************************************************************/
+    function renderVocabTest(words, containerId, title, description) {
+      activeTestContainerId = containerId;
+      currentVocabWords = words;
 
       let html = `
         <div class="card">
-          <b>직접 입력 단어시험</b><br>
-          뜻을 보고 알맞은 영어 단어를 입력하세요.<br>
+          <b>${title}</b><br>
+          ${description}<br>
           총 ${currentVocabWords.length}문제입니다.
         </div>
       `;
 
       currentVocabWords.forEach((row, index) => {
-        const meaning = row[3];
-
         html += `
           <div class="vocab-question">
-            <b>Q${index + 1}. ${escapeHtml(meaning)}</b>
-            <input
-  type="text"
-  id="answer-${index}"
-  placeholder="영어 단어 입력"
-  autocomplete="off"
-  autocorrect="off"
-  autocapitalize="none"
-  spellcheck="false"
->
+            <b>Q${index + 1}. ${escapeHtml(row[3])}</b>
+            ${createAnswerInput(index)}
           </div>
         `;
       });
 
       html += `
-        <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
+        <button class="vocab-btn" onclick="gradeVocabTest()">
+          채점하기
+        </button>
         <div id="vocab-result"></div>
       `;
 
-      target.innerHTML = html;
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    function startVocabTest() {
+      const words = getSelectedVocabWords();
+
+      if (words.length === 0) {
+        document.getElementById("vocab-view").innerHTML =
+          "<div class='card'>시험을 만들 단어가 없습니다.</div>";
+        return;
+      }
+
+      const testWords = shuffleArray(words).slice(0, Math.min(25, words.length));
+
+      renderVocabTest(
+        testWords,
+        "vocab-view",
+        "직접 입력 단어시험",
+        "뜻을 보고 알맞은 영어 단어를 입력하세요."
+      );
+    }
+
+    function startFavoriteTest() {
+      const favorites = getCurrentFavoriteRows();
+
+      if (favorites.length === 0) {
+        alert("현재 폴더에 중요 단어가 없습니다.");
+        return;
+      }
+
+      const testWords = shuffleArray(favorites).slice(
+        0,
+        Math.min(25, favorites.length)
+      );
+
+      renderVocabTest(
+        testWords,
+        "favorites-view",
+        `⭐ ${escapeHtml(currentFavoriteFolder)} 단어시험`,
+        "현재 폴더의 중요 단어 중에서 무작위로 출제됩니다."
+      );
+    }
+
+    function startWrongWordTest() {
+      if (wrongWords.length === 0) {
+        alert("틀린 문제가 없습니다.");
+        return;
+      }
+
+      renderVocabTest(
+        [...wrongWords],
+        activeTestContainerId,
+        "오답 재시험",
+        `틀린 ${wrongWords.length}개 단어만 다시 시험합니다.`
+      );
     }
 
     function gradeVocabTest() {
-  let correctCount = 0;
-  let resultRows = "";
-  wrongWords = [];
+      let correctCount = 0;
+      let resultRows = "";
+      wrongWords = [];
 
-  currentVocabWords.forEach((row, index) => {
-    const correctAnswer = row[2];
-    const meaning = row[3];
-    const input = document.getElementById(`answer-${index}`);
-    const userAnswer = input ? input.value : "";
+      currentVocabWords.forEach((row, index) => {
+        const correctAnswer = row[2];
+        const meaning = row[3];
+        const input = document.getElementById(`answer-${index}`);
+        const userAnswer = input ? input.value : "";
 
-    const isCorrect =
-      normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+        const isCorrect =
+          normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
 
-    if (isCorrect) {
-      correctCount++;
+        if (isCorrect) {
+          correctCount++;
 
-      if (input) {
-        input.style.border = "3px solid #1b7f3a";
-        input.style.backgroundColor = "#e8f8ee";
+          if (input) {
+            input.style.border = "3px solid #1b7f3a";
+            input.style.backgroundColor = "#e8f8ee";
+          }
+        } else {
+          wrongWords.push(row);
+
+          if (input) {
+            input.style.border = "3px solid #c0392b";
+            input.style.backgroundColor = "#fdecea";
+          }
+        }
+
+        resultRows += `
+          <tr>
+            <td>${escapeHtml(meaning)}</td>
+            <td>${escapeHtml(userAnswer || "-")}</td>
+            <td>${escapeHtml(correctAnswer)}</td>
+            <td class="${isCorrect ? "result-correct" : "result-wrong"}">
+              ${isCorrect ? "정답" : "오답"}
+            </td>
+          </tr>
+        `;
+      });
+
+      let resultHtml = `
+        <div class="card">
+          <b>채점 결과</b><br>
+          ${currentVocabWords.length}문제 중 ${correctCount}개 정답<br>
+          점수: ${Math.round((correctCount / currentVocabWords.length) * 100)}점
+        </div>
+
+        <table>
+          <tr>
+            <th>뜻</th>
+            <th>내 답</th>
+            <th>정답</th>
+            <th>결과</th>
+          </tr>
+          ${resultRows}
+        </table>
+      `;
+
+      if (wrongWords.length > 0) {
+        resultHtml += makeWrongNoteHtml();
       }
 
-    } else {
-      wrongWords.push(row);
-
-      if (input) {
-        input.style.border = "3px solid #c0392b";
-        input.style.backgroundColor = "#fdecea";
-      }
+      const resultTarget = document.getElementById("vocab-result");
+      resultTarget.innerHTML = resultHtml;
+      resultTarget.scrollIntoView({ behavior: "smooth" });
     }
 
-    resultRows += `
-      <tr>
-        <td>${escapeHtml(meaning)}</td>
-        <td>${escapeHtml(userAnswer || "-")}</td>
-        <td>${escapeHtml(correctAnswer)}</td>
-        <td class="${isCorrect ? "result-correct" : "result-wrong"}">
-          ${isCorrect ? "정답" : "오답"}
-        </td>
-      </tr>
-    `;
-  });
+    function makeWrongNoteHtml() {
+      let html = `
+        <div style="margin-top:15px;">
+          <button class="vocab-btn" onclick="startWrongWordTest()">
+            틀린 단어 다시 시험 (${wrongWords.length}개)
+          </button>
+        </div>
 
-  let resultHtml = `
-    <div class="card">
-      <b>채점 결과</b><br>
-      ${currentVocabWords.length}문제 중 ${correctCount}개 정답<br>
-      점수: ${Math.round((correctCount / currentVocabWords.length) * 100)}점
-    </div>
+        <div class="card">
+          <b>📕 오답노트</b><br><br>
+          <table>
+            <tr>
+              <th>뜻</th>
+              <th>정답</th>
+              <th>중요<br>(${escapeHtml(currentFavoriteFolder)})</th>
+            </tr>
+      `;
 
-    <table>
-      <tr>
-        <th>뜻</th>
-        <th>내 답</th>
-        <th>정답</th>
-        <th>결과</th>
-      </tr>
-      ${resultRows}
-    </table>
-  `;
+      wrongWords.forEach(word => {
+        const key = makeFavoriteKey(word);
+        const isFavorite = isFavoriteInCurrentFolder(key);
 
-  if (wrongWords.length > 0) {
-    let wrongNoteHtml = `
-  <div class="card">
-    <b>📕 오답노트</b><br><br>
-    <table>
-      <tr>
-        <th>뜻</th>
-        <th>정답</th>
-        <th>중요</th>
-      </tr>
-`;
+        html += `
+          <tr>
+            <td>${escapeHtml(word[3])}</td>
+            <td>${escapeHtml(word[2])}</td>
+            <td>
+              <button
+                class="icon-btn"
+                onclick="toggleFavoriteFromTest('${encodeURIComponent(key)}', this)"
+              >
+                ${isFavorite ? "⭐" : "☆"}
+              </button>
+            </td>
+          </tr>
+        `;
+      });
 
-    wrongWords.forEach(word => {
-  const key =
-    word[0] + "|" +
-    word[1] + "|" +
-    word[2];
+      html += `
+          </table>
+        </div>
+      `;
 
-  const isFavorite =
-    favoriteWords.includes(key);
+      return html;
+    }
 
-  wrongNoteHtml += `
-    <tr>
-      <td>${escapeHtml(word[3])}</td>
-      <td>${escapeHtml(word[2])}</td>
-      <td>
-        <button
-          onclick="toggleFavoriteFromTest('${encodeURIComponent(key)}', this)"
-          style="
-            border:none;
-            background:none;
-            font-size:1.4em;
-            cursor:pointer;
-          ">
-          ${isFavorite ? "⭐" : "☆"}
-        </button>
-      </td>
-    </tr>
-  `;
-});
+    /************************************************************
+     *  8. 복사 / 드래그 / 붙여넣기 제한
+     ************************************************************/
+    document.addEventListener("dragstart", function(e) {
+      e.preventDefault();
+    });
 
-    wrongNoteHtml += `
-        </table>
-      </div>
-    `;
+    document.addEventListener("selectstart", function(e) {
+      const tag = e.target.tagName;
 
-    resultHtml += `
-      <div style="margin-top:15px;">
-        <button class="vocab-btn" onclick="startWrongWordTest()">
-          틀린 단어 다시 시험 (${wrongWords.length}개)
-        </button>
-      </div>
+      if (tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+      }
+    });
 
-      ${wrongNoteHtml}
-    `;
-  }
+    document.addEventListener("contextmenu", function(e) {
+      const tag = e.target.tagName;
 
-  document.getElementById("vocab-result").innerHTML = resultHtml;
-  document.getElementById("vocab-result").scrollIntoView({ behavior: "smooth" });
-}
-function startWrongWordTest() {
-  if (wrongWords.length === 0) {
-    alert("틀린 문제가 없습니다.");
-    return;
-  }
+      if (tag !== "INPUT" && tag !== "TEXTAREA") {
+        e.preventDefault();
+      }
+    });
 
-  currentVocabWords = [...wrongWords];
+    document.addEventListener("paste", function(e) {
+      if (e.target && e.target.id && e.target.id.startsWith("answer-")) {
+        e.preventDefault();
+        alert("단어시험에서는 붙여넣기를 사용할 수 없습니다.");
+      }
+    });
 
-  let html = `
-    <div class="card">
-      <b>오답 재시험</b><br>
-      틀린 ${wrongWords.length}개 단어만 다시 시험합니다.
-    </div>
-  `;
-
-  currentVocabWords.forEach((row, index) => {
-    html += `
-      <div class="vocab-question">
-        <b>Q${index + 1}. ${escapeHtml(row[3])}</b>
-        <input
-  type="text"
-  id="answer-${index}"
-  placeholder="영어 단어 입력"
-  autocomplete="off"
-  autocorrect="off"
-  autocapitalize="none"
-  spellcheck="false"
->
-      </div>
-    `;
-  });
-
-  html += `
-    <button class="vocab-btn" onclick="gradeVocabTest()">
-      다시 채점하기
-    </button>
-
-    <div id="vocab-result"></div>
-  `;
-
-  document.getElementById("vocab-view").innerHTML = html;
-}
+    /************************************************************
+     *  9. 앱 시작
+     ************************************************************/
     window.onload = async () => {
       try {
         await Promise.all([
@@ -1158,8 +1485,13 @@ function startWrongWordTest() {
           loadVocabBooks()
         ]);
 
-        document.getElementById("exam-date").addEventListener("change", loadExam);
-        document.getElementById("class-select").addEventListener("change", loadExam);
+        document
+          .getElementById("exam-date")
+          .addEventListener("change", loadExam);
+
+        document
+          .getElementById("class-select")
+          .addEventListener("change", loadExam);
       } catch (err) {
         console.error(err);
       } finally {
@@ -1168,12 +1500,6 @@ function startWrongWordTest() {
         }, 500);
       }
     };
-document.addEventListener("paste", function(e) {
-  if (e.target && e.target.id && e.target.id.startsWith("answer-")) {
-    e.preventDefault();
-    alert("단어시험에서는 붙여넣기를 사용할 수 없습니다.");
-  }
-});
   </script>
 </body>
 </html>
