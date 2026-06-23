@@ -2877,6 +2877,86 @@ body.dark .admin-only-hint {
     min-width: 118px;
   }
 }
+    /************************************************************
+ * 재시험 날짜별 전체 반 불러오기 UI
+ ************************************************************/
+.retest-bulk-import-box {
+  margin: 1em 0 1.1em;
+  padding: 1em;
+  border-radius: 16px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line);
+}
+
+.retest-bulk-import-box h4 {
+  margin: 0 0 0.4em;
+  color: var(--brand-dark);
+  font-size: 1.02em;
+}
+
+.retest-bulk-import-box p {
+  margin: 0.25em 0 0.8em;
+  color: var(--brand-muted);
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.retest-bulk-import-row {
+  display: flex;
+  gap: 0.55em;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.retest-bulk-import-row input {
+  flex: 1;
+  min-width: 170px;
+}
+
+.retest-bulk-import-row button {
+  min-width: 190px;
+}
+
+.retest-import-result {
+  margin-top: 0.75em;
+  min-height: 1.4em;
+  color: var(--brand-dark);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.retest-import-result.error {
+  color: #c0392b;
+}
+
+.retest-import-result.success {
+  color: #1b7f3a;
+}
+
+body.dark .retest-bulk-import-box {
+  background: #182522 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .retest-bulk-import-box h4,
+body.dark .retest-import-result {
+  color: #f6fffc !important;
+}
+
+body.dark .retest-bulk-import-box p {
+  color: #cfe1db !important;
+}
+
+@media (max-width: 760px) {
+  .retest-bulk-import-row {
+    flex-direction: column;
+  }
+
+  .retest-bulk-import-row button {
+    width: 100%;
+    min-width: 0;
+  }
+}
   </style>
 </head>
 
@@ -3093,6 +3173,26 @@ body.dark .admin-only-hint {
     <div class="admin-only-hint">
       관리자/선생님 계정에서만 보입니다. 추가, 삭제, 판정결과 수정은 Retest 시트에 바로 반영됩니다.
     </div>
+    <div class="retest-bulk-import-box">
+  <h4>날짜별 전체 반 재시험 자동 불러오기</h4>
+  <p>
+    선택한 날짜의 모든 반 시트를 확인하여 재시험 대상자를 Retest 시트에 추가합니다.
+    같은 날짜 · 같은 반 · 같은 이름은 중복 추가하지 않습니다.
+  </p>
+
+  <div class="retest-bulk-import-row">
+    <input id="retest-import-date" type="date" />
+    <button
+      id="retest-import-button"
+      class="vocab-btn"
+      onclick="importRetestAllClassesByDateFromWeb()"
+    >
+      선택 날짜 전체 반 불러오기
+    </button>
+  </div>
+
+  <div id="retest-import-result" class="retest-import-result"></div>
+</div>
 
     <div class="retest-admin-grid">
       <label>
@@ -4228,9 +4328,15 @@ function renderRetestAdminPanel() {
 
     const dateInput = document.getElementById("retest-add-date");
 
-    if (dateInput && !dateInput.value) {
-      dateInput.value = getTodayString();
-    }
+if (dateInput && !dateInput.value) {
+  dateInput.value = getRetestTodayInputValue();
+}
+
+const importDateInput = document.getElementById("retest-import-date");
+
+if (importDateInput && !importDateInput.value) {
+  importDateInput.value = getRetestTodayInputValue();
+}
   } else {
     panel.style.display = "none";
   }
@@ -4286,7 +4392,106 @@ async function addRetestRowFromWeb() {
     alert("재시험 명단 추가 API 연결에 실패했습니다.");
   }
 }
+function setRetestImportResult(message, type) {
+  const target = document.getElementById("retest-import-result");
 
+  if (!target) {
+    return;
+  }
+
+  target.classList.remove("success", "error");
+
+  if (type) {
+    target.classList.add(type);
+  }
+
+  target.textContent = message || "";
+}
+
+
+async function importRetestAllClassesByDateFromWeb() {
+  if (!isRetestAdmin()) {
+    alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
+    return;
+  }
+
+  const dateInput =
+    document.getElementById("retest-import-date");
+
+  const button =
+    document.getElementById("retest-import-button");
+
+  const selectedDate =
+    dateInput ? dateInput.value.trim() : "";
+
+  if (!selectedDate) {
+    setRetestImportResult("날짜를 선택해 주세요.", "error");
+    return;
+  }
+
+  const ok = confirm(
+    selectedDate +
+    " 날짜의 전체 반 재시험 대상자를 불러올까요?\n\n" +
+    "이미 같은 날짜 · 같은 반 · 같은 이름이 있으면 중복 추가하지 않습니다."
+  );
+
+  if (!ok) {
+    return;
+  }
+
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "불러오는 중...";
+    }
+
+    setRetestImportResult("전체 반 재시험 대상을 확인하는 중입니다...", "");
+
+    const result = await apiPost({
+      action: "importRetestAllClassesByDate",
+      date: selectedDate
+    });
+
+    if (!result.success) {
+      setRetestImportResult(
+        result.message || "전체 반 재시험 불러오기에 실패했습니다.",
+        "error"
+      );
+      return;
+    }
+
+    const message =
+      "불러오기 완료: " +
+      result.date +
+      " / 새로 추가 " +
+      result.added +
+      "명 / 중복 제외 " +
+      result.skippedDuplicate +
+      "명 / 통과 제외 " +
+      result.skippedPassed +
+      "명 / 녹음x 기준 적용 " +
+      result.specialRuleCount +
+      "명";
+
+    setRetestImportResult(message, "success");
+
+    await loadRetest();
+
+  } catch (err) {
+    console.error(err);
+
+    setRetestImportResult(
+      "전체 반 재시험 불러오기 API 연결에 실패했습니다.",
+      "error"
+    );
+
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "선택 날짜 전체 반 불러오기";
+    }
+  }
+}
 
 async function updateRetestStatusFromWeb(rowNumber) {
   if (!isRetestAdmin()) {
@@ -4355,6 +4560,15 @@ async function deleteRetestRowFromWeb(rowNumber, studentName) {
   } catch (err) {
     alert("재시험 명단 삭제 API 연결에 실패했습니다.");
   }
+}
+    function getRetestTodayInputValue() {
+  const now = new Date();
+
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+
+  return `${yyyy}-${mm}-${dd}`;
 }
     async function loadRetest() {
   renderRetestAdminPanel();
