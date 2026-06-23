@@ -2793,7 +2793,90 @@
         object-position: left center !important;
       }
     }
+/************************************************************
+ * 재시험 웹앱 관리 기능
+ ************************************************************/
+.retest-admin-panel {
+  margin: 0 0 1em;
+  padding: 1em;
+  border: 1px solid var(--brand-line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--brand-shadow-soft);
+}
 
+.retest-admin-panel h3 {
+  margin: 0 0 0.35em;
+  color: var(--brand-dark);
+  font-size: 1.12em;
+  letter-spacing: -0.02em;
+}
+
+.retest-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75em;
+  margin-top: 0.9em;
+}
+
+.retest-admin-grid .full-row {
+  grid-column: 1 / -1;
+}
+
+.retest-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  min-width: 132px;
+}
+
+.retest-row-actions select {
+  margin: 0;
+  min-height: 38px;
+  padding: 0.45em 0.55em;
+  font-size: 0.88em;
+  border-radius: 10px;
+}
+
+.retest-row-action-buttons {
+  display: flex;
+  gap: 0.35em;
+}
+
+.retest-row-action-buttons .small-btn {
+  flex: 1;
+  min-height: 36px;
+  padding: 0.45em 0.55em;
+  font-size: 0.82em;
+  border-radius: 10px;
+}
+
+.admin-only-hint {
+  color: var(--brand-muted);
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+body.dark .retest-admin-panel {
+  background: #1f2a27 !important;
+  border-color: #35514a !important;
+  color: #eef8f5 !important;
+}
+
+body.dark .retest-admin-panel h3,
+body.dark .admin-only-hint {
+  color: #f6fffc !important;
+}
+
+@media (max-width: 760px) {
+  .retest-admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .retest-row-actions {
+    min-width: 118px;
+  }
+}
   </style>
 </head>
 
@@ -3003,9 +3086,55 @@
 
   <!-- 재시험 -->
   <section id="retest">
-    <div class="section-title">🔁 재시험 명단</div>
-    <div id="retest-table"></div>
-  </section>
+  <div class="section-title">🔁 재시험 명단</div>
+
+  <div id="retest-admin-panel" class="retest-admin-panel" style="display:none;">
+    <h3>재시험 명단 직접 관리</h3>
+    <div class="admin-only-hint">
+      관리자/선생님 계정에서만 보입니다. 추가, 삭제, 판정결과 수정은 Retest 시트에 바로 반영됩니다.
+    </div>
+
+    <div class="retest-admin-grid">
+      <label>
+        <span class="field-label">반</span>
+        <input id="retest-add-class" type="text" placeholder="예: 중3A" autocomplete="off" />
+      </label>
+
+      <label>
+        <span class="field-label">이름</span>
+        <input id="retest-add-name" type="text" placeholder="학생 이름" autocomplete="off" />
+      </label>
+
+      <label>
+        <span class="field-label">날짜</span>
+        <input id="retest-add-date" type="date" />
+      </label>
+
+      <label>
+        <span class="field-label">판정결과</span>
+        <select id="retest-add-status">
+          <option value="재시험 대상">재시험 대상</option>
+          <option value="재시험 대상(녹음x)">재시험 대상(녹음x)</option>
+          <option value="단어쓰기 과제">단어쓰기 과제</option>
+          <option value="통과">통과</option>
+          <option value="재시험 완료">재시험 완료</option>
+        </select>
+      </label>
+
+      <label class="full-row">
+        <span class="field-label">시험범위</span>
+        <input id="retest-add-range" type="text" placeholder="예: Day 12 / Lesson 4" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn" onclick="addRetestRowFromWeb()">명단 추가</button>
+      <button class="vocab-btn secondary" onclick="loadRetest()">새로고침</button>
+    </div>
+  </div>
+
+  <div id="retest-table"></div>
+</section>
 
   <!-- 단어장 -->
   <section id="vocab">
@@ -4056,35 +4185,257 @@ ${escapeHtml(content)}`;
       html += "</table>";
       table.innerHTML = `<div class="mini-card"><b>검색 결과 ${filtered.length - 1}건</b></div>${html}`;
     }
+function isRetestAdmin() {
+  return !!(
+    currentUser &&
+    ["admin", "teacher"].includes(String(currentUser.role || "").toLowerCase())
+  );
+}
 
+
+function getRetestStatusOptions(selectedValue) {
+  const options = [
+    "재시험 대상",
+    "재시험 대상(녹음x)",
+    "단어쓰기 과제",
+    "통과",
+    "재시험 완료"
+  ];
+
+  const current = String(selectedValue || "").trim();
+
+  const finalOptions =
+    current && !options.includes(current)
+      ? [current, ...options]
+      : options;
+
+  return finalOptions.map(option => {
+    const selected = option === current ? " selected" : "";
+    return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+  }).join("");
+}
+
+
+function renderRetestAdminPanel() {
+  const panel = document.getElementById("retest-admin-panel");
+
+  if (!panel) {
+    return;
+  }
+
+  if (isRetestAdmin()) {
+    panel.style.display = "block";
+
+    const dateInput = document.getElementById("retest-add-date");
+
+    if (dateInput && !dateInput.value) {
+      dateInput.value = getTodayString();
+    }
+  } else {
+    panel.style.display = "none";
+  }
+}
+
+
+async function addRetestRowFromWeb() {
+  if (!isRetestAdmin()) {
+    alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
+    return;
+  }
+
+  const className = document.getElementById("retest-add-class").value.trim();
+  const studentName = document.getElementById("retest-add-name").value.trim();
+  const date = document.getElementById("retest-add-date").value.trim();
+  const testRange = document.getElementById("retest-add-range").value.trim();
+  const status =
+    document.getElementById("retest-add-status").value.trim() || "재시험 대상";
+
+  if (!className || !studentName || !date) {
+    alert("반, 이름, 날짜는 반드시 입력해야 합니다.");
+    return;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "addRetestRow",
+      className,
+      studentName,
+      date,
+      testRange,
+      status
+    });
+
+    if (!result.success) {
+      alert(result.message || "재시험 명단 추가에 실패했습니다.");
+      return;
+    }
+
+    if (result.duplicate) {
+      alert("이미 같은 날짜 · 같은 반 · 같은 이름의 학생이 있어 추가하지 않았습니다.");
+      return;
+    }
+
+    document.getElementById("retest-add-name").value = "";
+    document.getElementById("retest-add-range").value = "";
+
+    await loadRetest();
+
+    alert("재시험 명단에 추가했습니다.");
+
+  } catch (err) {
+    alert("재시험 명단 추가 API 연결에 실패했습니다.");
+  }
+}
+
+
+async function updateRetestStatusFromWeb(rowNumber) {
+  if (!isRetestAdmin()) {
+    alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
+    return;
+  }
+
+  const select = document.getElementById(`retest-status-${rowNumber}`);
+
+  if (!select) {
+    return;
+  }
+
+  const status = select.value.trim();
+
+  if (!status) {
+    alert("판정결과를 선택하세요.");
+    return;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "updateRetestStatus",
+      rowNumber,
+      status
+    });
+
+    if (!result.success) {
+      alert(result.message || "판정결과 수정에 실패했습니다.");
+      return;
+    }
+
+    await loadRetest();
+
+  } catch (err) {
+    alert("판정결과 수정 API 연결에 실패했습니다.");
+  }
+}
+
+
+async function deleteRetestRowFromWeb(rowNumber, studentName) {
+  if (!isRetestAdmin()) {
+    alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
+    return;
+  }
+
+  const ok = confirm(`${studentName || "이 학생"}의 재시험 명단을 삭제할까요?`);
+
+  if (!ok) {
+    return;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "deleteRetestRow",
+      rowNumber
+    });
+
+    if (!result.success) {
+      alert(result.message || "재시험 명단 삭제에 실패했습니다.");
+      return;
+    }
+
+    await loadRetest();
+
+  } catch (err) {
+    alert("재시험 명단 삭제 API 연결에 실패했습니다.");
+  }
+}
     async function loadRetest() {
-      const data = await fetchSheet("Retest");
-      const target = document.getElementById("retest-table");
+  renderRetestAdminPanel();
 
-      let html = "<table><tr>"
-        + data[0].map(h => `<th>${escapeHtml(h)}</th>`).filter(h => !h.includes("재시험")).join("")
-        + "</tr>";
+  const data = await fetchSheet("Retest");
+  const target = document.getElementById("retest-table");
+  const canManage = isRetestAdmin();
 
-      for (let i = 1; i < data.length; i++) {
-        html += "<tr>" + data[i].map((cell, j) => {
-          const header = data[0][j];
-          if (j === 2) return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-          if (header === "재시험") return null;
-          if (header === "판정결과") {
-            const value = String(cell || "");
-            const badgeClass = value.includes("단어쓰기") ? "badge-warning" : value.includes("대상") ? "badge-danger" : "badge-success";
-            return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
-          }
-          if (header === "시험범위") return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
-          return `<td>${escapeHtml(cell)}</td>`;
-        }).filter(c => c).join("") + "</tr>";
+  if (!Array.isArray(data) || data.length <= 1) {
+    target.innerHTML = "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>";
+    return;
+  }
+
+  let html = "<table><tr>"
+    + data[0]
+      .map(h => `<th>${escapeHtml(h)}</th>`)
+      .filter(h => !h.includes("재시험"))
+      .join("")
+    + (canManage ? "<th>관리</th>" : "")
+    + "</tr>";
+
+  for (let i = 1; i < data.length; i++) {
+    const sheetRowNumber = i + 1;
+    const studentName = String(data[i][1] || "");
+    const statusValue = String(data[i][5] || "");
+
+    html += "<tr>" + data[i].map((cell, j) => {
+      const header = data[0][j];
+
+      if (j === 2) {
+        return `<td>${escapeHtml(cleanDate(cell))}</td>`;
       }
 
-      html += "</table>";
-      target.innerHTML = data.length <= 1
-        ? "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>"
-        : html;
+      if (header === "재시험") {
+        return null;
+      }
+
+      if (header === "판정결과") {
+        const value = String(cell || "");
+
+        const badgeClass =
+          value.includes("단어쓰기")
+            ? "badge-warning"
+            : value.includes("대상")
+              ? "badge-danger"
+              : "badge-success";
+
+        return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
+      }
+
+      if (header === "시험범위") {
+        return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
+      }
+
+      return `<td>${escapeHtml(cell)}</td>`;
+    }).filter(c => c).join("");
+
+    if (canManage) {
+      html += `
+        <td>
+          <div class="retest-row-actions">
+            <select id="retest-status-${sheetRowNumber}">
+              ${getRetestStatusOptions(statusValue)}
+            </select>
+
+            <div class="retest-row-action-buttons">
+              <button class="small-btn" onclick="updateRetestStatusFromWeb(${sheetRowNumber})">저장</button>
+              <button class="small-btn warning" onclick='deleteRetestRowFromWeb(${sheetRowNumber}, ${JSON.stringify(studentName)})'>삭제</button>
+            </div>
+          </div>
+        </td>
+      `;
     }
+
+    html += "</tr>";
+  }
+
+  html += "</table>";
+
+  target.innerHTML = html;
+}
 
     /************************************************************
      *  6. 단어장 불러오기 / Day 이동
