@@ -3145,6 +3145,30 @@
      ************************************************************/
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbzyk-n_G93BJG1vlck6DNakEdZolCSoB9I3ylmyN2e6qX9NNHdQYgx6phA4OU9JAwfT/exec";
 
+
+    const API_TIMEOUT_MS = 15000;
+
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+          cache: options.cache || "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(`서버 응답 오류: ${response.status}`);
+        }
+
+        return await response.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     const DEFAULT_FOLDER_NAME = "기본";
     const MAX_RANDOM_TEST_COUNT = 25;
 
@@ -3186,15 +3210,15 @@
     }
 
     /************************************************************
-   *  단어시험 답안 채점 보정
-   *  - 괄호 안 설명, 품사 표시, 특수기호 차이는 완화
-   *  - 단, 정답에 원래 띄어쓰기가 있으면 띄어쓰기는 반드시 맞아야 함
-   ************************************************************/
+     *  단어시험 답안 채점 보정
+     *  - 괄호 안 설명, 품사 표시, 특수기호 차이는 완화
+     *  - 단, 정답에 원래 띄어쓰기가 있으면 띄어쓰기는 반드시 맞아야 함
+     ************************************************************/
     function stripBracketContent(text) {
-    return String(text || "")
-      .replace(/\([^)]*\)/g, " ")
-      .replace(/\[[^\]]*\]/g, " ")
-      .replace(/\{[^}]*\}/g, " ");
+      return String(text || "")
+        .replace(/\([^)]*\)/g, " ")
+        .replace(/\[[^\]]*\]/g, " ")
+        .replace(/\{[^}]*\}/g, " ");
     }
 
     function removePartOfSpeech(text) {
@@ -3242,41 +3266,41 @@
         }
       }
 
-    add(raw);
-    add(stripBracketContent(raw));
-    add(removePartOfSpeech(raw));
-    add(removePartOfSpeech(stripBracketContent(raw)));
+      add(raw);
+      add(stripBracketContent(raw));
+      add(removePartOfSpeech(raw));
+      add(removePartOfSpeech(stripBracketContent(raw)));
 
-    const cleaned = removePartOfSpeech(stripBracketContent(raw));
+      const cleaned = removePartOfSpeech(stripBracketContent(raw));
 
-    cleaned
-      .split(/[;,/|·ㆍ，、。]|\n|\r/g)
-      .map(part => part.trim())
-      .filter(Boolean)
-      .forEach(add);
+      cleaned
+        .split(/[;,/|·ㆍ，、。]|\n|\r/g)
+        .map(part => part.trim())
+        .filter(Boolean)
+        .forEach(add);
 
-    return [...new Set(candidates)];
-  }
-
-  function isAnswerCorrect(userAnswer, correctAnswer) {
-    const userNormalized = normalizeAnswer(userAnswer);
-
-    if (!userNormalized) {
-      return false;
+      return [...new Set(candidates)];
     }
 
-    const candidates = getAnswerCandidates(correctAnswer);
+    function isAnswerCorrect(userAnswer, correctAnswer) {
+      const userNormalized = normalizeAnswer(userAnswer);
 
-    return candidates.some(candidate => {
-      const candidateRequiresSpace = hasRequiredSpace(candidate);
-
-      if (candidateRequiresSpace) {
-        return userNormalized === candidate;
+      if (!userNormalized) {
+        return false;
       }
 
-      return userNormalized.replace(/\s+/g, "") === candidate.replace(/\s+/g, "");
-    });
-  }
+      const candidates = getAnswerCandidates(correctAnswer);
+
+      return candidates.some(candidate => {
+        const candidateRequiresSpace = hasRequiredSpace(candidate);
+
+        if (candidateRequiresSpace) {
+          return userNormalized === candidate;
+        }
+
+        return userNormalized.replace(/\s+/g, "") === candidate.replace(/\s+/g, "");
+      });
+    }
 
     function shuffleArray(array) {
       return [...array]
@@ -3312,8 +3336,9 @@
     }
 
     async function fetchSheet(sheetName) {
-      const res = await fetch(SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName));
-      return await res.json();
+      return await fetchJsonWithTimeout(
+        SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName)
+      );
     }
 
     /************************************************************
@@ -3520,8 +3545,7 @@
         query.set("token", currentUser.token);
       }
 
-      const res = await fetch(SHEET_URL + "?" + query.toString());
-      return await res.json();
+      return await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString());
     }
 
     async function apiPost(params) {
@@ -3530,11 +3554,10 @@
         body.set("token", currentUser.token);
       }
 
-      const res = await fetch(SHEET_URL, {
+      return await fetchJsonWithTimeout(SHEET_URL, {
         method: "POST",
         body
       });
-      return await res.json();
     }
 
 
