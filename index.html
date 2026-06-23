@@ -1126,91 +1126,7 @@
         font-size: 2.1em;
       }
     }
-/************************************************************
- *  메인 팝업
- ************************************************************/
-.main-popup-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  padding: 1.2em;
-  background: rgba(0, 0, 0, 0.48);
-}
 
-.main-popup-box {
-  width: min(92vw, 460px);
-  max-height: 82vh;
-  overflow-y: auto;
-  background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
-  padding: 1.35em;
-  border: 1px solid #dce9e5;
-}
-
-.main-popup-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.8em;
-  margin-bottom: 0.8em;
-}
-
-.main-popup-title {
-  color: #24534a;
-  font-size: 1.35em;
-  font-weight: 900;
-  line-height: 1.35;
-}
-
-.main-popup-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: #eaf5f1;
-  color: #24534a;
-  font-size: 1.45em;
-  font-weight: bold;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.main-popup-message {
-  color: #263f3a;
-  font-size: 1.02em;
-  line-height: 1.65;
-  white-space: pre-line;
-  margin: 0.7em 0 1.1em;
-}
-
-.main-popup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
-}
-
-body.dark .main-popup-box {
-  background: #1f2a27;
-  color: #eef8f5;
-  border-color: #2e443f;
-}
-
-body.dark .main-popup-title {
-  color: #dcedc8;
-}
-
-body.dark .main-popup-message {
-  color: #eef8f5;
-}
-
-body.dark .main-popup-close {
-  background: #243d37;
-  color: #dcedc8;
-}
 
     /************************************************************
      *  10. 로고 기반 디자인 v3 - All바른 브랜드 UI
@@ -1769,6 +1685,427 @@ body.dark .main-popup-close {
       }
     }
 
+
+    /************************************************************
+     *  11. HomeText 연동 메인 팝업
+     ************************************************************/
+    .main-popup-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9997;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 1.2em;
+      background: rgba(0, 0, 0, 0.48);
+    }
+
+    .main-popup-box {
+      width: min(92vw, 460px);
+      max-height: 82vh;
+      overflow-y: auto;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+      padding: 1.35em;
+      border: 1px solid #dce9e5;
+    }
+
+    .main-popup-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.8em;
+      margin-bottom: 0.8em;
+    }
+
+    .main-popup-title {
+      color: #24534a;
+      font-size: 1.35em;
+      font-weight: 900;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    .main-popup-close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: #eaf5f1;
+      color: #24534a;
+      font-size: 1.45em;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .main-popup-message {
+      color: #263f3a;
+      font-size: 1.02em;
+      line-height: 1.65;
+      white-space: pre-line;
+      margin: 0.7em 0 1.1em;
+      word-break: keep-all;
+    }
+
+    .main-popup-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6em;
+    }
+
+    body.dark .main-popup-box {
+      background: #1f2a27;
+      color: #eef8f5;
+      border-color: #2e443f;
+    }
+
+    body.dark .main-popup-title {
+      color: #dcedc8;
+    }
+
+    body.dark .main-popup-message {
+      color: #eef8f5;
+    }
+
+    body.dark .main-popup-close {
+      background: #243d37;
+      color: #dcedc8;
+    }
+
+
+    /************************************************************
+     *  11. 뒤로가기 버튼 가시성 강화
+     ************************************************************/
+    #app-back-button {
+      position: fixed !important;
+      left: 14px;
+      bottom: calc(94px + env(safe-area-inset-bottom));
+      z-index: 130;
+      width: auto !important;
+      min-width: 76px;
+      height: 44px;
+      padding: 0 14px !important;
+      border-radius: 999px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.96) !important;
+      color: var(--brand) !important;
+      border: 1px solid var(--brand-line) !important;
+      box-shadow: 0 12px 26px rgba(29, 67, 60, 0.22) !important;
+      font-size: 0.95em !important;
+      font-weight: 900;
+    }
+
+    #app-back-button::after {
+      content: "뒤로";
+      font-size: 0.88em;
+      font-weight: 900;
+    }
+
+    #app-back-button.disabled-back {
+      opacity: 0.55;
+    }
+
+    body.dark #app-back-button {
+      background: rgba(31, 42, 39, 0.96) !important;
+      color: #dcedc8 !important;
+      border-color: #3f5f57 !important;
+    }
+
+    .app-toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(148px + env(safe-area-inset-bottom));
+      z-index: 150;
+      transform: translateX(-50%) translateY(12px);
+      min-width: 180px;
+      max-width: 86vw;
+      padding: 0.78em 1.1em;
+      border-radius: 999px;
+      background: rgba(29, 67, 60, 0.94);
+      color: #fff;
+      text-align: center;
+      font-weight: 900;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .app-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 760px) {
+      #app-back-button {
+        left: 12px;
+        bottom: calc(90px + env(safe-area-inset-bottom));
+        min-width: 72px;
+        height: 42px;
+      }
+    }
+
+  
+
+    /************************************************************
+     *  13. 홈 공지 중심 레이아웃 / 전체 메뉴 / 상단 스크롤 개선
+     ************************************************************/
+    nav.app-tabs {
+      justify-content: flex-start;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.42em 2.35em 0.42em 0.62em;
+      gap: 4px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    nav.app-tabs::after {
+      content: "";
+      position: sticky;
+      right: -2.35em;
+      flex: 0 0 34px;
+      align-self: stretch;
+      margin-left: -26px;
+      background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.96) 72%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    nav.app-tabs button {
+      flex: 0 0 auto;
+      min-width: 74px;
+      font-size: 0.92em;
+      padding: 0.72em 0.46em;
+      scroll-snap-align: start;
+    }
+
+    nav.app-tabs button[data-tab="notice"],
+    nav.app-tabs button[data-tab="favorites"] {
+      min-width: 84px;
+    }
+
+    .home-notice-panel {
+      margin-top: 1em;
+      padding: 1.05em;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--brand-line);
+      box-shadow: var(--brand-shadow);
+    }
+
+    .home-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8em;
+      margin-bottom: 0.85em;
+    }
+
+    .home-panel-kicker {
+      color: var(--brand);
+      font-size: 0.86em;
+      font-weight: 900;
+      margin-bottom: 0.18em;
+    }
+
+    .home-panel-header h2 {
+      margin: 0;
+      color: var(--brand-text);
+      font-size: 1.42em;
+      letter-spacing: -0.04em;
+    }
+
+    .home-panel-action {
+      flex-shrink: 0;
+      border: 1px solid #bdd2cc;
+      background: #f7fbfa;
+      color: var(--brand);
+      border-radius: 999px;
+      padding: 0.62em 0.95em;
+      font-size: 0.94em;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .home-notice-content {
+      display: grid;
+      gap: 0.72em;
+    }
+
+    .home-notice-card {
+      margin: 0;
+      padding: 1em;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid var(--brand-line);
+      box-shadow: 0 5px 15px rgba(29, 67, 60, 0.07);
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .home-notice-card .home-notice-date {
+      display: inline-block;
+      margin-bottom: 0.35em;
+      color: var(--brand-muted);
+      font-size: 0.86em;
+      font-weight: 800;
+    }
+
+    .home-notice-card .home-notice-title {
+      display: block;
+      margin-bottom: 0.35em;
+      color: var(--brand-dark);
+      font-size: 1.08em;
+      font-weight: 900;
+    }
+
+    .full-menu-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      display: none;
+      justify-content: center;
+      align-items: flex-start;
+      padding: calc(78px + env(safe-area-inset-top)) 1em 1em;
+      background: rgba(0, 0, 0, 0.42);
+    }
+
+    .full-menu-box {
+      width: min(92vw, 520px);
+      background: #ffffff;
+      border: 1px solid var(--brand-line);
+      border-radius: 24px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.24);
+      padding: 1.2em;
+    }
+
+    .full-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.8em;
+      margin-bottom: 1em;
+    }
+
+    .full-menu-kicker {
+      color: var(--brand);
+      font-size: 0.85em;
+      font-weight: 900;
+      margin-bottom: 0.2em;
+    }
+
+    .full-menu-header h3 {
+      margin: 0;
+      color: var(--brand-text);
+      font-size: 1.45em;
+      letter-spacing: -0.04em;
+    }
+
+    .full-menu-close {
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 50%;
+      background: var(--brand-mint);
+      color: var(--brand-dark);
+      font-size: 1.45em;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .full-menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.7em;
+    }
+
+    .full-menu-grid button {
+      min-height: 86px;
+      border: 1px solid var(--brand-line);
+      border-radius: 18px;
+      background: #f8fcfa;
+      color: var(--brand-text);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.38em;
+      font-size: 0.94em;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 5px 14px rgba(29, 67, 60, 0.06);
+    }
+
+    .full-menu-grid button span {
+      font-size: 1.55em;
+    }
+
+    #full-menu-admin-button {
+      display: none;
+    }
+
+    body.dark nav.app-tabs::after {
+      background: linear-gradient(90deg, rgba(25,35,32,0), rgba(25,35,32,0.95) 72%);
+    }
+
+    body.dark .home-notice-panel,
+    body.dark .home-notice-card,
+    body.dark .full-menu-box,
+    body.dark .full-menu-grid button {
+      background: #1f2a27;
+      border-color: #2e443f;
+      color: #eef8f5;
+    }
+
+    body.dark .home-panel-header h2,
+    body.dark .home-notice-card .home-notice-title,
+    body.dark .full-menu-header h3 {
+      color: #eef8f5;
+    }
+
+    body.dark .home-panel-action {
+      background: #1a2623;
+      border-color: #3f5f57;
+      color: #bfeee2;
+    }
+
+    body.dark .full-menu-close {
+      background: #243d37;
+      color: #dcedc8;
+    }
+
+    @media (max-width: 760px) {
+      nav.app-tabs button {
+        min-width: 70px;
+        font-size: 0.88em;
+        padding: 0.7em 0.42em;
+      }
+
+      nav.app-tabs button[data-tab="notice"],
+      nav.app-tabs button[data-tab="favorites"] {
+        min-width: 78px;
+      }
+
+      .home-notice-panel {
+        margin-top: 0.82em;
+        padding: 0.9em;
+      }
+
+      .home-panel-header h2 {
+        font-size: 1.25em;
+      }
+
+      .full-menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
   </style>
 </head>
 
@@ -1799,6 +2136,34 @@ body.dark .main-popup-close {
 
       <button onclick="checkLogin()">로그인</button>
       <div id="login-error" class="login-error"></div>
+    </div>
+  </div>
+
+
+
+  <!-- HomeText 연동 메인 팝업 -->
+  <div id="main-popup" class="main-popup-screen" aria-hidden="true">
+    <div class="main-popup-box" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+      <div class="main-popup-header">
+        <div id="popup-title" class="main-popup-title"></div>
+        <button class="main-popup-close" onclick="closeMainPopup()" aria-label="팝업 닫기">×</button>
+      </div>
+
+      <div id="popup-message" class="main-popup-message"></div>
+
+      <div class="main-popup-actions">
+        <button id="popup-link-button" class="vocab-btn" onclick="openPopupLink()">
+          확인
+        </button>
+
+        <button class="vocab-btn secondary" onclick="hidePopupToday()">
+          오늘 하루 보지 않기
+        </button>
+
+        <button class="vocab-btn secondary" onclick="closeMainPopup()">
+          닫기
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1839,6 +2204,30 @@ body.dark .main-popup-close {
     </div>
   </div>
 
+
+  <!-- 전체 메뉴 -->
+  <div id="full-menu-screen" class="full-menu-screen" aria-hidden="true" onclick="closeFullMenuOnBackdrop(event)">
+    <div class="full-menu-box">
+      <div class="full-menu-header">
+        <div>
+          <div class="full-menu-kicker">All바른 English</div>
+          <h3>전체 메뉴</h3>
+        </div>
+        <button class="full-menu-close" onclick="closeFullMenu()" aria-label="전체 메뉴 닫기">×</button>
+      </div>
+
+      <div class="full-menu-grid">
+        <button onclick="goTabFromFullMenu('home')"><span>🏠</span><b>홈</b></button>
+        <button onclick="goTabFromFullMenu('notice')"><span>📢</span><b>공지사항</b></button>
+        <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>시험정보</b></button>
+        <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
+        <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
+        <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
+        <button id="full-menu-admin-button" onclick="goTabFromFullMenu('admin')"><span>⚙️</span><b>관리자</b></button>
+      </div>
+    </div>
+  </div>
+
   <header class="brand-header">
     <div class="brand-wrap">
       <img
@@ -1848,8 +2237,9 @@ body.dark .main-popup-close {
       />
 
       <div class="header-actions">
-        <button class="header-action" onclick="showTab('notice')" aria-label="공지사항">🔔</button>
+        <button id="app-back-button" class="header-action" onclick="goBackInApp()" aria-label="앱 내부 뒤로가기">↩</button>
         <button class="mode-toggle brand-mode-toggle" onclick="toggleMode()" aria-label="다크모드">🌗</button>
+        <button class="header-action full-menu-button" onclick="openFullMenu()" aria-label="전체 메뉴">☰</button>
       </div>
     </div>
   </header>
@@ -1877,127 +2267,26 @@ body.dark .main-popup-close {
     <div class="hero-card">
       <div class="hero-content">
         <div class="hero-kicker" id="heroKicker"></div>
-
-<h1 id="heroTitle"></h1>
-
-<p id="heroSubtitle"></p>
-
-<button id="heroButton"></button>
+        <h1 id="heroTitle"></h1>
+        <p id="heroSubtitle"></p>
+        <button id="heroButton"></button>
       </div>
     </div>
 
-    <div class="quick-panel">
-      <button class="quick-tile" onclick="showTab('notice')">
-        <span class="quick-icon">📢</span>
-        <b>공지사항</b>
-        <span class="quick-badge">N</span>
-      </button>
-
-      <button class="quick-tile" onclick="showTab('exam')">
-        <span class="quick-icon">📅</span>
-        <b>시험정보</b>
-      </button>
-
-      <button class="quick-tile" onclick="showTab('retest')">
-        <span class="quick-icon">🧾</span>
-        <b>재시험</b>
-      </button>
-
-      <button class="quick-tile" onclick="showTab('vocab')">
-        <span class="quick-icon">📘</span>
-        <b>단어장</b>
-      </button>
-
-      <button class="quick-tile" onclick="showTab('favorites')">
-        <span class="quick-icon">⭐</span>
-        <b>중요단어</b>
-      </button>
-    </div>
-
-    <div class="dashboard-grid">
-      <div class="dashboard-card">
-        <div class="dashboard-icon">📢</div>
+    <div class="home-notice-panel">
+      <div class="home-panel-header">
         <div>
-          <h3>공지사항</h3>
-          <ul>
-            <li>학원 주요 공지와 수업 안내를 확인하세요.</li>
-            <li>새 공지가 있으면 가장 먼저 확인하는 공간입니다.</li>
-          </ul>
+          <div class="home-panel-kicker">최근 공지</div>
+          <h2>공지사항</h2>
         </div>
-        <button class="dashboard-action" onclick="showTab('notice')">더보기</button>
+        <button class="home-panel-action" onclick="showTab('notice')">전체보기</button>
       </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-icon">📅</div>
-        <div>
-          <h3>시험정보</h3>
-          <p>반별 시험 일정과 시험범위를 빠르게 확인할 수 있습니다.</p>
-          <div class="dashboard-meta">
-            <span class="dashboard-pill">날짜별 조회</span>
-            <span class="dashboard-pill">반별 조회</span>
-          </div>
-        </div>
-        <button class="dashboard-action" onclick="showTab('exam')">확인하기</button>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-icon">🧾</div>
-        <div>
-          <h3>재시험</h3>
-          <p>재시험 대상 여부와 시험범위를 한눈에 확인하세요.</p>
-        </div>
-        <button class="dashboard-action" onclick="showTab('retest')">바로가기</button>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-icon">📘</div>
-        <div>
-          <h3>단어장</h3>
-          <p>Day별 단어 학습, 발음 듣기, 직접 입력 단어시험을 진행합니다.</p>
-          <div class="dashboard-meta">
-            <span class="dashboard-pill">발음</span>
-            <span class="dashboard-pill">오답</span>
-            <span class="dashboard-pill">진행률</span>
-          </div>
-        </div>
-        <button class="dashboard-action" onclick="showTab('vocab')">학습하기</button>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-icon">⭐</div>
-        <div>
-          <h3>중요단어</h3>
-          <p>학생이 직접 만든 폴더별 중요단어와 누적 오답노트를 복습합니다.</p>
-        </div>
-        <button class="dashboard-action" onclick="showTab('favorites')">복습하기</button>
+      <div id="home-notice-content" class="home-notice-content">
+        <div class="card empty-card">공지사항을 불러오는 중입니다.</div>
       </div>
     </div>
   </section>
-<!-- 메인 팝업 -->
-<div id="main-popup" class="main-popup-screen">
-  <div class="main-popup-box">
-    <div class="main-popup-header">
-      <div id="popup-title" class="main-popup-title"></div>
-      <button class="main-popup-close" onclick="closeMainPopup()">×</button>
-    </div>
 
-    <div id="popup-message" class="main-popup-message"></div>
-
-    <div class="main-popup-actions">
-      <button id="popup-link-button" class="vocab-btn" onclick="openPopupLink()">
-        확인
-      </button>
-
-      <button class="vocab-btn secondary" onclick="hidePopupToday()">
-        오늘 하루 보지 않기
-      </button>
-
-      <button class="vocab-btn secondary" onclick="closeMainPopup()">
-        닫기
-      </button>
-    </div>
-  </div>
-</div>
   <!-- 공지사항 -->
   <section id="notice">
     <div class="section-title">📌 공지사항</div>
@@ -2147,6 +2436,8 @@ body.dark .main-popup-close {
     </button>
   </div>
 
+  <div id="app-toast" class="app-toast" role="status" aria-live="polite"></div>
+
   <!-- 로딩 -->
   <div id="loader">
     <svg width="50" height="50" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
@@ -2170,6 +2461,8 @@ body.dark .main-popup-close {
     const MAX_RANDOM_TEST_COUNT = 25;
 
     let currentUser = null;
+    let homeTextMap = {};
+    let currentPopupLink = "";
     let vocabData = [];
     let currentVocabWords = [];
     let wrongWords = [];
@@ -2179,6 +2472,8 @@ body.dark .main-popup-close {
     let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
     let currentTestMeta = null;
     let testAlreadySaved = false;
+    let currentTabId = "home";
+    let appTabHistory = [];
 
     /************************************************************
      *  2. 공통 유틸 함수
@@ -2249,93 +2544,202 @@ body.dark .main-popup-close {
     }
 
     /************************************************************
-     *  홈 화면 문구 관리
-     *  - TestManager의 HomeText 시트에서 메인 배너 문구를 불러옵니다.
-     *  - HomeText 시트가 없거나 값이 비어 있으면 index.html 기본 문구를 그대로 사용합니다.
+     *  홈 화면 문구 / 팝업 관리
+     *  - TestManager의 HomeText 시트에서 메인 배너 문구와 팝업 문구를 함께 불러옵니다.
      ************************************************************/
-    function setHomeText_(id, text, allowLineBreaks = false) {
-      const el = document.getElementById(id);
-      if (!el || text === undefined || text === null || String(text).trim() === "") {
+    function getDefaultHomeText() {
+      return {
+        heroKicker: "All바른 학습 관리",
+        heroTitle: "All바른 학습 습관이\nAll바른 결과를 만듭니다.",
+        heroSubtitle: "오늘도 All바른과 함께, 한 걸음 더 성장하세요.\n공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.",
+        heroButton: "영어 단어 시험 준비하기 ›"
+      };
+    }
+
+    function applyHomeText(textMap) {
+      const defaultText = getDefaultHomeText();
+      const finalText = {
+        ...defaultText,
+        ...textMap
+      };
+
+      ["heroKicker", "heroTitle", "heroSubtitle", "heroButton"].forEach(key => {
+        const el = document.getElementById(key);
+
+        if (el) {
+          el.textContent = finalText[key] || "";
+        }
+      });
+    }
+
+    function loadHomeTextFromCache() {
+      const cached = localStorage.getItem("allbarun-home-text");
+
+      if (cached) {
+        try {
+          homeTextMap = JSON.parse(cached);
+          applyHomeText(homeTextMap);
+          return;
+        } catch (err) {
+          console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
+        }
+      }
+
+      homeTextMap = getDefaultHomeText();
+      applyHomeText(homeTextMap);
+    }
+
+    async function loadHomeText() {
+      try {
+        const data = await fetchSheet("HomeText");
+        const textMap = {};
+
+        data.slice(1).forEach(row => {
+          const key = String(row[0] || "").trim();
+          const text = String(row[1] || "").trim();
+
+          if (key && text) {
+            textMap[key] = text;
+          }
+        });
+
+        homeTextMap = textMap;
+
+        localStorage.setItem(
+          "allbarun-home-text",
+          JSON.stringify(textMap)
+        );
+
+        applyHomeText(textMap);
+
+      } catch (err) {
+        console.warn("HomeText 시트를 불러오지 못했습니다.", err);
+      }
+    }
+
+    function getHomeTextValue(key) {
+      return String(homeTextMap[key] || "").trim();
+    }
+
+    function getTodayString() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function normalizePopupDate(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+
+      const cleaned = cleanDate(raw);
+      return String(cleaned || raw).slice(0, 10);
+    }
+
+    function isTodayInRange(startDate, endDate) {
+      const today = getTodayString();
+      const start = normalizePopupDate(startDate);
+      const end = normalizePopupDate(endDate);
+
+      if (start && today < start) return false;
+      if (end && today > end) return false;
+      return true;
+    }
+
+    function loadMainPopupFromHomeText() {
+      const today = getTodayString();
+      const hiddenDate = localStorage.getItem("allbarun-popup-hidden-date");
+
+      if (hiddenDate === today) {
         return;
       }
 
-      const safeText = escapeHtml(String(text).trim());
+      const enabled = getHomeTextValue("popupEnabled").toUpperCase();
+      const title = getHomeTextValue("popupTitle");
+      const message = getHomeTextValue("popupMessage");
+      const startDate = getHomeTextValue("popupStartDate");
+      const endDate = getHomeTextValue("popupEndDate");
+      const buttonText = getHomeTextValue("popupButtonText") || "확인";
+      const buttonLink = getHomeTextValue("popupButtonLink");
 
-      if (allowLineBreaks) {
-        el.innerHTML = safeText.replace(/\n/g, "<br />");
+      if (enabled !== "Y") return;
+      if (!title || !message) return;
+      if (!isTodayInRange(startDate, endDate)) return;
+
+      const popup = document.getElementById("main-popup");
+      const titleEl = document.getElementById("popup-title");
+      const messageEl = document.getElementById("popup-message");
+      const linkButton = document.getElementById("popup-link-button");
+
+      if (!popup || !titleEl || !messageEl || !linkButton) {
+        console.warn("팝업 HTML 요소를 찾지 못했습니다.");
+        return;
+      }
+
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      linkButton.textContent = buttonText;
+      currentPopupLink = buttonLink;
+
+      if (buttonLink) {
+        linkButton.style.display = "block";
       } else {
-        el.textContent = String(text).trim();
+        linkButton.style.display = "none";
+      }
+
+      popup.style.display = "flex";
+      popup.setAttribute("aria-hidden", "false");
+    }
+
+    function closeMainPopup() {
+      const popup = document.getElementById("main-popup");
+
+      if (popup) {
+        popup.style.display = "none";
+        popup.setAttribute("aria-hidden", "true");
       }
     }
 
-    function getDefaultHomeText() {
-  return {
-    heroKicker: "All바른 학습 관리",
-    heroTitle: "All바른 학습 습관이\nAll바른 결과를 만듭니다.",
-    heroSubtitle: "오늘도 All바른과 함께, 한 걸음 더 성장하세요.\n공지사항, 시험정보, 단어장, 오답노트를 한 화면에서 확인할 수 있습니다.",
-    heroButton: "영어 단어 시험 준비하기 ›"
-  };
-}
-
-function applyHomeText(textMap) {
-  const defaultText = getDefaultHomeText();
-  const finalText = {
-    ...defaultText,
-    ...textMap
-  };
-
-  Object.keys(finalText).forEach(key => {
-    const el = document.getElementById(key);
-
-    if (el) {
-      el.textContent = finalText[key];
+    function hidePopupToday() {
+      localStorage.setItem("allbarun-popup-hidden-date", getTodayString());
+      closeMainPopup();
     }
-  });
-}
 
-function loadHomeTextFromCache() {
-  const cached = localStorage.getItem("allbarun-home-text");
-
-  if (cached) {
-    try {
-      homeTextMap = JSON.parse(cached);
-applyHomeText(homeTextMap);
-return;
-    } catch (err) {
-      console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
-    }
-  }
-
-  applyHomeText(getDefaultHomeText());
-}
-
-async function loadHomeText() {
-  try {
-    const data = await fetchSheet("HomeText");
-
-    const textMap = {};
-
-    data.slice(1).forEach(row => {
-      const key = String(row[0] || "").trim();
-      const text = String(row[1] || "").trim();
-
-      if (key && text) {
-        textMap[key] = text;
+    function openPopupLink() {
+      if (currentPopupLink) {
+        window.open(currentPopupLink, "_blank");
+      } else {
+        closeMainPopup();
       }
-    });
-homeTextMap = textMap;
+    }
 
-    localStorage.setItem(
-      "allbarun-home-text",
-      JSON.stringify(textMap)
-    );
+    function openFullMenu() {
+      const menu = document.getElementById("full-menu-screen");
+      if (!menu) return;
 
-    applyHomeText(textMap);
+      menu.style.display = "flex";
+      menu.setAttribute("aria-hidden", "false");
+    }
 
-  } catch (err) {
-    console.warn("HomeText 시트를 불러오지 못했습니다.", err);
-  }
-}
+    function closeFullMenu() {
+      const menu = document.getElementById("full-menu-screen");
+      if (!menu) return;
+
+      menu.style.display = "none";
+      menu.setAttribute("aria-hidden", "true");
+    }
+
+    function closeFullMenuOnBackdrop(event) {
+      if (event.target && event.target.id === "full-menu-screen") {
+        closeFullMenu();
+      }
+    }
+
+    function goTabFromFullMenu(tabId) {
+      closeFullMenu();
+      showTab(tabId);
+    }
 
     async function apiGet(params) {
       const query = new URLSearchParams(params);
@@ -2359,91 +2763,7 @@ homeTextMap = textMap;
       });
       return await res.json();
     }
-let homeTextMap = {};
-let currentPopupLink = "";
 
-function getTodayString() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function isTodayInRange(startDate, endDate) {
-  const today = getTodayString();
-
-  const start = String(startDate || "").trim();
-  const end = String(endDate || "").trim();
-
-  if (start && today < start) return false;
-  if (end && today > end) return false;
-
-  return true;
-}
-
-function getHomeTextValue(key) {
-  return String(homeTextMap[key] || "").trim();
-}
-
-function loadMainPopupFromHomeText() {
-  const today = getTodayString();
-  const hiddenDate = localStorage.getItem("allbarun-popup-hidden-date");
-
-  if (hiddenDate === today) {
-    return;
-  }
-
-  const enabled = getHomeTextValue("popupEnabled").toUpperCase();
-  const title = getHomeTextValue("popupTitle");
-  const message = getHomeTextValue("popupMessage");
-  const startDate = getHomeTextValue("popupStartDate");
-  const endDate = getHomeTextValue("popupEndDate");
-  const buttonText = getHomeTextValue("popupButtonText") || "확인";
-  const buttonLink = getHomeTextValue("popupButtonLink");
-
-  if (enabled !== "Y") return;
-  if (!title || !message) return;
-  if (!isTodayInRange(startDate, endDate)) return;
-
-  document.getElementById("popup-title").textContent = title;
-  document.getElementById("popup-message").textContent = message;
-
-  const linkButton = document.getElementById("popup-link-button");
-  linkButton.textContent = buttonText;
-
-  currentPopupLink = buttonLink;
-
-  if (buttonLink) {
-    linkButton.style.display = "block";
-  } else {
-    linkButton.style.display = "none";
-  }
-
-  document.getElementById("main-popup").style.display = "flex";
-}
-
-function closeMainPopup() {
-  const popup = document.getElementById("main-popup");
-
-  if (popup) {
-    popup.style.display = "none";
-  }
-}
-
-function hidePopupToday() {
-  localStorage.setItem("allbarun-popup-hidden-date", getTodayString());
-  closeMainPopup();
-}
-
-function openPopupLink() {
-  if (currentPopupLink) {
-    window.open(currentPopupLink, "_blank");
-  } else {
-    closeMainPopup();
-  }
-}
     /************************************************************
      *  3. 로그인 / 사용자 관리
      ************************************************************/
@@ -2501,6 +2821,8 @@ function openPopupLink() {
 
       if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
         document.getElementById("admin-tab-button").style.display = "block";
+        const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+        if (fullMenuAdminButton) fullMenuAdminButton.style.display = "flex";
       }
 
       loadFavoriteFolders();
@@ -2516,6 +2838,9 @@ function openPopupLink() {
       document.getElementById("login-screen").style.display = "flex";
       document.getElementById("user-label").textContent = "로그인이 필요합니다.";
       document.getElementById("admin-tab-button").style.display = "none";
+      const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+      if (fullMenuAdminButton) fullMenuAdminButton.style.display = "none";
+      closeFullMenu();
       document.getElementById("login-id").value = "";
       document.getElementById("login-pw").value = "";
       document.getElementById("login-error").textContent = "";
@@ -2596,17 +2921,88 @@ function openPopupLink() {
     /************************************************************
      *  4. 화면 전환 / 모드 / 발음
      ************************************************************/
-    function showTab(tabId) {
+    function getActiveTabId() {
+      const activeSection = document.querySelector("section.active");
+      return activeSection ? activeSection.id : (currentTabId || "home");
+    }
+
+    function saveAppTabHistory() {
+      try {
+        sessionStorage.setItem("allbarun-tab-history", JSON.stringify(appTabHistory));
+        sessionStorage.setItem("allbarun-current-tab", currentTabId || "home");
+      } catch (err) {
+        console.warn("앱 화면 기록을 저장하지 못했습니다.", err);
+      }
+    }
+
+    function updateAppBackButton() {
+      const btn = document.getElementById("app-back-button");
+      if (!btn) return;
+
+      const canGoBack = currentTabId !== "home" || appTabHistory.length > 0;
+
+      // 버튼은 항상 보이게 두고, 돌아갈 화면이 없을 때만 흐리게 표시합니다.
+      btn.style.display = "inline-flex";
+      btn.classList.toggle("disabled-back", !canGoBack);
+      btn.setAttribute("title", canGoBack ? "이전 화면으로 이동" : "현재 홈 화면입니다");
+    }
+
+    function showAppToast(message) {
+      const toast = document.getElementById("app-toast");
+      if (!toast) return;
+
+      toast.textContent = message;
+      toast.classList.add("show");
+
+      clearTimeout(showAppToast.timer);
+      showAppToast.timer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1600);
+    }
+
+    function setBrowserHistoryState(tabId, mode = "replace") {
+      if (!window.history || !history.replaceState) return;
+
+      const cleanUrl = location.href.split("#")[0];
+      const url = cleanUrl + "#" + tabId;
+      const state = { allbarunApp: true, tab: tabId };
+
+      try {
+        if (mode === "push") {
+          history.pushState(state, "", url);
+        } else {
+          history.replaceState(state, "", url);
+        }
+      } catch (err) {
+        console.warn("브라우저 기록을 갱신하지 못했습니다.", err);
+      }
+    }
+
+    function showTab(tabId, options = {}) {
+      const section = document.getElementById(tabId);
+      if (!section) return;
+
+      const previousTab = getActiveTabId();
+
+      if (!options.skipHistory && previousTab && previousTab !== tabId) {
+        appTabHistory.push(previousTab);
+        if (appTabHistory.length > 30) appTabHistory.shift();
+        setBrowserHistoryState(tabId, "push");
+      }
+
+      currentTabId = tabId;
+      saveAppTabHistory();
+
       document.querySelectorAll("[data-tab]").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.tab === tabId);
       });
 
       document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+      section.classList.add("active");
 
-      const section = document.getElementById(tabId);
-      if (section) section.classList.add("active");
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (!options.keepScroll) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
 
       if (tabId === "favorites") {
         renderFolderControls();
@@ -2616,7 +3012,80 @@ function openPopupLink() {
       if (tabId === "admin") {
         refreshAdminSummary();
       }
+
+      updateAppBackButton();
     }
+
+    function goBackInApp(options = {}) {
+      const fullMenu = document.getElementById("full-menu-screen");
+      if (fullMenu && fullMenu.style.display === "flex") {
+        closeFullMenu();
+        return;
+      }
+
+      const popup = document.getElementById("main-popup");
+      if (popup && popup.style.display === "flex") {
+        closeMainPopup();
+        return;
+      }
+
+      const previousTab = appTabHistory.pop();
+
+      if (previousTab && document.getElementById(previousTab)) {
+        showTab(previousTab, { skipHistory: true });
+        if (!options.fromBrowserBack) {
+          setBrowserHistoryState(previousTab, "replace");
+        }
+        return;
+      }
+
+      if (currentTabId !== "home" && document.getElementById("home")) {
+        showTab("home", { skipHistory: true });
+        if (!options.fromBrowserBack) {
+          setBrowserHistoryState("home", "replace");
+        }
+        return;
+      }
+
+      showAppToast("현재 홈 화면입니다.");
+      updateAppBackButton();
+    }
+
+    function initAppBackHandling() {
+      try {
+        const savedHistory = JSON.parse(sessionStorage.getItem("allbarun-tab-history") || "[]");
+        appTabHistory = Array.isArray(savedHistory) ? savedHistory : [];
+      } catch (err) {
+        appTabHistory = [];
+      }
+
+      const savedTab = sessionStorage.getItem("allbarun-current-tab");
+      const startTab = document.getElementById(savedTab) ? savedTab : getActiveTabId();
+
+      currentTabId = startTab || "home";
+      showTab(currentTabId, { skipHistory: true, keepScroll: true });
+
+      if (window.history && history.replaceState && history.pushState) {
+        const cleanUrl = location.href.split("#")[0];
+        history.replaceState({ allbarunRoot: true, tab: currentTabId }, "", cleanUrl + "#" + currentTabId);
+        history.pushState({ allbarunGuard: true, tab: currentTabId }, "", cleanUrl + "#" + currentTabId);
+      }
+
+      updateAppBackButton();
+    }
+
+    window.addEventListener("popstate", function() {
+      goBackInApp({ fromBrowserBack: true });
+
+      if (window.history && history.pushState) {
+        const cleanUrl = location.href.split("#")[0];
+        history.pushState(
+          { allbarunGuard: true, tab: currentTabId || "home" },
+          "",
+          cleanUrl + "#" + (currentTabId || "home")
+        );
+      }
+    });
 
     function toggleMode() {
       document.body.classList.toggle("dark");
@@ -2654,18 +3123,52 @@ function openPopupLink() {
     /************************************************************
      *  5. 공지사항 / 시험정보 / 재시험
      ************************************************************/
+    function buildNoticeCard(date, title, content, isHomePreview = false) {
+      const card = document.createElement("div");
+
+      if (isHomePreview) {
+        card.className = "home-notice-card";
+        card.innerHTML = `
+          <span class="home-notice-date">📅 ${escapeHtml(cleanDate(date))}</span>
+          <span class="home-notice-title">${escapeHtml(title)}</span>
+          <div>${escapeHtml(content)}</div>
+        `;
+      } else {
+        card.className = "card notice-card";
+        card.innerHTML = `📅 ${escapeHtml(cleanDate(date))}
+<b>${escapeHtml(title)}</b>
+${escapeHtml(content)}`;
+      }
+
+      return card;
+    }
+
     async function loadNotice() {
       const data = await fetchSheet("Notice");
       const target = document.getElementById("notice-content");
-      target.innerHTML = "";
+      const homeTarget = document.getElementById("home-notice-content");
 
-      for (let i = 1; i < data.length; i++) {
-        const [date, title, content] = data[i];
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `📅 ${escapeHtml(cleanDate(date))}\n<b>${escapeHtml(title)}</b>\n${escapeHtml(content)}`;
-        target.appendChild(card);
+      if (target) target.innerHTML = "";
+      if (homeTarget) homeTarget.innerHTML = "";
+
+      const rows = data.slice(1).filter(row => row && (row[0] || row[1] || row[2]));
+
+      if (rows.length === 0) {
+        const empty = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
+        if (target) target.innerHTML = empty;
+        if (homeTarget) homeTarget.innerHTML = empty;
+        return;
       }
+
+      rows.forEach(row => {
+        const [date, title, content] = row;
+        if (target) target.appendChild(buildNoticeCard(date, title, content, false));
+      });
+
+      rows.slice(0, 3).forEach(row => {
+        const [date, title, content] = row;
+        if (homeTarget) homeTarget.appendChild(buildNoticeCard(date, title, content, true));
+      });
     }
 
     async function loadClassDropdown() {
@@ -3810,35 +4313,35 @@ function openPopupLink() {
     /************************************************************
      *  14. 초기 실행
      ************************************************************/
-   window.onload = async () => {
-  restoreLogin();
-  loadHomeTextFromCache();
+    window.onload = async () => {
+      restoreLogin();
+      loadHomeTextFromCache();
+      initAppBackHandling();
 
-  try {
-    await Promise.all([
-      loadHomeText(),
-      loadNotice(),
-      loadClassDropdown(),
-      loadRetest(),
-      loadVocabBooks()
-    ]);
+      try {
+        await Promise.all([
+          loadHomeText(),
+          loadNotice(),
+          loadClassDropdown(),
+          loadRetest(),
+          loadVocabBooks()
+        ]);
 
-    document.getElementById("exam-date").addEventListener("change", loadExam);
-    document.getElementById("class-select").addEventListener("change", loadExam);
+        document.getElementById("exam-date").addEventListener("change", loadExam);
+        document.getElementById("class-select").addEventListener("change", loadExam);
 
-    setTimeout(() => {
-      loadMainPopupFromHomeText();
-    }, 600);
+        setTimeout(() => {
+          loadMainPopupFromHomeText();
+        }, 600);
 
-  } catch (err) {
-    console.error(err);
-
-  } finally {
-    setTimeout(() => {
-      document.getElementById("loader").classList.add("hidden");
-    }, 500);
-  }
-};
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setTimeout(() => {
+          document.getElementById("loader").classList.add("hidden");
+        }, 500);
+      }
+    };
   </script>
 </body>
-</html>  
+</html>
