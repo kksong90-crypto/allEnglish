@@ -2106,6 +2106,224 @@
       }
     }
 
+  
+
+    /************************************************************
+     *  14. 상단 버튼 배치 / 뒤로가기 위치 / 다크모드 가독성 보정
+     ************************************************************/
+    .header-actions {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 0.38em !important;
+      flex-shrink: 0 !important;
+    }
+
+    .header-actions .brand-mode-toggle,
+    .header-actions #app-back-button,
+    .header-actions .full-menu-button {
+      position: static !important;
+      inset: auto !important;
+      left: auto !important;
+      right: auto !important;
+      top: auto !important;
+      bottom: auto !important;
+      width: 42px !important;
+      min-width: 42px !important;
+      height: 42px !important;
+      padding: 0 !important;
+      border-radius: 50% !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0 !important;
+      font-size: 1.05em !important;
+      line-height: 1 !important;
+      font-weight: 900 !important;
+      transform: none !important;
+      z-index: auto !important;
+      box-shadow: 0 5px 14px rgba(29, 67, 60, 0.10) !important;
+    }
+
+    #app-back-button::after {
+      content: none !important;
+      display: none !important;
+    }
+
+    #app-back-button.disabled-back {
+      opacity: 0.5;
+    }
+
+    .brand-wrap {
+      gap: 0.48em !important;
+    }
+
+    @media (max-width: 760px) {
+      .brand-logo-wide {
+        width: min(270px, 58vw) !important;
+        max-height: 44px !important;
+      }
+
+      .header-actions .brand-mode-toggle,
+      .header-actions #app-back-button,
+      .header-actions .full-menu-button {
+        width: 36px !important;
+        min-width: 36px !important;
+        height: 36px !important;
+        font-size: 0.98em !important;
+      }
+
+      .header-actions {
+        gap: 0.28em !important;
+      }
+    }
+
+    body.dark {
+      color: #eef8f5 !important;
+    }
+
+    body.dark .brand-header {
+      background: rgba(21, 31, 28, 0.97) !important;
+    }
+
+    body.dark .brand-logo-wide {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 12px;
+      padding: 3px 6px;
+    }
+
+    body.dark .header-actions .brand-mode-toggle,
+    body.dark .header-actions #app-back-button,
+    body.dark .header-actions .full-menu-button,
+    body.dark .top-user-bar button {
+      background: #f8fffc !important;
+      color: #24534a !important;
+      border-color: #dce9e5 !important;
+    }
+
+    body.dark .top-user-bar,
+    body.dark nav.app-tabs {
+      background: rgba(24, 35, 32, 0.97) !important;
+      color: #eef8f5 !important;
+      border-color: #35514a !important;
+    }
+
+    body.dark #user-label,
+    body.dark .top-user-bar,
+    body.dark .top-user-bar span,
+    body.dark nav.app-tabs button {
+      color: #eef8f5 !important;
+    }
+
+    body.dark nav.app-tabs button.active {
+      color: #aee3d5 !important;
+      border-bottom-color: #aee3d5 !important;
+    }
+
+    body.dark .card,
+    body.dark .mini-card,
+    body.dark .vocab-question,
+    body.dark .progress-box,
+    body.dark .control-card,
+    body.dark .summary-card,
+    body.dark .home-notice-panel,
+    body.dark .home-notice-card,
+    body.dark .dashboard-card,
+    body.dark .quick-panel,
+    body.dark .quick-tile,
+    body.dark .full-menu-box,
+    body.dark .full-menu-grid button,
+    body.dark .modal-box,
+    body.dark .main-popup-box {
+      background: #1f2a27 !important;
+      color: #eef8f5 !important;
+      border-color: #35514a !important;
+    }
+
+    body.dark .section-title,
+    body.dark .home-panel-kicker,
+    body.dark .full-menu-kicker,
+    body.dark .muted,
+    body.dark .notice-small,
+    body.dark .notice-date,
+    body.dark .home-notice-date,
+    body.dark .status-label,
+    body.dark .score-sub {
+      color: #b7cbc5 !important;
+    }
+
+    body.dark .dashboard-card h3,
+    body.dark .dashboard-card p,
+    body.dark .dashboard-card ul,
+    body.dark .dashboard-card li,
+    body.dark .home-panel-header h2,
+    body.dark .home-notice-title,
+    body.dark .notice-title,
+    body.dark .full-menu-header h3,
+    body.dark .full-menu-grid button b,
+    body.dark .word-english,
+    body.dark .meaning-cell,
+    body.dark .vocab-question b,
+    body.dark .status-value,
+    body.dark .main-popup-title,
+    body.dark .main-popup-message {
+      color: #eef8f5 !important;
+    }
+
+    body.dark .quick-icon,
+    body.dark .dashboard-icon {
+      background: #243d37 !important;
+      color: #aee3d5 !important;
+    }
+
+    body.dark .dashboard-action,
+    body.dark .home-panel-action,
+    body.dark .full-menu-close,
+    body.dark .main-popup-close,
+    body.dark .speak-btn {
+      background: #243d37 !important;
+      color: #dcedc8 !important;
+      border-color: #3f5f57 !important;
+    }
+
+    body.dark table,
+    body.dark th,
+    body.dark td {
+      border-color: #35514a !important;
+      color: #eef8f5 !important;
+    }
+
+    body.dark th {
+      background: #243d37 !important;
+      color: #dcedc8 !important;
+    }
+
+    body.dark td,
+    body.dark tr:nth-child(even) td {
+      background: #1f2a27 !important;
+    }
+
+    body.dark input,
+    body.dark select,
+    body.dark textarea {
+      background: #111a18 !important;
+      color: #f4fffb !important;
+      border-color: #3f5f57 !important;
+    }
+
+    body.dark input::placeholder,
+    body.dark textarea::placeholder {
+      color: #91aaa2 !important;
+    }
+
+    body.dark .result-correct {
+      color: #72e39f !important;
+    }
+
+    body.dark .result-wrong {
+      color: #ff9b93 !important;
+    }
+
   </style>
 </head>
 
@@ -2237,9 +2455,9 @@
       />
 
       <div class="header-actions">
-        <button id="app-back-button" class="header-action" onclick="goBackInApp()" aria-label="앱 내부 뒤로가기">↩</button>
-        <button class="mode-toggle brand-mode-toggle" onclick="toggleMode()" aria-label="다크모드">🌗</button>
-        <button class="header-action full-menu-button" onclick="openFullMenu()" aria-label="전체 메뉴">☰</button>
+        <button class="mode-toggle brand-mode-toggle" onclick="toggleMode()" aria-label="다크모드" title="다크모드">🌗</button>
+        <button id="app-back-button" class="header-action" onclick="goBackInApp()" aria-label="앱 내부 뒤로가기" title="뒤로가기">↩</button>
+        <button class="header-action full-menu-button" onclick="openFullMenu()" aria-label="전체 메뉴" title="전체 메뉴">☰</button>
       </div>
     </div>
   </header>
