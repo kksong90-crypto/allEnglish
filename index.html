@@ -3327,27 +3327,7 @@ body.dark .retest-bulk-import-box p {
     </div>
 
     <div id="point-test-view"></div>
-  </section>  <!-- 포인트 -->
-  <section id="point">
-    <div class="section-title">🎯 포인트</div>
-
-    <div class="card">
-      <b>포인트 시험 안내</b><br>
-      이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.<br>
-      뜻을 보고 영어 스펠링을 입력하세요.<br>
-      <b>30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
-      단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
-    </div>
-
-    <div id="point-summary-view"></div>
-
-    <div class="button-row">
-      <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
-      <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 상태 새로고침</button>
-    </div>
-
-    <div id="point-test-view"></div>
-  </section>
+  </section>  
   
   <!-- 관리자 -->
   <section id="admin">
@@ -3445,7 +3425,12 @@ body.dark .retest-bulk-import-box p {
         clearTimeout(timer);
       }
     }
-
+async function fetchSheet(sheetName) {
+  return await fetchJsonWithTimeout(
+    SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName)
+  );
+}
+    
     const DEFAULT_FOLDER_NAME = "기본";
     const MAX_RANDOM_TEST_COUNT = 25;
 
