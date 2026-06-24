@@ -6110,8 +6110,41 @@ async function showPointAdminSummary() {
 
     let html = `
       <div class="card">
-        <b>학생 포인트 목록</b><br>
-        이번 주 기준: ${escapeHtml(result.weekStart || "")} ~ ${escapeHtml(result.weekEnd || "")}
+        <b>학생 포인트 관리</b><br>
+        이번 주 기준: ${escapeHtml(result.weekStart || "")} ~ ${escapeHtml(result.weekEnd || "")}<br>
+        포인트는 직접 수정하지 않고, 추가/차감 내역으로 기록됩니다.
+      </div>
+
+      <div class="card">
+        <b>포인트 직접 추가 / 차감</b><br>
+        <span class="muted">
+          추가는 양수로 입력하세요. 예: 3<br>
+          차감은 음수로 입력하세요. 예: -5
+        </span>
+
+        <label>
+          <span class="field-label">학생 ID</span>
+          <input id="point-adjust-id" type="text" placeholder="학생 ID" autocomplete="off">
+        </label>
+
+        <label>
+          <span class="field-label">변동 포인트</span>
+          <input id="point-adjust-amount" type="text" placeholder="예: 3 또는 -5" autocomplete="off">
+        </label>
+
+        <label>
+          <span class="field-label">사유 / 메모</span>
+          <input id="point-adjust-memo" type="text" placeholder="예: 출석 보너스, 이벤트 지급, 간식 교환, 상품 사용" autocomplete="off">
+        </label>
+
+        <div class="button-row">
+          <button class="vocab-btn" onclick="submitPointAdjustment()">포인트 적용</button>
+          <button class="vocab-btn secondary" onclick="clearPointAdjustmentForm()">입력 초기화</button>
+        </div>
+
+        <div id="point-adjust-message" class="mini-card muted">
+          아래 학생 목록에서 선택 버튼을 누르면 ID가 자동 입력됩니다.
+        </div>
       </div>
     `;
 
@@ -6122,25 +6155,163 @@ async function showPointAdminSummary() {
       return;
     }
 
-    html += "<table><tr><th>반</th><th>이름</th><th>ID</th><th>총포인트</th><th>이번 주</th><th>최근 지급</th></tr>";
+    html += `
+      <table>
+        <tr>
+          <th>반</th>
+          <th>이름</th>
+          <th>ID</th>
+          <th>총포인트</th>
+          <th>이번 주 단어 포인트</th>
+          <th>최근 변동</th>
+          <th>선택</th>
+        </tr>
+    `;
 
     students.forEach(student => {
+      const safeId = escapeHtml(student.id || "");
+      const safeName = escapeHtml(student.name || "");
+
       html += `
         <tr>
           <td>${escapeHtml(student.className || "")}</td>
-          <td>${escapeHtml(student.name || "")}</td>
-          <td>${escapeHtml(student.id || "")}</td>
+          <td>${safeName}</td>
+          <td>${safeId}</td>
           <td><b>${escapeHtml(student.totalPoints || 0)}P</b></td>
           <td>${student.thisWeekPaid ? "<span class='badge badge-success'>지급완료</span>" : "<span class='badge badge-warning'>미지급</span>"}</td>
           <td>${escapeHtml(student.latestPaidAt || "")}</td>
+          <td>
+            <button
+              class="small-btn secondary"
+              onclick="fillPointAdjustmentForm('${safeId}', '${safeName}')"
+            >
+              선택
+            </button>
+          </td>
         </tr>
       `;
     });
 
     html += "</table>";
+
     target.innerHTML = html;
   } catch (err) {
-    target.innerHTML = "<div class='card'>학생 포인트 목록 API 연결에 실패했습니다.</div>";
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        학생 포인트 목록 API 연결에 실패했습니다.<br><br>
+        <span class="muted">${escapeHtml(err.message || String(err))}</span>
+      </div>
+    `;
+  }
+}
+
+    function fillPointAdjustmentForm(id, name) {
+  const idInput = document.getElementById("point-adjust-id");
+  const amountInput = document.getElementById("point-adjust-amount");
+  const memoInput = document.getElementById("point-adjust-memo");
+  const message = document.getElementById("point-adjust-message");
+
+  if (idInput) idInput.value = id || "";
+  if (amountInput) amountInput.focus();
+
+  if (message) {
+    message.innerHTML = `<b>${escapeHtml(name || id || "")}</b> 학생이 선택되었습니다. 추가/차감할 포인트를 입력하세요.`;
+  }
+
+  if (memoInput && !memoInput.value) {
+    memoInput.value = "";
+  }
+}
+
+function clearPointAdjustmentForm() {
+  const idInput = document.getElementById("point-adjust-id");
+  const amountInput = document.getElementById("point-adjust-amount");
+  const memoInput = document.getElementById("point-adjust-memo");
+  const message = document.getElementById("point-adjust-message");
+
+  if (idInput) idInput.value = "";
+  if (amountInput) amountInput.value = "";
+  if (memoInput) memoInput.value = "";
+
+  if (message) {
+    message.innerHTML = "아래 학생 목록에서 선택 버튼을 누르면 ID가 자동 입력됩니다.";
+  }
+}
+
+async function submitPointAdjustment() {
+  const idInput = document.getElementById("point-adjust-id");
+  const amountInput = document.getElementById("point-adjust-amount");
+  const memoInput = document.getElementById("point-adjust-memo");
+  const message = document.getElementById("point-adjust-message");
+
+  const targetId = String(idInput?.value || "").trim();
+  const amountText = String(amountInput?.value || "").trim();
+  const memo = String(memoInput?.value || "").trim();
+
+  const amount = Number(amountText);
+
+  if (!targetId) {
+    alert("학생 ID를 입력하세요.");
+    return;
+  }
+
+  if (!Number.isInteger(amount) || amount === 0) {
+    alert("포인트는 0이 아닌 정수로 입력하세요. 예: 3 또는 -5");
+    return;
+  }
+
+  const confirmText =
+    amount > 0
+      ? `${targetId} 학생에게 ${amount}P를 추가할까요?`
+      : `${targetId} 학생에게 ${Math.abs(amount)}P를 차감할까요?`;
+
+  if (!confirm(confirmText)) {
+    return;
+  }
+
+  if (message) {
+    message.innerHTML = "포인트를 적용하는 중입니다...";
+  }
+
+  try {
+    const result = await apiPost({
+      action: "adjustStudentPoint",
+      targetId,
+      amount,
+      memo
+    });
+
+    if (!result.success) {
+      if (message) {
+        message.innerHTML = `<span class="result-wrong">${escapeHtml(result.message || "포인트 조정에 실패했습니다.")}</span>`;
+      }
+      return;
+    }
+
+    if (message) {
+      message.innerHTML = `<span class="result-correct">${escapeHtml(result.message || "포인트가 조정되었습니다.")}</span>`;
+    }
+
+    clearPointAdjustmentForm();
+
+    // 관리자 목록 갱신
+    await showPointAdminSummary();
+
+    // 현재 로그인한 본인 포인트도 혹시 바뀌었을 수 있으므로 갱신
+    refreshMyPointSummary();
+
+  } catch (err) {
+    console.error(err);
+
+    if (message) {
+      message.innerHTML = `
+        <span class="result-wrong">
+          포인트 조정 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      `;
+    }
   }
 }
     
