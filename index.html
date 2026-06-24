@@ -6108,6 +6108,33 @@ async function showPointAdminSummary() {
       return;
     }
 
+    const students = result.students || [];
+
+    let studentOptions = `<option value="">학생 선택</option>`;
+
+    students.forEach(student => {
+      const id = String(student.id || "").trim();
+      const name = String(student.name || "").trim();
+      const className = String(student.className || "").trim();
+      const totalPoints = Number(student.totalPoints || 0);
+
+      if (!id) return;
+
+      const label =
+        `${className ? className + " / " : ""}${name} / ${id} / ${totalPoints}P`;
+
+      studentOptions += `
+        <option
+          value="${escapeHtml(id)}"
+          data-name="${escapeHtml(name)}"
+          data-class="${escapeHtml(className)}"
+          data-points="${escapeHtml(totalPoints)}"
+        >
+          ${escapeHtml(label)}
+        </option>
+      `;
+    });
+
     let html = `
       <div class="card">
         <b>학생 포인트 관리</b><br>
@@ -6123,8 +6150,10 @@ async function showPointAdminSummary() {
         </span>
 
         <label>
-          <span class="field-label">학생 ID</span>
-          <input id="point-adjust-id" type="text" placeholder="학생 ID" autocomplete="off">
+          <span class="field-label">학생 선택</span>
+          <select id="point-adjust-student" onchange="onPointStudentSelectChange()">
+            ${studentOptions}
+          </select>
         </label>
 
         <label>
@@ -6143,12 +6172,10 @@ async function showPointAdminSummary() {
         </div>
 
         <div id="point-adjust-message" class="mini-card muted">
-          아래 학생 목록에서 선택 버튼을 누르면 ID가 자동 입력됩니다.
+          학생을 드롭다운에서 선택하거나, 아래 학생 목록에서 선택 버튼을 누르세요.
         </div>
       </div>
     `;
-
-    const students = result.students || [];
 
     if (students.length === 0) {
       target.innerHTML = html + "<div class='card'>표시할 학생이 없습니다.</div>";
@@ -6183,7 +6210,7 @@ async function showPointAdminSummary() {
           <td>
             <button
               class="small-btn secondary"
-              onclick="fillPointAdjustmentForm('${safeId}', '${safeName}')"
+              onclick="fillPointAdjustmentForm('${safeId}')"
             >
               선택
             </button>
@@ -6206,53 +6233,78 @@ async function showPointAdminSummary() {
   }
 }
 
-    function fillPointAdjustmentForm(id, name) {
-  const idInput = document.getElementById("point-adjust-id");
+    function fillPointAdjustmentForm(id) {
+  const select = document.getElementById("point-adjust-student");
   const amountInput = document.getElementById("point-adjust-amount");
-  const memoInput = document.getElementById("point-adjust-memo");
-  const message = document.getElementById("point-adjust-message");
 
-  if (idInput) idInput.value = id || "";
-  if (amountInput) amountInput.focus();
-
-  if (message) {
-    message.innerHTML = `<b>${escapeHtml(name || id || "")}</b> 학생이 선택되었습니다. 추가/차감할 포인트를 입력하세요.`;
+  if (select) {
+    select.value = id || "";
+    onPointStudentSelectChange();
   }
 
-  if (memoInput && !memoInput.value) {
-    memoInput.value = "";
+  if (amountInput) {
+    amountInput.focus();
   }
 }
 
+function onPointStudentSelectChange() {
+  const select = document.getElementById("point-adjust-student");
+  const message = document.getElementById("point-adjust-message");
+
+  if (!select || !message) return;
+
+  const selectedOption = select.options[select.selectedIndex];
+
+  if (!selectedOption || !selectedOption.value) {
+    message.innerHTML = "학생을 드롭다운에서 선택하거나, 아래 학생 목록에서 선택 버튼을 누르세요.";
+    return;
+  }
+
+  const name = selectedOption.dataset.name || "";
+  const className = selectedOption.dataset.class || "";
+  const points = selectedOption.dataset.points || "0";
+  const id = selectedOption.value || "";
+
+  message.innerHTML = `
+    <b>${escapeHtml(className)} ${escapeHtml(name)}</b>
+    학생이 선택되었습니다.<br>
+    ID: ${escapeHtml(id)} / 현재 포인트: ${escapeHtml(points)}P
+  `;
+}
+
 function clearPointAdjustmentForm() {
-  const idInput = document.getElementById("point-adjust-id");
+  const select = document.getElementById("point-adjust-student");
   const amountInput = document.getElementById("point-adjust-amount");
   const memoInput = document.getElementById("point-adjust-memo");
   const message = document.getElementById("point-adjust-message");
 
-  if (idInput) idInput.value = "";
+  if (select) select.value = "";
   if (amountInput) amountInput.value = "";
   if (memoInput) memoInput.value = "";
 
   if (message) {
-    message.innerHTML = "아래 학생 목록에서 선택 버튼을 누르면 ID가 자동 입력됩니다.";
+    message.innerHTML = "학생을 드롭다운에서 선택하거나, 아래 학생 목록에서 선택 버튼을 누르세요.";
   }
 }
 
 async function submitPointAdjustment() {
-  const idInput = document.getElementById("point-adjust-id");
+  const select = document.getElementById("point-adjust-student");
   const amountInput = document.getElementById("point-adjust-amount");
   const memoInput = document.getElementById("point-adjust-memo");
   const message = document.getElementById("point-adjust-message");
 
-  const targetId = String(idInput?.value || "").trim();
+  const targetId = String(select?.value || "").trim();
   const amountText = String(amountInput?.value || "").trim();
   const memo = String(memoInput?.value || "").trim();
+
+  const selectedOption = select?.options?.[select.selectedIndex];
+  const studentName = selectedOption?.dataset?.name || targetId;
+  const className = selectedOption?.dataset?.class || "";
 
   const amount = Number(amountText);
 
   if (!targetId) {
-    alert("학생 ID를 입력하세요.");
+    alert("학생을 선택하세요.");
     return;
   }
 
@@ -6261,10 +6313,13 @@ async function submitPointAdjustment() {
     return;
   }
 
+  const studentLabel =
+    `${className ? className + " " : ""}${studentName}`;
+
   const confirmText =
     amount > 0
-      ? `${targetId} 학생에게 ${amount}P를 추가할까요?`
-      : `${targetId} 학생에게 ${Math.abs(amount)}P를 차감할까요?`;
+      ? `${studentLabel} 학생에게 ${amount}P를 추가할까요?`
+      : `${studentLabel} 학생에게 ${Math.abs(amount)}P를 차감할까요?`;
 
   if (!confirm(confirmText)) {
     return;
@@ -6295,10 +6350,8 @@ async function submitPointAdjustment() {
 
     clearPointAdjustmentForm();
 
-    // 관리자 목록 갱신
     await showPointAdminSummary();
 
-    // 현재 로그인한 본인 포인트도 혹시 바뀌었을 수 있으므로 갱신
     refreshMyPointSummary();
 
   } catch (err) {
