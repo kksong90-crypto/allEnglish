@@ -3449,6 +3449,10 @@ async function fetchSheet(sheetName) {
     let currentTabId = "home";
     let appTabHistory = [];
 
+    let vocabLoadedOnce = false;
+    let retestLoadedOnce = false;
+    let pointLoadedOnce = false;
+
     /************************************************************
      *  2. 공통 유틸 함수
      ************************************************************/
@@ -4233,7 +4237,26 @@ function applyPointGuide(textMap) {
         console.warn("브라우저 기록을 갱신하지 못했습니다.", err);
       }
     }
+async function loadVocabBooksOnce(force = false) {
+  if (vocabLoadedOnce && !force) return;
 
+  vocabLoadedOnce = true;
+  await loadVocabBooks();
+}
+
+async function loadRetestOnce(force = false) {
+  if (retestLoadedOnce && !force) return;
+
+  retestLoadedOnce = true;
+  await loadRetest();
+}
+
+async function loadPointHomeOnce(force = false) {
+  if (pointLoadedOnce && !force) return;
+
+  pointLoadedOnce = true;
+  await loadPointHome();
+}
     function showTab(tabId, options = {}) {
       const section = document.getElementById(tabId);
       if (!section) return;
@@ -4261,19 +4284,35 @@ function applyPointGuide(textMap) {
       }
 
       if (tabId === "favorites") {
-        renderFolderControls();
-        showFavorites();
-      }
+  renderFolderControls();
+  showFavorites();
+}
 
-      if (tabId === "point") {
-        loadPointHome();
-      }
+if (tabId === "vocab") {
+  loadVocabBooksOnce();
+}
 
-      if (tabId === "admin") {
-        refreshAdminSummary();
-      }
+if (tabId === "retest") {
+  loadRetestOnce();
+}
 
-      updateAppBackButton();
+if (tabId === "point") {
+  loadPointHomeOnce();
+}
+
+if (tabId === "admin") {
+  const adminView = document.getElementById("admin-view");
+
+  if (adminView && !adminView.innerHTML.trim()) {
+    adminView.innerHTML = `
+      <div class="card">
+        필요한 관리자 기능 버튼을 눌러 주세요.
+      </div>
+    `;
+  }
+}
+
+updateAppBackButton();
      }
 
     function goBackInApp(options = {}) {
@@ -6540,34 +6579,60 @@ async function submitPointAdjustment() {
 
 
     window.onload = async () => {
-      restoreLogin();
-      loadHomeTextFromCache();
-      initAppBackHandling();
+  restoreLogin();
+  loadHomeTextFromCache();
+  initAppBackHandling();
 
-      try {
-        await Promise.all([
-          loadHomeText(),
-          loadNotice(),
-          loadClassDropdown(),
-          loadRetest(),
-          loadVocabBooks()
-        ]);
+  try {
+    // 첫 화면에 필요한 최소 데이터만 먼저 불러옵니다.
+    await Promise.all([
+      loadHomeText(),
+      loadNotice(),
+      loadClassDropdown()
+    ]);
 
-        document.getElementById("exam-date").addEventListener("change", loadExam);
-        document.getElementById("class-select").addEventListener("change", loadExam);
+    document.getElementById("exam-date").addEventListener("change", loadExam);
+    document.getElementById("class-select").addEventListener("change", loadExam);
 
-        setTimeout(() => {
-          loadMainPopupFromHomeText();
-        }, 600);
+    setTimeout(() => {
+      loadMainPopupFromHomeText();
+    }, 600);
 
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setTimeout(() => {
-          document.getElementById("loader").classList.add("hidden");
-        }, 500);
-      }
-    };
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setTimeout(() => {
+      document.getElementById("loader").classList.add("hidden");
+    }, 200);
+  }
+};window.onload = async () => {
+  restoreLogin();
+  loadHomeTextFromCache();
+  initAppBackHandling();
+
+  try {
+    // 첫 화면에 필요한 최소 데이터만 먼저 불러옵니다.
+    await Promise.all([
+      loadHomeText(),
+      loadNotice(),
+      loadClassDropdown()
+    ]);
+
+    document.getElementById("exam-date").addEventListener("change", loadExam);
+    document.getElementById("class-select").addEventListener("change", loadExam);
+
+    setTimeout(() => {
+      loadMainPopupFromHomeText();
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setTimeout(() => {
+      document.getElementById("loader").classList.add("hidden");
+    }, 200);
+  }
+};
   </script>
 </body>
 </html>
