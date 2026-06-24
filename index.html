@@ -3162,7 +3162,9 @@ body.dark .retest-bulk-import-box p {
         </div>
       </div>
     </div>
-
+<div class="button-row">
+  <button class="vocab-btn secondary" onclick="refreshExamInfo()">시험정보 새로고침</button>
+</div>
     <div id="exam-table"></div>
   </section>
 
@@ -3453,6 +3455,10 @@ async function fetchSheet(sheetName) {
     let retestLoadedOnce = false;
     let pointLoadedOnce = false;
 
+    let examClassesLoadedOnce = false;
+    let examListenersAttached = false;
+
+    
     /************************************************************
      *  2. 공통 유틸 함수
      ************************************************************/
@@ -4240,23 +4246,39 @@ function applyPointGuide(textMap) {
 async function loadVocabBooksOnce(force = false) {
   if (vocabLoadedOnce && !force) return;
 
-  vocabLoadedOnce = true;
-  await loadVocabBooks();
+  try {
+    await loadVocabBooks();
+    vocabLoadedOnce = true;
+  } catch (err) {
+    vocabLoadedOnce = false;
+    throw err;
+  }
 }
 
 async function loadRetestOnce(force = false) {
   if (retestLoadedOnce && !force) return;
 
-  retestLoadedOnce = true;
-  await loadRetest();
+  try {
+    await loadRetest();
+    retestLoadedOnce = true;
+  } catch (err) {
+    retestLoadedOnce = false;
+    throw err;
+  }
 }
 
 async function loadPointHomeOnce(force = false) {
   if (pointLoadedOnce && !force) return;
 
-  pointLoadedOnce = true;
-  await loadPointHome();
+  try {
+    await loadPointHome();
+    pointLoadedOnce = true;
+  } catch (err) {
+    pointLoadedOnce = false;
+    throw err;
+  }
 }
+    
     function showTab(tabId, options = {}) {
       const section = document.getElementById(tabId);
       if (!section) return;
@@ -4282,7 +4304,11 @@ async function loadPointHomeOnce(force = false) {
       if (!options.keepScroll) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
-
+      
+      if (tabId === "exam") {
+          loadExamTabOnce();
+        }
+      
       if (tabId === "favorites") {
   renderFolderControls();
   showFavorites();
@@ -4495,40 +4521,181 @@ ${escapeHtml(content)}`;
   });
 }
 
-    async function loadClassDropdown() {
-      const data = await fetchSheet("TestInfo");
-      const select = document.getElementById("class-select");
-      const uniqueClasses = [...new Set(data.slice(1).map(row => row[0]).filter(Boolean))];
-      select.innerHTML = uniqueClasses.map(c => `<option>${escapeHtml(c)}</option>`).join("");
-    }
+async function fetchExamClasses() {
+  const result = await apiGet({
+    action: "getExamClasses"
+  });
+
+  if (!result.success) {
+    throw new Error(result.message || "반 목록을 불러오지 못했습니다.");
+  }
+
+  return result.classes || [];
+}
+
+async function fetchExamInfo(date, className) {
+  const result = await apiGet({
+    action: "getExamInfo",
+    date,
+    className
+  });
+
+  if (!result.success) {
+    throw new Error(result.message || "시험정보를 불러오지 못했습니다.");
+  }
+
+  return result;
+}
+
+function attachExamListenersOnce() {
+  if (examListenersAttached) return;
+
+  const dateInput = document.getElementById("exam-date");
+  const classSelect = document.getElementById("class-select");
+
+  if (dateInput) {
+    dateInput.addEventListener("change", loadExam);
+  }
+
+  if (classSelect) {
+    classSelect.addEventListener("change", loadExam);
+  }
+
+  examListenersAttached = true;
+}
+    
+    async function loadClassDropdown(force = false) {
+  if (examClassesLoadedOnce && !force) return;
+
+  const select = document.getElementById("class-select");
+  if (!select) return;
+
+  select.innerHTML = `<option value="">반 목록을 불러오는 중...</option>`;
+
+  try {
+    const classes = await fetchExamClasses();
+
+    select.innerHTML =
+      `<option value="">반 선택</option>` +
+      classes
+        .map(className => {
+          return `<option value="${escapeHtml(className)}">${escapeHtml(className)}</option>`;
+        })
+        .join("");
+
+    examClassesLoadedOnce = true;
+
+  } catch (err) {
+    console.error(err);
+    select.innerHTML = `<option value="">반 목록 불러오기 실패</option>`;
+  }
+}
 
     async function loadExam() {
-      const data = await fetchSheet("TestInfo");
-      const date = document.getElementById("exam-date").value;
-      const className = document.getElementById("class-select").value;
-      const table = document.getElementById("exam-table");
+  const dateInput = document.getElementById("exam-date");
+  const classSelect = document.getElementById("class-select");
+  const table = document.getElementById("exam-table");
 
-      const filtered = data.filter((row, i) =>
-        i === 0 || (row[0] === className && cleanDate(row[1]) === date)
-      );
+  if (!dateInput || !classSelect || !table) return;
 
-      if (filtered.length <= 1) {
-        table.innerHTML = "<div class='card empty-card'>선택한 날짜와 반에 해당하는 시험정보가 없습니다.</div>";
-        return;
-      }
+  const date = dateInput.value;
+  const className = classSelect.value;
 
-      let html = "<table><tr>" + data[0].slice(0, 4).map(h => `<th>${escapeHtml(h)}</th>`).join("") + "</tr>";
+  if (!date || !className) {
+    table.innerHTML = "<div class='card empty-card'>시험 날짜와 반을 선택하세요.</div>";
+    return;
+  }
 
-      for (let i = 1; i < filtered.length; i++) {
-        html += "<tr>" + filtered[i].slice(0, 4).map((cell, j) => {
-          const value = j === 1 ? cleanDate(cell) : cell;
-          return `<td>${escapeHtml(value)}</td>`;
-        }).join("") + "</tr>";
-      }
+  table.innerHTML = "<div class='card'>시험정보를 불러오는 중입니다...</div>";
 
-      html += "</table>";
-      table.innerHTML = `<div class="mini-card"><b>검색 결과 ${filtered.length - 1}건</b></div>${html}`;
+  try {
+    const result = await fetchExamInfo(date, className);
+    const headers = result.headers || [];
+    const rows = result.rows || [];
+
+    if (rows.length === 0) {
+      table.innerHTML = "<div class='card empty-card'>선택한 날짜와 반에 해당하는 시험정보가 없습니다.</div>";
+      return;
     }
+
+    let html =
+      "<table><tr>" +
+      headers
+        .map(h => `<th>${escapeHtml(h)}</th>`)
+        .join("") +
+      "</tr>";
+
+    rows.forEach(row => {
+      html +=
+        "<tr>" +
+        row
+          .map((cell, index) => {
+            const value = index === 1 ? cleanDate(cell) : cell;
+            return `<td>${escapeHtml(value)}</td>`;
+          })
+          .join("") +
+        "</tr>";
+    });
+
+    html += "</table>";
+
+    table.innerHTML =
+      `<div class="mini-card"><b>검색 결과 ${rows.length}건</b></div>` +
+      html;
+
+  } catch (err) {
+    console.error(err);
+    table.innerHTML = `
+      <div class='card'>
+        시험정보를 불러오지 못했습니다.<br><br>
+        <span class="muted">${escapeHtml(err.message || String(err))}</span>
+      </div>
+    `;
+  }
+}
+
+    async function loadExamTabOnce(force = false) {
+  if (examClassesLoadedOnce && !force) {
+    attachExamListenersOnce();
+    return;
+  }
+
+  const table = document.getElementById("exam-table");
+
+  if (table) {
+    table.innerHTML = "<div class='card'>시험정보 준비 중입니다...</div>";
+  }
+
+  await loadClassDropdown(force);
+  attachExamListenersOnce();
+
+  if (table) {
+    table.innerHTML = "<div class='card empty-card'>시험 날짜와 반을 선택하세요.</div>";
+  }
+}
+
+async function refreshExamInfo() {
+  const dateInput = document.getElementById("exam-date");
+  const classSelect = document.getElementById("class-select");
+
+  const selectedDate = dateInput ? dateInput.value : "";
+  const selectedClass = classSelect ? classSelect.value : "";
+
+  examClassesLoadedOnce = false;
+
+  await loadExamTabOnce(true);
+
+  if (dateInput && selectedDate) {
+    dateInput.value = selectedDate;
+  }
+
+  if (classSelect && selectedClass) {
+    classSelect.value = selectedClass;
+  }
+
+  await loadExam();
+}
+    
 function isRetestAdmin() {
   return !!(
     currentUser &&
@@ -6587,39 +6754,9 @@ async function submitPointAdjustment() {
     // 첫 화면에 필요한 최소 데이터만 먼저 불러옵니다.
     await Promise.all([
       loadHomeText(),
-      loadNotice(),
-      loadClassDropdown()
+      loadNotice()
     ]);
 
-    document.getElementById("exam-date").addEventListener("change", loadExam);
-    document.getElementById("class-select").addEventListener("change", loadExam);
-
-    setTimeout(() => {
-      loadMainPopupFromHomeText();
-    }, 600);
-
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setTimeout(() => {
-      document.getElementById("loader").classList.add("hidden");
-    }, 200);
-  }
-};window.onload = async () => {
-  restoreLogin();
-  loadHomeTextFromCache();
-  initAppBackHandling();
-
-  try {
-    // 첫 화면에 필요한 최소 데이터만 먼저 불러옵니다.
-    await Promise.all([
-      loadHomeText(),
-      loadNotice(),
-      loadClassDropdown()
-    ]);
-
-    document.getElementById("exam-date").addEventListener("change", loadExam);
-    document.getElementById("class-select").addEventListener("change", loadExam);
 
     setTimeout(() => {
       loadMainPopupFromHomeText();
@@ -6633,6 +6770,7 @@ async function submitPointAdjustment() {
     }, 200);
   }
 };
+  
   </script>
 </body>
 </html>
