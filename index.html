@@ -3074,6 +3074,7 @@ body.dark .retest-bulk-import-box p {
         <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
         <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
+        <button onclick="goTabFromFullMenu('point')"><span>🎯</span><b>포인트</b></button>
         <button id="full-menu-admin-button" onclick="goTabFromFullMenu('admin')"><span>⚙️</span><b>관리자</b></button>
       </div>
     </div>
@@ -3110,6 +3111,7 @@ body.dark .retest-bulk-import-box p {
     <button data-tab="retest" onclick="showTab('retest')">재시험</button>
     <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
+    <button data-tab="point" onclick="showTab('point')">🎯포인트</button>
     <button data-tab="admin" id="admin-tab-button" onclick="showTab('admin')">관리자</button>
   </nav>
 
@@ -3305,6 +3307,48 @@ body.dark .retest-bulk-import-box p {
     <div id="wrong-note-view"></div>
   </section>
 
+  <!-- 포인트 -->
+  <section id="point">
+    <div class="section-title">🎯 포인트</div>
+
+    <div class="card">
+      <b>포인트 시험 안내</b><br>
+      이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.<br>
+      뜻을 보고 영어 스펠링을 입력하세요.<br>
+      <b>30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
+      단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
+    </div>
+
+    <div id="point-summary-view"></div>
+
+    <div class="button-row">
+      <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
+      <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 상태 새로고침</button>
+    </div>
+
+    <div id="point-test-view"></div>
+  </section>  <!-- 포인트 -->
+  <section id="point">
+    <div class="section-title">🎯 포인트</div>
+
+    <div class="card">
+      <b>포인트 시험 안내</b><br>
+      이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.<br>
+      뜻을 보고 영어 스펠링을 입력하세요.<br>
+      <b>30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
+      단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
+    </div>
+
+    <div id="point-summary-view"></div>
+
+    <div class="button-row">
+      <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
+      <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 상태 새로고침</button>
+    </div>
+
+    <div id="point-test-view"></div>
+  </section>
+  
   <!-- 관리자 -->
   <section id="admin">
     <div class="section-title">⚙️ 관리자</div>
@@ -3321,6 +3365,10 @@ body.dark .retest-bulk-import-box p {
     <div class="button-row">
       <button class="vocab-btn secondary" onclick="fillOrderNumbersFromAdmin()">E열 정렬번호 채우기</button>
       <button class="vocab-btn warning" onclick="makeSpreadsheetBackup()">TestManager 백업 만들기</button>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn" onclick="showPointAdminSummary()">학생 포인트 목록</button>
     </div>
 
     <div id="admin-view"></div>
@@ -3895,22 +3943,25 @@ body.dark .retest-bulk-import-box p {
     }
 
     function afterLogin() {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("user-label").textContent =
-        `${currentUser.name || currentUser.id} ${currentUser.className ? "(" + currentUser.className + ")" : ""}`;
+  document.getElementById("login-screen").style.display = "none";
 
-      if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
-        document.getElementById("admin-tab-button").style.display = "block";
-        const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
-        if (fullMenuAdminButton) fullMenuAdminButton.style.display = "flex";
-      }
+  updateUserLabel();
 
-      loadFavoriteFolders();
-      renderFolderControls();
-      if (document.getElementById("favorites").classList.contains("active")) {
-        showFavorites();
-      }
-    }
+  if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
+    document.getElementById("admin-tab-button").style.display = "block";
+    const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+    if (fullMenuAdminButton) fullMenuAdminButton.style.display = "flex";
+  }
+
+  loadFavoriteFolders();
+  renderFolderControls();
+
+  refreshMyPointSummary();
+
+  if (document.getElementById("favorites").classList.contains("active")) {
+    showFavorites();
+  }
+}
 
     function logout() {
       clearUserSession();
@@ -4089,12 +4140,16 @@ body.dark .retest-bulk-import-box p {
         showFavorites();
       }
 
+      if (tabId === "point") {
+        loadPointHome();
+      }
+
       if (tabId === "admin") {
         refreshAdminSummary();
       }
 
       updateAppBackButton();
-    }
+     }
 
     function goBackInApp(options = {}) {
       const fullMenu = document.getElementById("full-menu-screen");
@@ -5571,6 +5626,372 @@ async function deleteRetestRowFromWeb(rowNumber, studentName) {
       });
     }
 
+/************************************************************
+ *  11-1. 포인트 시험 기능
+ ************************************************************/
+let currentPointTest = null;
+let pointSubmitting = false;
+
+function updateUserLabel() {
+  const label = document.getElementById("user-label");
+  if (!label || !currentUser) return;
+
+  const nameText = currentUser.name || currentUser.id || "";
+  const classText = currentUser.className ? ` (${currentUser.className})` : "";
+  const pointText = Number.isFinite(Number(currentUser.totalPoints))
+    ? ` · ${Number(currentUser.totalPoints)}P`
+    : "";
+
+  label.textContent = `${nameText}${classText}${pointText}`;
+}
+
+async function refreshMyPointSummary() {
+  if (!currentUser || !currentUser.token) return;
+
+  try {
+    const result = await apiGet({ action: "getMyPointSummary" });
+
+    if (result && result.success) {
+      currentUser.totalPoints = Number(result.totalPoints || 0);
+      saveUserSession(currentUser);
+      updateUserLabel();
+
+      if (document.getElementById("point")?.classList.contains("active")) {
+        renderPointSummary(result);
+      }
+    }
+  } catch (err) {
+    console.warn("포인트 요약을 불러오지 못했습니다.", err);
+    updateUserLabel();
+  }
+}
+
+async function loadPointHome() {
+  const summaryTarget = document.getElementById("point-summary-view");
+  const testTarget = document.getElementById("point-test-view");
+
+  if (!summaryTarget || !testTarget) return;
+
+  if (!currentUser || !currentUser.token) {
+    summaryTarget.innerHTML = "<div class='card'>로그인 후 사용할 수 있습니다.</div>";
+    testTarget.innerHTML = "";
+    return;
+  }
+
+  summaryTarget.innerHTML = "<div class='card'>포인트 상태를 불러오는 중입니다...</div>";
+  testTarget.innerHTML = "";
+  currentPointTest = null;
+
+  try {
+    const result = await apiGet({ action: "getMyPointSummary" });
+
+    if (!result.success) {
+      summaryTarget.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 정보를 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    currentUser.totalPoints = Number(result.totalPoints || 0);
+    saveUserSession(currentUser);
+    updateUserLabel();
+
+    renderPointSummary(result);
+  } catch (err) {
+    summaryTarget.innerHTML = "<div class='card'>포인트 API 연결에 실패했습니다. Apps Script 배포 상태를 확인하세요.</div>";
+  }
+}
+
+function renderPointSummary(result) {
+  const target = document.getElementById("point-summary-view");
+  if (!target) return;
+
+  const paidText = result.alreadyPaidThisWeek ? "지급완료" : "미지급";
+  const readyText = result.pointReady ? "응시 가능" : "응시 불가";
+  const bookName = result.currentBookName || "이번 주 지정 범위 없음";
+
+  target.innerHTML = `
+    <div class="status-grid">
+      <div class="status-item">
+        <span class="status-label">현재 포인트</span>
+        <span class="status-value">${escapeHtml(result.totalPoints || 0)}P</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">이번 주</span>
+        <span class="status-value">${escapeHtml(result.weekStart || "")} ~ ${escapeHtml(result.weekEnd || "")}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">이번 주 지급 여부</span>
+        <span class="status-value">${escapeHtml(paidText)}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <b>이번 주 포인트 시험 범위</b><br>
+      ${escapeHtml(bookName)}<br><br>
+      <b>상태:</b> ${escapeHtml(readyText)}<br>
+      ${result.message ? `<br><span class="muted">${escapeHtml(result.message)}</span>` : ""}
+    </div>
+  `;
+}
+
+async function startPointTest() {
+  const target = document.getElementById("point-test-view");
+  if (!target) return;
+
+  if (!currentUser || !currentUser.token) {
+    alert("로그인 후 사용할 수 있습니다.");
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>포인트 시험을 준비하는 중입니다...</div>";
+  currentPointTest = null;
+
+  try {
+    const result = await apiGet({ action: "getPointTestInfo" });
+
+    if (!result.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    currentUser.totalPoints = Number(result.totalPoints || currentUser.totalPoints || 0);
+    saveUserSession(currentUser);
+    updateUserLabel();
+
+    if (!result.canTake) {
+      target.innerHTML = `
+        <div class='card'>
+          <b>포인트 시험을 시작할 수 없습니다.</b><br><br>
+          ${escapeHtml(result.message || "")}
+        </div>
+      `;
+      return;
+    }
+
+    currentPointTest = {
+      testId: result.testId,
+      bookName: result.bookName,
+      questions: result.questions || []
+    };
+
+    renderPointTest(result);
+  } catch (err) {
+    target.innerHTML = "<div class='card'>포인트 시험 API 연결에 실패했습니다.</div>";
+  }
+}
+
+function renderPointTest(result) {
+  const target = document.getElementById("point-test-view");
+  if (!target) return;
+
+  const questions = result.questions || [];
+
+  if (questions.length === 0) {
+    target.innerHTML = "<div class='card'>출제할 문제가 없습니다.</div>";
+    return;
+  }
+
+  let html = `
+    <div class="card">
+      <b>포인트 시험</b><br>
+      범위: ${escapeHtml(result.bookName || "")}<br>
+      문제 수: ${escapeHtml(questions.length)}개<br>
+      조건: 30문제 모두 정답 시 1P 지급
+    </div>
+  `;
+
+  questions.forEach((q, index) => {
+    html += `
+      <div class="vocab-question">
+        <b>${index + 1}. ${escapeHtml(q.meaning || "")}</b>
+        <input
+          type="text"
+          id="answer-point-${index}"
+          data-qid="${escapeHtml(q.qid || "")}"
+          placeholder="영어 스펠링 입력"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+        />
+      </div>
+    `;
+  });
+
+  html += `
+    <div class="test-action-bar">
+      <button class="vocab-btn" onclick="submitPointTest()">제출하기</button>
+    </div>
+  `;
+
+  target.innerHTML = html;
+}
+
+async function submitPointTest() {
+  if (pointSubmitting) return;
+
+  const target = document.getElementById("point-test-view");
+  if (!target) return;
+
+  if (!currentPointTest || !currentPointTest.testId) {
+    alert("진행 중인 포인트 시험이 없습니다.");
+    return;
+  }
+
+  const inputs = target.querySelectorAll("input[id^='answer-point-']");
+  const answers = [];
+
+  inputs.forEach(input => {
+    answers.push({
+      qid: input.dataset.qid || "",
+      answer: input.value || ""
+    });
+  });
+
+  if (answers.some(item => !String(item.answer || "").trim())) {
+    if (!confirm("입력하지 않은 답이 있습니다. 그래도 제출할까요?")) {
+      return;
+    }
+  }
+
+  pointSubmitting = true;
+  target.insertAdjacentHTML("beforeend", "<div class='card' id='point-submitting-message'>채점 중입니다...</div>");
+
+  try {
+    const result = await apiPost({
+      action: "submitPointTest",
+      testId: currentPointTest.testId,
+      answersJson: JSON.stringify(answers)
+    });
+
+    document.getElementById("point-submitting-message")?.remove();
+
+    if (!result.success) {
+      target.insertAdjacentHTML(
+        "beforeend",
+        `<div class='card'>${escapeHtml(result.message || "채점에 실패했습니다.")}</div>`
+      );
+      return;
+    }
+
+    currentUser.totalPoints = Number(result.totalPoints || currentUser.totalPoints || 0);
+    saveUserSession(currentUser);
+    updateUserLabel();
+
+    renderPointResult(result);
+    refreshMyPointSummary();
+  } catch (err) {
+    document.getElementById("point-submitting-message")?.remove();
+    target.insertAdjacentHTML("beforeend", "<div class='card'>포인트 시험 제출 API 연결에 실패했습니다.</div>");
+  } finally {
+    pointSubmitting = false;
+  }
+}
+
+function renderPointResult(result) {
+  const target = document.getElementById("point-test-view");
+  if (!target) return;
+
+  let html = `
+    <div class="card score-card">
+      <div class="score-number">${escapeHtml(result.scoreText || "")}</div>
+      <div class="score-sub">${escapeHtml(result.message || "")}</div>
+      <div class="score-sub">현재 총 포인트: ${escapeHtml(result.totalPoints || 0)}P</div>
+    </div>
+  `;
+
+  if (result.awarded) {
+    html += `
+      <div class="card">
+        <b class="result-correct">포인트가 지급되었습니다.</b><br>
+        이번 주 포인트 지급은 완료되었습니다.
+      </div>
+    `;
+  }
+
+  const wrongItems = result.wrongItems || [];
+
+  if (wrongItems.length > 0) {
+    html += "<div class='mini-card'><b>틀린 문제 확인</b></div>";
+    html += "<table><tr><th>뜻</th><th>내 답</th><th>정답</th></tr>";
+
+    wrongItems.forEach(item => {
+      html += `
+        <tr>
+          <td>${escapeHtml(item.meaning || "")}</td>
+          <td class="result-wrong">${escapeHtml(item.studentAnswer || "")}</td>
+          <td class="result-correct">${escapeHtml(item.correctEnglish || "")}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table>";
+  }
+
+  html += `
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 화면으로 돌아가기</button>
+    </div>
+  `;
+
+  target.innerHTML = html;
+}
+
+async function showPointAdminSummary() {
+  const target = document.getElementById("admin-view");
+
+  if (!target) return;
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>학생 포인트 목록을 불러오는 중입니다...</div>";
+
+  try {
+    const result = await apiGet({ action: "getPointAdminSummary" });
+
+    if (!result.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 목록을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    let html = `
+      <div class="card">
+        <b>학생 포인트 목록</b><br>
+        이번 주 기준: ${escapeHtml(result.weekStart || "")} ~ ${escapeHtml(result.weekEnd || "")}
+      </div>
+    `;
+
+    const students = result.students || [];
+
+    if (students.length === 0) {
+      target.innerHTML = html + "<div class='card'>표시할 학생이 없습니다.</div>";
+      return;
+    }
+
+    html += "<table><tr><th>반</th><th>이름</th><th>ID</th><th>총포인트</th><th>이번 주</th><th>최근 지급</th></tr>";
+
+    students.forEach(student => {
+      html += `
+        <tr>
+          <td>${escapeHtml(student.className || "")}</td>
+          <td>${escapeHtml(student.name || "")}</td>
+          <td>${escapeHtml(student.id || "")}</td>
+          <td><b>${escapeHtml(student.totalPoints || 0)}P</b></td>
+          <td>${student.thisWeekPaid ? "<span class='badge badge-success'>지급완료</span>" : "<span class='badge badge-warning'>미지급</span>"}</td>
+          <td>${escapeHtml(student.latestPaidAt || "")}</td>
+        </tr>
+      `;
+    });
+
+    html += "</table>";
+    target.innerHTML = html;
+  } catch (err) {
+    target.innerHTML = "<div class='card'>학생 포인트 목록 API 연결에 실패했습니다.</div>";
+  }
+}
+    
     /************************************************************
      *  12. 관리자 기능
      ************************************************************/
