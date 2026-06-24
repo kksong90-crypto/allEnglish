@@ -3311,7 +3311,7 @@ body.dark .retest-bulk-import-box p {
   <section id="point">
     <div class="section-title">🎯 포인트</div>
 
-    <div class="card">
+    <div id="point-guide-card" class="card">
       <b>포인트 시험 안내</b><br>
       이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.<br>
       뜻을 보고 영어 스펠링을 입력하세요.<br>
@@ -3612,11 +3612,126 @@ body.dark .retest-bulk-import-box p {
       `;
     }
 
-    async function fetchSheet(sheetName) {
-      return await fetchJsonWithTimeout(
-        SHEET_URL + "?sheetName=" + encodeURIComponent(sheetName)
-      );
+    const APP_CONTENT_SHEET_NAME = "AppContent";
+let appContentPromise = null;
+
+async function fetchAppContentSheet() {
+  if (!appContentPromise) {
+    appContentPromise = fetchSheet(APP_CONTENT_SHEET_NAME);
+  }
+
+  try {
+    return await appContentPromise;
+  } catch (err) {
+    appContentPromise = null;
+    throw err;
+  }
+}
+
+function isContentActive(value) {
+  const text = String(value || "").trim().toUpperCase();
+  return text !== "N" && text !== "FALSE" && text !== "0";
+}
+
+function formatMultilineHtml(value) {
+  return escapeHtml(value || "").replace(/\n/g, "<br>");
+}
+
+function parseAppContentData(data) {
+  const textMap = {};
+  const notices = [];
+
+  data.slice(1).forEach((row, index) => {
+    const type = String(row[0] || "").trim().toLowerCase();
+    const keyOrDate = row[1];
+    const titleOrValue = row[2];
+    const content = row[3];
+    const startDate = row[4];
+    const endDate = row[5];
+    const active = row[6];
+    const order = row[7];
+
+    if (!type) return;
+    if (!isContentActive(active)) return;
+    if (!isTodayInRange(startDate, endDate)) return;
+
+    if (type === "text" || type === "home" || type === "popup") {
+      const key = String(keyOrDate || "").trim();
+      const value = String(titleOrValue || content || "").trim();
+
+      if (key && value) {
+        textMap[key] = value;
+      }
+
+      return;
     }
+
+    if (type === "point") {
+      const key = String(keyOrDate || "").trim();
+
+      if (key === "guide" || key === "pointGuide") {
+        textMap.pointGuideTitle =
+          String(titleOrValue || "포인트 시험 안내").trim();
+
+        textMap.pointGuide =
+          String(content || titleOrValue || "").trim();
+      }
+
+      return;
+    }
+
+    if (type === "notice") {
+      const date = keyOrDate;
+      const title = titleOrValue;
+      const noticeContent = content;
+
+      if (date || title || noticeContent) {
+        notices.push({
+          date,
+          title,
+          content: noticeContent,
+          order: Number(order) || index
+        });
+      }
+    }
+  });
+
+  notices.sort((a, b) => a.order - b.order);
+
+  return {
+    textMap,
+    notices
+  };
+}
+
+function getDefaultPointGuide() {
+  return {
+    title: "포인트 시험 안내",
+    content:
+      "이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.\n" +
+      "뜻을 보고 영어 스펠링을 입력하세요.\n" +
+      "30문제를 모두 맞히면 포인트 1점이 지급됩니다.\n" +
+      "포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다."
+  };
+}
+
+function applyPointGuide(textMap) {
+  const target = document.getElementById("point-guide-card");
+  if (!target) return;
+
+  const defaultGuide = getDefaultPointGuide();
+
+  const title =
+    String(textMap.pointGuideTitle || defaultGuide.title).trim();
+
+  const content =
+    String(textMap.pointGuide || defaultGuide.content).trim();
+
+  target.innerHTML = `
+    <b>${escapeHtml(title)}</b><br>
+    ${formatMultilineHtml(content)}
+  `;
+}
 
     /************************************************************
      *  홈 화면 문구 / 팝업 관리
@@ -3648,49 +3763,74 @@ body.dark .retest-bulk-import-box p {
     }
 
     function loadHomeTextFromCache() {
-      const cached = localStorage.getItem("allbarun-home-text");
+  const cached = localStorage.getItem("allbarun-home-text");
 
-      if (cached) {
-        try {
-          homeTextMap = JSON.parse(cached);
-          applyHomeText(homeTextMap);
-          return;
-        } catch (err) {
-          console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
-        }
-      }
-
-      homeTextMap = getDefaultHomeText();
+  if (cached) {
+    try {
+      homeTextMap = JSON.parse(cached);
       applyHomeText(homeTextMap);
+      applyPointGuide(homeTextMap);
+      return;
+    } catch (err) {
+      console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
     }
+  }
+
+  homeTextMap = getDefaultHomeText();
+  applyHomeText(homeTextMap);
+  applyPointGuide(homeTextMap);
+}
 
     async function loadHomeText() {
-      try {
-        const data = await fetchSheet("HomeText");
-        const textMap = {};
+  try {
+    const data = await fetchAppContentSheet();
+    const parsed = parseAppContentData(data);
+    const textMap = parsed.textMap || {};
 
-        data.slice(1).forEach(row => {
-          const key = String(row[0] || "").trim();
-          const text = String(row[1] || "").trim();
+    homeTextMap = textMap;
 
-          if (key && text) {
-            textMap[key] = text;
-          }
-        });
+    localStorage.setItem(
+      "allbarun-home-text",
+      JSON.stringify(textMap)
+    );
 
-        homeTextMap = textMap;
+    applyHomeText(textMap);
+    applyPointGuide(textMap);
 
-        localStorage.setItem(
-          "allbarun-home-text",
-          JSON.stringify(textMap)
-        );
+  } catch (err) {
+    console.warn("AppContent 시트를 불러오지 못했습니다. 기존 HomeText 시트로 대체합니다.", err);
 
-        applyHomeText(textMap);
+    try {
+      const data = await fetchSheet("HomeText");
+      const textMap = {};
 
-      } catch (err) {
-        console.warn("HomeText 시트를 불러오지 못했습니다.", err);
-      }
+      data.slice(1).forEach(row => {
+        const key = String(row[0] || "").trim();
+        const text = String(row[1] || "").trim();
+
+        if (key && text) {
+          textMap[key] = text;
+        }
+      });
+
+      homeTextMap = textMap;
+
+      localStorage.setItem(
+        "allbarun-home-text",
+        JSON.stringify(textMap)
+      );
+
+      applyHomeText(textMap);
+      applyPointGuide(textMap);
+
+    } catch (fallbackErr) {
+      console.warn("HomeText 시트도 불러오지 못했습니다.", fallbackErr);
+      homeTextMap = getDefaultHomeText();
+      applyHomeText(homeTextMap);
+      applyPointGuide(homeTextMap);
     }
+  }
+}
 
     function getHomeTextValue(key) {
       return String(homeTextMap[key] || "").trim();
@@ -4279,32 +4419,57 @@ ${escapeHtml(content)}`;
     }
 
     async function loadNotice() {
+  const target = document.getElementById("notice-content");
+  const homeTarget = document.getElementById("home-notice-content");
+
+  if (target) target.innerHTML = "";
+  if (homeTarget) homeTarget.innerHTML = "";
+
+  let rows = [];
+
+  try {
+    const data = await fetchAppContentSheet();
+    const parsed = parseAppContentData(data);
+
+    rows = (parsed.notices || []).map(item => [
+      item.date,
+      item.title,
+      item.content
+    ]);
+
+  } catch (err) {
+    console.warn("AppContent 공지사항을 불러오지 못했습니다. 기존 Notice 시트로 대체합니다.", err);
+
+    try {
       const data = await fetchSheet("Notice");
-      const target = document.getElementById("notice-content");
-      const homeTarget = document.getElementById("home-notice-content");
-
-      if (target) target.innerHTML = "";
-      if (homeTarget) homeTarget.innerHTML = "";
-
-      const rows = data.slice(1).filter(row => row && (row[0] || row[1] || row[2]));
-
-      if (rows.length === 0) {
-        const empty = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
-        if (target) target.innerHTML = empty;
-        if (homeTarget) homeTarget.innerHTML = empty;
-        return;
-      }
-
-      rows.forEach(row => {
-        const [date, title, content] = row;
-        if (target) target.appendChild(buildNoticeCard(date, title, content, false));
-      });
-
-      rows.slice(0, 3).forEach(row => {
-        const [date, title, content] = row;
-        if (homeTarget) homeTarget.appendChild(buildNoticeCard(date, title, content, true));
-      });
+      rows = data.slice(1).filter(row => row && (row[0] || row[1] || row[2]));
+    } catch (fallbackErr) {
+      console.warn("Notice 시트도 불러오지 못했습니다.", fallbackErr);
+      rows = [];
     }
+  }
+
+  if (rows.length === 0) {
+    const empty = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
+    if (target) target.innerHTML = empty;
+    if (homeTarget) homeTarget.innerHTML = empty;
+    return;
+  }
+
+  rows.forEach(row => {
+    const [date, title, content] = row;
+    if (target) {
+      target.appendChild(buildNoticeCard(date, title, content, false));
+    }
+  });
+
+  rows.slice(0, 3).forEach(row => {
+    const [date, title, content] = row;
+    if (homeTarget) {
+      homeTarget.appendChild(buildNoticeCard(date, title, content, true));
+    }
+  });
+}
 
     async function loadClassDropdown() {
       const data = await fetchSheet("TestInfo");
@@ -5671,6 +5836,8 @@ async function loadPointHome() {
   const testTarget = document.getElementById("point-test-view");
 
   if (!summaryTarget || !testTarget) return;
+
+  applyPointGuide(homeTextMap);
 
   if (!currentUser || !currentUser.token) {
     summaryTarget.innerHTML = "<div class='card'>로그인 후 사용할 수 있습니다.</div>";
