@@ -3122,6 +3122,74 @@ body.dark .retest-card-meta {
       border-color: #35514a !important;
     }
 
+    .point-simple-box {
+      border: 2px solid #d7e8e2;
+      background: linear-gradient(135deg, #ffffff, #f4fbf8);
+    }
+
+    .point-word-preview {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65em;
+      margin-top: 0.75em;
+    }
+
+    .point-word-preview-item {
+      padding: 0.75em;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid var(--brand-line);
+      box-shadow: var(--brand-shadow-soft);
+      text-align: center;
+    }
+
+    .point-word-preview-number {
+      display: block;
+      font-size: 1.35em;
+      font-weight: 900;
+      color: var(--brand-dark);
+    }
+
+    .point-word-preview-label {
+      display: block;
+      color: var(--brand-muted);
+      font-size: 0.85em;
+      font-weight: 800;
+    }
+
+    .point-word-preview-ok {
+      border-color: #bce5cd;
+      background: #e6f7ed;
+    }
+
+    .point-word-preview-bad {
+      border-color: #f2c3c0;
+      background: #fdebea;
+    }
+
+    .point-word-mini-table {
+      max-height: 260px;
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid var(--brand-line);
+      margin-top: 0.8em;
+    }
+
+    body.dark .point-simple-box,
+    body.dark .point-word-preview-item,
+    body.dark .point-word-mini-table {
+      background: #1f2a27 !important;
+      border-color: #35514a !important;
+      color: #eef8f5 !important;
+    }
+
+    @media (max-width: 760px) {
+      .point-word-preview {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
   </style>
 </head>
 
@@ -6781,10 +6849,24 @@ function renderPointSetupAdmin(result) {
       <div id="point-generate-message" class="mini-card muted">이미 생성된 주차는 건너뛰므로 여러 번 눌러도 중복 생성되지 않습니다.</div>
     </div>
 
-    <div class="control-card">
-      <div class="section-title">2. 이번 주 단어 50개 입력</div>
+    <div class="control-card point-simple-box">
+      <div class="section-title">2. 가장 쉬운 입력 방식: PointInput 시트</div>
       <div class="point-admin-help">
-        아래에서 주차를 고르고 <b>영어[TAB]뜻</b> 형식으로 정확히 50줄을 붙여넣으세요. 같은 주차에 다시 저장하면 기존 50개가 새 단어로 교체됩니다.
+        스프레드시트에 <b>PointInput</b> 입력판을 만들고, <b>B7:C56</b>에 영어와 뜻 50개만 붙여넣으면 됩니다. PointWords는 자동으로 정리되므로 직접 만질 필요가 없습니다.
+      </div>
+      <div class="button-row">
+        <button class="vocab-btn" onclick="setupPointInputSheetFromAdmin()">PointInput 입력판 만들기/열기</button>
+        <button class="vocab-btn secondary" onclick="applyPointInputWordsFromAdmin()">PointInput → 선택/이번 주 저장</button>
+      </div>
+      <div id="point-input-message" class="mini-card muted">
+        추천 운영: 매주 PointInput의 B7:C56만 갈아끼우고 저장 버튼을 누르세요. 주차시작일을 비워두면 이번 주로 자동 저장됩니다.
+      </div>
+    </div>
+
+    <div class="control-card">
+      <div class="section-title">3. 웹앱에서 바로 붙여넣기</div>
+      <div class="point-admin-help">
+        시트를 열기 싫을 때는 여기 붙여넣으세요. <b>영어[TAB]뜻</b>, <b>영어,뜻</b>, <b>영어:뜻</b>, <b>영어 - 뜻</b>, <b>영어 뜻</b> 형식까지 인식합니다.
       </div>
       <label>
         <span class="field-label">주차 선택</span>
@@ -6793,11 +6875,14 @@ function renderPointSetupAdmin(result) {
       <div id="point-selected-plan-preview" class="mini-card muted">
         ${currentPlan ? `현재 선택: ${escapeHtml(currentPlan.title || currentPlan.planId)}<br>단어장ID: ${escapeHtml(currentPlan.planId || "")}` : "생성된 주차 계획이 없습니다."}
       </div>
-      <textarea id="point-words-text" class="point-admin-wordbox" placeholder="영어[TAB]뜻 형식으로 정확히 50줄을 붙여넣으세요.&#10;achieve&#9;성취하다&#10;accurate&#9;정확한"></textarea>
+      <textarea id="point-words-text" class="point-admin-wordbox" oninput="previewPointWordsText()" placeholder="영어[TAB]뜻 형식이 가장 정확합니다.&#10;achieve&#9;성취하다&#10;accurate&#9;정확한&#10;adjust - 조정하다&#10;benefit: 이익, 혜택"></textarea>
+      <div id="point-words-preview" class="mini-card muted">붙여넣으면 인식 개수와 중복 여부를 바로 확인합니다.</div>
       <div class="button-row">
-        <button class="vocab-btn" onclick="savePointWordsFromAdmin()">선택 주차에 50개 단어 저장</button>
+        <button class="vocab-btn" onclick="savePointWordsFromAdmin()">선택 주차에 저장</button>
+        <button class="vocab-btn secondary" onclick="saveCurrentWeekPointWordsFromAdmin()">이번 주에 바로 저장</button>
+        <button class="vocab-btn secondary" onclick="clearPointWordsText()">입력칸 비우기</button>
       </div>
-      <div id="point-words-message" class="mini-card muted">PointWords 시트를 직접 만질 필요 없이 여기에서 붙여넣는 방식을 추천합니다.</div>
+      <div id="point-words-message" class="mini-card muted">정확히 50개일 때 저장됩니다. 중복 단어가 있으면 저장하지 않습니다.</div>
     </div>
 
     <div class="card">
@@ -6903,6 +6988,217 @@ async function savePointPlanFromAdmin() {
   }
 }
 
+
+async function setupPointInputSheetFromAdmin() {
+  const message = document.getElementById("point-input-message");
+  if (message) message.textContent = "PointInput 입력판을 준비하는 중입니다...";
+
+  try {
+    const result = await apiPost({ action: "setupPointInputSheet" });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "PointInput 준비에 실패했습니다.";
+      return;
+    }
+
+    if (message) {
+      message.innerHTML = `${escapeHtml(result.message || "PointInput 입력판이 준비되었습니다.")}<br>${result.url ? `<button class="small-btn" onclick="window.open('${escapeHtml(result.url)}', '_blank')">PointInput 시트 열기</button>` : ""}`;
+    }
+
+    if (result.url) {
+      window.open(result.url, "_blank");
+    }
+  } catch (err) {
+    if (message) message.textContent = "PointInput 준비 API 연결에 실패했습니다: " + (err.message || err);
+  }
+}
+
+async function applyPointInputWordsFromAdmin() {
+  const message = document.getElementById("point-input-message");
+  if (message) message.textContent = "PointInput의 50개 단어를 저장하는 중입니다...";
+
+  try {
+    const result = await apiPost({ action: "applyPointInputWords" });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "PointInput 저장에 실패했습니다.";
+      return;
+    }
+
+    if (message) {
+      message.innerHTML = `저장 완료: <b>${escapeHtml(result.planId || "")}</b><br>주차: ${escapeHtml(result.weekStart || "")} ~ ${escapeHtml(result.weekEnd || "")}<br>단어: ${escapeHtml(result.wordCount || 0)}개`;
+    }
+
+    await showPointSetupAdmin();
+  } catch (err) {
+    if (message) message.textContent = "PointInput 저장 API 연결에 실패했습니다: " + (err.message || err);
+  }
+}
+
+function analyzePointWordsText(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const words = [];
+  const invalid = [];
+  const duplicates = [];
+  const seen = {};
+
+  lines.forEach((originalLine, index) => {
+    let line = originalLine
+      .replace(/^\s*\d+\s*[\).\-:]\s*/, "")
+      .replace(/^\s*[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]\s*/, "")
+      .trim();
+
+    let parts = [];
+
+    if (line.includes("\t")) parts = line.split("\t");
+    else if (line.includes("=")) parts = line.split("=");
+    else if (line.includes(":")) parts = line.split(":");
+    else if (line.includes(",")) parts = line.split(",");
+    else if (line.includes(" - ")) parts = line.split(" - ");
+    else if (line.includes(" – ")) parts = line.split(" – ");
+    else if (line.includes(" — ")) parts = line.split(" — ");
+    else {
+      const twoSpaceMatch = line.match(/^(.+?)\s{2,}(.+)$/);
+      const koreanMeaningMatch = line.match(/^([A-Za-z][A-Za-z'’\-]*(?:\s+[A-Za-z][A-Za-z'’\-]*){0,4})\s+([가-힣].*)$/);
+      if (twoSpaceMatch) parts = [twoSpaceMatch[1], twoSpaceMatch[2]];
+      else if (koreanMeaningMatch) parts = [koreanMeaningMatch[1], koreanMeaningMatch[2]];
+    }
+
+    if (parts.length < 2) {
+      invalid.push(`${index + 1}행: ${originalLine}`);
+      return;
+    }
+
+    const english = String(parts[0] || "").trim();
+    const meaning = String(parts.slice(1).join(" ") || "").trim();
+
+    if (!english || !meaning) {
+      invalid.push(`${index + 1}행: ${originalLine}`);
+      return;
+    }
+
+    const key = normalizeAnswer(english);
+    if (seen[key]) duplicates.push(english);
+    else seen[key] = true;
+
+    words.push({ english, meaning });
+  });
+
+  return { words, invalid, duplicates, lineCount: lines.length };
+}
+
+function previewPointWordsText() {
+  const textarea = document.getElementById("point-words-text");
+  const target = document.getElementById("point-words-preview");
+  if (!textarea || !target) return;
+
+  const analysis = analyzePointWordsText(textarea.value);
+  const count = analysis.words.length;
+  const ok = count === 50 && analysis.invalid.length === 0 && analysis.duplicates.length === 0;
+  const statusClass = ok ? "point-word-preview-ok" : "point-word-preview-bad";
+
+  let html = `
+    <div class="point-word-preview">
+      <div class="point-word-preview-item ${statusClass}">
+        <span class="point-word-preview-number">${escapeHtml(count)}</span>
+        <span class="point-word-preview-label">인식된 단어</span>
+      </div>
+      <div class="point-word-preview-item ${analysis.invalid.length ? "point-word-preview-bad" : "point-word-preview-ok"}">
+        <span class="point-word-preview-number">${escapeHtml(analysis.invalid.length)}</span>
+        <span class="point-word-preview-label">인식 실패 줄</span>
+      </div>
+      <div class="point-word-preview-item ${analysis.duplicates.length ? "point-word-preview-bad" : "point-word-preview-ok"}">
+        <span class="point-word-preview-number">${escapeHtml(analysis.duplicates.length)}</span>
+        <span class="point-word-preview-label">중복 단어</span>
+      </div>
+    </div>
+  `;
+
+  if (ok) {
+    html += `<div class="mini-card result-correct">정확히 50개가 준비되었습니다. 저장할 수 있습니다.</div>`;
+  } else {
+    html += `<div class="mini-card result-wrong">저장 조건: 정확히 50개, 인식 실패 0줄, 중복 0개</div>`;
+  }
+
+  if (analysis.invalid.length > 0) {
+    html += `<div class="notice-small"><b>인식 실패 예시</b><br>${analysis.invalid.slice(0, 5).map(escapeHtml).join("<br>")}</div>`;
+  }
+
+  if (analysis.duplicates.length > 0) {
+    html += `<div class="notice-small"><b>중복 단어</b>: ${analysis.duplicates.slice(0, 8).map(escapeHtml).join(", ")}</div>`;
+  }
+
+  if (analysis.words.length > 0) {
+    const previewRows = analysis.words.slice(0, 8).map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(item.english)}</td>
+        <td>${escapeHtml(item.meaning)}</td>
+      </tr>
+    `).join("");
+
+    html += `
+      <div class="point-word-mini-table">
+        <table>
+          <tr><th>번호</th><th>영어</th><th>뜻</th></tr>
+          ${previewRows}
+        </table>
+      </div>
+    `;
+  }
+
+  target.innerHTML = html;
+}
+
+function clearPointWordsText() {
+  const textarea = document.getElementById("point-words-text");
+  if (textarea) textarea.value = "";
+  previewPointWordsText();
+}
+
+async function saveCurrentWeekPointWordsFromAdmin() {
+  const message = document.getElementById("point-words-message");
+  const wordsText = document.getElementById("point-words-text")?.value || "";
+  const timeLimitMinutes = document.getElementById("point-generate-time")?.value || "8";
+
+  if (!wordsText.trim()) {
+    alert("50개 단어를 붙여넣으세요.");
+    return;
+  }
+
+  const analysis = analyzePointWordsText(wordsText);
+  if (analysis.words.length !== 50 || analysis.invalid.length || analysis.duplicates.length) {
+    previewPointWordsText();
+    alert("저장 전 인식 개수, 인식 실패 줄, 중복 단어를 확인하세요.");
+    return;
+  }
+
+  if (message) message.textContent = "이번 주 포인트 단어를 저장하는 중입니다...";
+
+  try {
+    const result = await apiPost({
+      action: "saveCurrentWeekPointWords",
+      wordsText,
+      timeLimitMinutes
+    });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "이번 주 단어 저장에 실패했습니다.";
+      return;
+    }
+
+    if (message) message.textContent = result.message || "이번 주 단어가 저장되었습니다.";
+    await showPointSetupAdmin();
+  } catch (err) {
+    if (message) message.textContent = "이번 주 단어 저장 API 연결에 실패했습니다: " + (err.message || err);
+  }
+}
+
+
 async function savePointWordsFromAdmin() {
   const message = document.getElementById("point-words-message");
   const planId = document.getElementById("point-words-plan")?.value || "";
@@ -6915,6 +7211,13 @@ async function savePointWordsFromAdmin() {
 
   if (!wordsText.trim()) {
     alert("50개 단어를 붙여넣으세요.");
+    return;
+  }
+
+  const analysis = analyzePointWordsText(wordsText);
+  if (analysis.words.length !== 50 || analysis.invalid.length || analysis.duplicates.length) {
+    previewPointWordsText();
+    alert("저장 전 인식 개수, 인식 실패 줄, 중복 단어를 확인하세요.");
     return;
   }
 
