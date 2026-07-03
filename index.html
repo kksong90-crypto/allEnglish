@@ -3034,6 +3034,94 @@ body.dark .retest-card-meta {
   }
 }
 
+
+
+    /************************************************************
+     *  포인트 시험 v3 - 타이머 / 관리자 범위 관리
+     ************************************************************/
+    .point-timer-card {
+      position: sticky;
+      top: 174px;
+      z-index: 58;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8em;
+      padding: 0.9em 1em;
+      border-radius: 18px;
+      background: #fff4d7;
+      border: 1px solid #f3d17d;
+      box-shadow: var(--brand-shadow-soft);
+      color: #694400;
+      font-weight: 900;
+    }
+
+    .point-timer-number {
+      font-size: 1.5em;
+      letter-spacing: -0.02em;
+    }
+
+    .point-timer-card.danger {
+      background: #fdebea;
+      border-color: #f2c3c0;
+      color: #9a2c28;
+    }
+
+    .point-admin-wordbox {
+      width: 100%;
+      min-height: 220px;
+      padding: 0.85em;
+      border: 1px solid #c9d9d4;
+      border-radius: 14px;
+      font-size: 1em;
+      line-height: 1.45;
+      resize: vertical;
+      background: #fff;
+      color: var(--brand-text);
+    }
+
+    .point-admin-help {
+      padding: 0.85em;
+      border-radius: 14px;
+      background: #f4fbf8;
+      border: 1px solid var(--brand-line);
+      color: var(--brand-muted);
+      line-height: 1.55;
+      font-size: 0.94em;
+    }
+
+    .point-ready-row td {
+      background: #e6f7ed !important;
+    }
+
+    .point-not-ready-row td {
+      background: #fdebea !important;
+    }
+
+    body.dark .point-timer-card {
+      background: #3d321f !important;
+      border-color: #6f5520 !important;
+      color: #ffe4a3 !important;
+    }
+
+    body.dark .point-timer-card.danger {
+      background: #442422 !important;
+      border-color: #78413d !important;
+      color: #ffb1aa !important;
+    }
+
+    body.dark .point-admin-wordbox {
+      background: #111a18 !important;
+      color: #f4fffb !important;
+      border-color: #3f5f57 !important;
+    }
+
+    body.dark .point-admin-help {
+      background: #182522 !important;
+      color: #cfe1db !important;
+      border-color: #35514a !important;
+    }
+
   </style>
 </head>
 
@@ -3392,9 +3480,9 @@ body.dark .retest-card-meta {
 
     <div id="point-guide-card" class="card">
       <b>포인트 시험 안내</b><br>
-      이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.<br>
-      뜻을 보고 영어 스펠링을 입력하세요.<br>
-      <b>30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
+      매주 반별로 지정된 포인트 단어 50개 중 무작위 30문제가 출제됩니다.<br>
+      뜻을 보고 영어 스펠링을 정확히 입력하세요.<br>
+      <b>제한시간 8분 안에 30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
       단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
     </div>
 
@@ -3428,6 +3516,7 @@ body.dark .retest-card-meta {
 
     <div class="button-row">
       <button class="vocab-btn" onclick="showPointAdminSummary()">학생 포인트 목록</button>
+      <button class="vocab-btn secondary" onclick="showPointSetupAdmin()">포인트 시험 범위 관리</button>
     </div>
 
     <div id="admin-view"></div>
@@ -4059,11 +4148,7 @@ function applyPointGuide(textMap) {
         authExpiredNoticeShown = true;
         setTimeout(() => { authExpiredNoticeShown = false; }, 2500);
       }
-      const adminTabButton = document.getElementById("admin-tab-button");
-      if (adminTabButton) adminTabButton.style.display = "none";
 
-      const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
-      if (fullMenuAdminButton) fullMenuAdminButton.style.display = "none";
       return result;
     }
 
@@ -4201,16 +4286,10 @@ function applyPointGuide(textMap) {
 
   updateUserLabel();
 
-  const adminTabButton = document.getElementById("admin-tab-button");
-  const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
-  const isAdminUser = ["admin", "teacher"].includes(String(currentUser.role).toLowerCase());
-
-  if (adminTabButton) {
-    adminTabButton.style.display = isAdminUser ? "block" : "none";
-  }
-
-  if (fullMenuAdminButton) {
-    fullMenuAdminButton.style.display = isAdminUser ? "flex" : "none";
+  if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
+    document.getElementById("admin-tab-button").style.display = "block";
+    const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+    if (fullMenuAdminButton) fullMenuAdminButton.style.display = "flex";
   }
 
   loadFavoriteFolders();
@@ -4222,6 +4301,7 @@ function applyPointGuide(textMap) {
     showFavorites();
   }
 }
+
     function logout() {
       clearUserSession();
       currentUser = null;
@@ -6184,8 +6264,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 /************************************************************
  *  11-1. 포인트 시험 기능
  ************************************************************/
+
 let currentPointTest = null;
 let pointSubmitting = false;
+let pointTimerInterval = null;
 
 function updateUserLabel() {
   const label = document.getElementById("user-label");
@@ -6228,6 +6310,7 @@ async function loadPointHome() {
   if (!summaryTarget || !testTarget) return;
 
   applyPointGuide(homeTextMap);
+  clearPointTimer();
 
   if (!currentUser || !currentUser.token) {
     summaryTarget.innerHTML = "<div class='card'>로그인 후 사용할 수 있습니다.</div>";
@@ -6264,6 +6347,10 @@ function renderPointSummary(result) {
   const paidText = result.alreadyPaidThisWeek ? "지급완료" : "미지급";
   const readyText = result.pointReady ? "응시 가능" : "응시 불가";
   const bookName = result.currentBookName || "이번 주 지정 범위 없음";
+  const totalWords = Number(result.totalWords || 0);
+  const requiredWords = Number(result.requiredWords || 50);
+  const questionCount = Number(result.questionCount || 30);
+  const timeLimitMinutes = Math.round(Number(result.timeLimitSeconds || 480) / 60);
 
   target.innerHTML = `
     <div class="status-grid">
@@ -6284,6 +6371,9 @@ function renderPointSummary(result) {
     <div class="card">
       <b>이번 주 포인트 시험 범위</b><br>
       ${escapeHtml(bookName)}<br><br>
+      <b>등록 단어:</b> ${escapeHtml(totalWords)} / ${escapeHtml(requiredWords)}개<br>
+      <b>출제 방식:</b> ${escapeHtml(requiredWords)}개 중 무작위 ${escapeHtml(questionCount)}개 스펠링 입력<br>
+      <b>제한 시간:</b> ${escapeHtml(timeLimitMinutes)}분<br>
       <b>상태:</b> ${escapeHtml(readyText)}<br>
       ${result.message ? `<br><span class="muted">${escapeHtml(result.message)}</span>` : ""}
     </div>
@@ -6299,6 +6389,7 @@ async function startPointTest() {
     return;
   }
 
+  clearPointTimer();
   target.innerHTML = "<div class='card'>포인트 시험을 준비하는 중입니다...</div>";
   currentPointTest = null;
 
@@ -6327,10 +6418,14 @@ async function startPointTest() {
     currentPointTest = {
       testId: result.testId,
       bookName: result.bookName,
-      questions: result.questions || []
+      questions: result.questions || [],
+      timeLimitSeconds: Number(result.timeLimitSeconds || 480),
+      startedAt: Date.now(),
+      autoSubmitted: false
     };
 
     renderPointTest(result);
+    startPointTimer(currentPointTest.timeLimitSeconds);
   } catch (err) {
     target.innerHTML = "<div class='card'>포인트 시험 API 연결에 실패했습니다.</div>";
   }
@@ -6341,6 +6436,9 @@ function renderPointTest(result) {
   if (!target) return;
 
   const questions = result.questions || [];
+  const requiredWords = Number(result.requiredWords || 50);
+  const questionCount = Number(result.questionCount || questions.length || 30);
+  const timeLimitMinutes = Math.round(Number(result.timeLimitSeconds || 480) / 60);
 
   if (questions.length === 0) {
     target.innerHTML = "<div class='card'>출제할 문제가 없습니다.</div>";
@@ -6348,11 +6446,20 @@ function renderPointTest(result) {
   }
 
   let html = `
+    <div class="point-timer-card" id="point-timer-card">
+      <div>
+        <b>남은 시간</b><br>
+        <span class="muted">시간이 끝나면 자동 제출됩니다.</span>
+      </div>
+      <div class="point-timer-number" id="point-timer-display">${escapeHtml(formatPointTime(Number(result.timeLimitSeconds || 480)))}</div>
+    </div>
+
     <div class="card">
       <b>포인트 시험</b><br>
       범위: ${escapeHtml(result.bookName || "")}<br>
-      문제 수: ${escapeHtml(questions.length)}개<br>
-      조건: 30문제 모두 정답 시 1P 지급
+      출제: ${escapeHtml(requiredWords)}개 중 무작위 ${escapeHtml(questionCount)}개<br>
+      제한시간: ${escapeHtml(timeLimitMinutes)}분<br>
+      조건: ${escapeHtml(questionCount)}문제 모두 정답 시 1P 지급
     </div>
   `;
 
@@ -6376,14 +6483,66 @@ function renderPointTest(result) {
 
   html += `
     <div class="test-action-bar">
-      <button class="vocab-btn" onclick="submitPointTest()">제출하기</button>
+      <button class="vocab-btn" onclick="submitPointTest(false)">제출하기</button>
     </div>
   `;
 
   target.innerHTML = html;
 }
 
-async function submitPointTest() {
+function startPointTimer(totalSeconds) {
+  clearPointTimer();
+
+  if (!currentPointTest) return;
+
+  currentPointTest.remainingSeconds = Number(totalSeconds || 480);
+  updatePointTimerDisplay();
+
+  pointTimerInterval = setInterval(() => {
+    if (!currentPointTest) {
+      clearPointTimer();
+      return;
+    }
+
+    currentPointTest.remainingSeconds = Math.max(0, Number(currentPointTest.remainingSeconds || 0) - 1);
+    updatePointTimerDisplay();
+
+    if (currentPointTest.remainingSeconds <= 0) {
+      clearPointTimer();
+      currentPointTest.autoSubmitted = true;
+      submitPointTest(true);
+    }
+  }, 1000);
+}
+
+function clearPointTimer() {
+  if (pointTimerInterval) {
+    clearInterval(pointTimerInterval);
+    pointTimerInterval = null;
+  }
+}
+
+function updatePointTimerDisplay() {
+  const display = document.getElementById("point-timer-display");
+  const card = document.getElementById("point-timer-card");
+  if (!display || !currentPointTest) return;
+
+  const remain = Number(currentPointTest.remainingSeconds || 0);
+  display.textContent = formatPointTime(remain);
+
+  if (card) {
+    card.classList.toggle("danger", remain <= 60);
+  }
+}
+
+function formatPointTime(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+async function submitPointTest(forceSubmit = false) {
   if (pointSubmitting) return;
 
   const target = document.getElementById("point-test-view");
@@ -6404,20 +6563,30 @@ async function submitPointTest() {
     });
   });
 
-  if (answers.some(item => !String(item.answer || "").trim())) {
+  if (!forceSubmit && answers.some(item => !String(item.answer || "").trim())) {
     if (!confirm("입력하지 않은 답이 있습니다. 그래도 제출할까요?")) {
       return;
     }
   }
 
+  clearPointTimer();
   pointSubmitting = true;
-  target.insertAdjacentHTML("beforeend", "<div class='card' id='point-submitting-message'>채점 중입니다...</div>");
+
+  const elapsedSeconds = currentPointTest.startedAt
+    ? Math.round((Date.now() - currentPointTest.startedAt) / 1000)
+    : "";
+
+  target.insertAdjacentHTML(
+    "beforeend",
+    `<div class='card' id='point-submitting-message'>${forceSubmit ? "시간이 종료되어 자동 제출 중입니다..." : "채점 중입니다..."}</div>`
+  );
 
   try {
     const result = await apiPost({
       action: "submitPointTest",
       testId: currentPointTest.testId,
-      answersJson: JSON.stringify(answers)
+      answersJson: JSON.stringify(answers),
+      elapsedSeconds: String(elapsedSeconds)
     });
 
     document.getElementById("point-submitting-message")?.remove();
@@ -6441,6 +6610,7 @@ async function submitPointTest() {
     target.insertAdjacentHTML("beforeend", "<div class='card'>포인트 시험 제출 API 연결에 실패했습니다.</div>");
   } finally {
     pointSubmitting = false;
+    currentPointTest = null;
   }
 }
 
@@ -6448,10 +6618,17 @@ function renderPointResult(result) {
   const target = document.getElementById("point-test-view");
   if (!target) return;
 
+  const elapsed = Number(result.elapsedSeconds || 0);
+  const timeLimit = Number(result.timeLimitSeconds || 0);
+  const timeText = elapsed && timeLimit
+    ? `소요시간: ${escapeHtml(formatPointTime(elapsed))} / 제한시간: ${escapeHtml(formatPointTime(timeLimit))}`
+    : "";
+
   let html = `
     <div class="card score-card">
       <div class="score-number">${escapeHtml(result.scoreText || "")}</div>
       <div class="score-sub">${escapeHtml(result.message || "")}</div>
+      ${timeText ? `<div class="score-sub">${timeText}</div>` : ""}
       <div class="score-sub">현재 총 포인트: ${escapeHtml(result.totalPoints || 0)}P</div>
     </div>
   `;
@@ -6461,6 +6638,15 @@ function renderPointResult(result) {
       <div class="card">
         <b class="result-correct">포인트가 지급되었습니다.</b><br>
         이번 주 포인트 지급은 완료되었습니다.
+      </div>
+    `;
+  }
+
+  if (result.timeExpired) {
+    html += `
+      <div class="card">
+        <b class="result-wrong">제한시간 초과</b><br>
+        제한시간을 넘긴 제출은 포인트 지급 대상에서 제외됩니다.
       </div>
     `;
   }
@@ -6491,6 +6677,232 @@ function renderPointResult(result) {
   `;
 
   target.innerHTML = html;
+}
+
+
+async function showPointSetupAdmin() {
+  const target = document.getElementById("admin-view");
+  if (!target) return;
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>포인트 시험 범위 관리 정보를 불러오는 중입니다...</div>";
+
+  try {
+    const result = await apiGet({ action: "getPointSetupAdminSummary" });
+
+    if (!result.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험 관리 정보를 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    renderPointSetupAdmin(result);
+  } catch (err) {
+    target.innerHTML = `
+      <div class='card'>
+        포인트 시험 관리 API 연결에 실패했습니다.<br><br>
+        <span class="muted">${escapeHtml(err.message || String(err))}</span>
+      </div>
+    `;
+  }
+}
+
+function renderPointSetupAdmin(result) {
+  const target = document.getElementById("admin-view");
+  if (!target) return;
+
+  const classes = result.classes || [];
+  const plans = result.plans || [];
+  const defaultTime = Number(result.defaultTimeLimitMinutes || 8);
+
+  const classOptions = classes.length
+    ? classes.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
+    : `<option value="">Users 시트에 학생 반 정보가 없습니다.</option>`;
+
+  let planOptions = `<option value="">단어를 넣을 계획 선택</option>`;
+  plans.forEach(plan => {
+    const label = `${plan.weekStart || ""} / ${plan.className || ""} / ${plan.planId || ""} / ${plan.wordCount || 0}개`;
+    planOptions += `<option value="${escapeHtml(plan.planId || "")}">${escapeHtml(label)}</option>`;
+  });
+
+  let planRows = "";
+  plans.forEach(plan => {
+    const readyClass = plan.ready ? "point-ready-row" : "point-not-ready-row";
+    const status = plan.ready ? "준비완료" : "미완료";
+    planRows += `
+      <tr class="${readyClass}">
+        <td>${escapeHtml(plan.weekStart || "")}</td>
+        <td>${escapeHtml(plan.weekEnd || "")}</td>
+        <td>${escapeHtml(plan.className || "")}</td>
+        <td>${escapeHtml(plan.planId || "")}</td>
+        <td>${escapeHtml(plan.wordCount || 0)} / ${escapeHtml(plan.requiredWords || 50)}</td>
+        <td>${escapeHtml(plan.timeLimitMinutes || defaultTime)}분</td>
+        <td>${escapeHtml(plan.active || "Y")}</td>
+        <td>${escapeHtml(status)}</td>
+      </tr>
+    `;
+  });
+
+  if (!planRows) {
+    planRows = `<tr><td colspan="8">등록된 포인트 시험 계획이 없습니다.</td></tr>`;
+  }
+
+  target.innerHTML = `
+    <div class="card">
+      <b>포인트 시험 최종 관리</b><br>
+      운영 규칙: 반별 주간 단어 <b>${escapeHtml(result.requiredWords || 50)}개</b> 등록 → 무작위 <b>${escapeHtml(result.questionCount || 30)}개</b> 출제 → 스펠링 입력 → 전부 정답 시 1P 지급<br>
+      기본 제한시간: <b>${escapeHtml(defaultTime)}분</b>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="setupPointSheetsFromAdmin()">PointPlan/PointWords 시트 만들기</button>
+      <button class="vocab-btn secondary" onclick="showPointSetupAdmin()">새로고침</button>
+    </div>
+
+    <div class="control-card">
+      <div class="section-title">1. 주간 포인트 시험 계획 만들기</div>
+      <div class="point-admin-help">
+        주차시작일은 일요일로 넣는 것을 추천합니다. 저장하면 단어장ID가 자동으로 <b>P_YYYYMMDD_반</b> 형식으로 만들어집니다.
+      </div>
+      <div class="control-grid">
+        <label>
+          <span class="field-label">주차시작일</span>
+          <input id="point-plan-week-start" type="date" value="${escapeHtml(result.weekStart || "")}">
+        </label>
+        <label>
+          <span class="field-label">반</span>
+          <select id="point-plan-class">${classOptions}</select>
+        </label>
+        <label>
+          <span class="field-label">시험 제목</span>
+          <input id="point-plan-title" type="text" placeholder="예: 7월 1주차 포인트 단어" autocomplete="off">
+        </label>
+        <label>
+          <span class="field-label">제한시간(분)</span>
+          <input id="point-plan-time" type="text" value="${escapeHtml(defaultTime)}" autocomplete="off">
+        </label>
+      </div>
+      <label>
+        <span class="field-label">메모</span>
+        <input id="point-plan-memo" type="text" placeholder="예: 수능특강 3강 어휘" autocomplete="off">
+      </label>
+      <div class="button-row">
+        <button class="vocab-btn" onclick="savePointPlanFromAdmin()">계획 저장</button>
+      </div>
+      <div id="point-plan-message" class="mini-card muted">계획을 먼저 만든 뒤, 아래에서 해당 단어장ID를 선택하고 50개 단어를 붙여넣으세요.</div>
+    </div>
+
+    <div class="control-card">
+      <div class="section-title">2. 포인트 단어 50개 붙여넣기</div>
+      <div class="point-admin-help">
+        붙여넣기 형식: <b>영어[TAB]뜻</b>을 추천합니다. 엑셀/스프레드시트에서 영어열과 뜻열 50행을 복사해 붙이면 가장 정확합니다.<br>
+        예: <code>achieve&nbsp;&nbsp;성취하다</code>
+      </div>
+      <label>
+        <span class="field-label">단어장ID 선택</span>
+        <select id="point-words-plan">${planOptions}</select>
+      </label>
+      <textarea id="point-words-text" class="point-admin-wordbox" placeholder="영어[TAB]뜻 형식으로 정확히 50줄을 붙여넣으세요.\nachieve\t성취하다\naccurate\t정확한"></textarea>
+      <div class="button-row">
+        <button class="vocab-btn" onclick="savePointWordsFromAdmin()">50개 단어 저장</button>
+      </div>
+      <div id="point-words-message" class="mini-card muted">단어 저장 시 기존 같은 단어장ID의 단어는 새 50개로 교체됩니다.</div>
+    </div>
+
+    <div class="card">
+      <b>현재 포인트 시험 계획</b>
+      <table>
+        <tr>
+          <th>시작</th><th>끝</th><th>반</th><th>단어장ID</th><th>단어수</th><th>시간</th><th>사용</th><th>상태</th>
+        </tr>
+        ${planRows}
+      </table>
+    </div>
+  `;
+}
+
+async function setupPointSheetsFromAdmin() {
+  if (!isAdmin()) return;
+
+  try {
+    const result = await apiPost({ action: "setupPointSheets" });
+    alert(result.message || "포인트 시험 시트 준비가 완료되었습니다.");
+    showPointSetupAdmin();
+  } catch (err) {
+    alert("포인트 시험 시트 생성에 실패했습니다: " + (err.message || err));
+  }
+}
+
+async function savePointPlanFromAdmin() {
+  const message = document.getElementById("point-plan-message");
+  const weekStart = document.getElementById("point-plan-week-start")?.value || "";
+  const className = document.getElementById("point-plan-class")?.value || "";
+  const title = document.getElementById("point-plan-title")?.value || "";
+  const timeLimitMinutes = document.getElementById("point-plan-time")?.value || "8";
+  const memo = document.getElementById("point-plan-memo")?.value || "";
+
+  if (message) message.textContent = "계획을 저장하는 중입니다...";
+
+  try {
+    const result = await apiPost({
+      action: "savePointPlan",
+      weekStart,
+      className,
+      title,
+      timeLimitMinutes,
+      memo,
+      active: "Y"
+    });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "계획 저장에 실패했습니다.";
+      return;
+    }
+
+    if (message) message.textContent = result.message || "계획이 저장되었습니다.";
+    await showPointSetupAdmin();
+  } catch (err) {
+    if (message) message.textContent = "계획 저장 API 연결에 실패했습니다: " + (err.message || err);
+  }
+}
+
+async function savePointWordsFromAdmin() {
+  const message = document.getElementById("point-words-message");
+  const planId = document.getElementById("point-words-plan")?.value || "";
+  const wordsText = document.getElementById("point-words-text")?.value || "";
+
+  if (!planId) {
+    alert("단어장ID를 선택하세요.");
+    return;
+  }
+
+  if (!wordsText.trim()) {
+    alert("50개 단어를 붙여넣으세요.");
+    return;
+  }
+
+  if (message) message.textContent = "단어를 저장하는 중입니다...";
+
+  try {
+    const result = await apiPost({
+      action: "savePointWords",
+      planId,
+      wordsText
+    });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "단어 저장에 실패했습니다.";
+      return;
+    }
+
+    if (message) message.textContent = result.message || "단어가 저장되었습니다.";
+    await showPointSetupAdmin();
+  } catch (err) {
+    if (message) message.textContent = "단어 저장 API 연결에 실패했습니다: " + (err.message || err);
+  }
 }
 
 async function showPointAdminSummary() {
