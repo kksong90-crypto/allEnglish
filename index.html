@@ -2957,6 +2957,83 @@ body.dark .retest-bulk-import-box p {
     min-width: 0;
   }
 }
+  
+
+/************************************************************
+ * 보안 패치 후 학생용 재시험 카드 UI
+ ************************************************************/
+.retest-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.85em;
+}
+
+.retest-card {
+  padding: 1em;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--brand-line);
+  box-shadow: var(--brand-shadow-soft);
+}
+
+.retest-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7em;
+  margin-bottom: 0.45em;
+}
+
+.retest-card-title {
+  color: var(--brand-dark);
+  font-size: 1.18em;
+  font-weight: 900;
+}
+
+.retest-card-meta {
+  color: var(--brand-muted);
+  font-weight: 800;
+  margin-bottom: 0.65em;
+}
+
+.retest-card-range {
+  padding: 0.78em;
+  border-radius: 14px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line);
+  line-height: 1.55;
+}
+
+body.dark .retest-card,
+body.dark .retest-card-range {
+  background: #1f2a27 !important;
+  color: #eef8f5 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .retest-card-title,
+body.dark .retest-card-range b {
+  color: #f6fffc !important;
+}
+
+body.dark .retest-card-meta {
+  color: #cfe1db !important;
+}
+
+@media (max-width: 760px) {
+  nav.app-tabs {
+    display: none;
+  }
+
+  .top-user-bar {
+    top: 62px;
+  }
+
+  section {
+    padding-top: 0.9em;
+  }
+}
+
   </style>
 </head>
 
@@ -3951,13 +4028,49 @@ function applyPointGuide(textMap) {
       showTab(tabId);
     }
 
+    let authExpiredNoticeShown = false;
+
+    function handleApiAuthFailure(result) {
+      const message = String(result && result.message ? result.message : "");
+      const isAuthProblem =
+        !result ||
+        (result.success === false &&
+          (message.includes("로그인 시간이 만료") || message.includes("로그인이 필요")));
+
+      if (!isAuthProblem) {
+        return result;
+      }
+
+      clearUserSession();
+      currentUser = null;
+
+      const loginScreen = document.getElementById("login-screen");
+      const loginError = document.getElementById("login-error");
+
+      if (loginScreen) {
+        loginScreen.style.display = "flex";
+      }
+
+      if (loginError) {
+        loginError.textContent = "로그인 시간이 만료되었습니다. 다시 로그인하세요.";
+      }
+
+      if (!authExpiredNoticeShown) {
+        authExpiredNoticeShown = true;
+        setTimeout(() => { authExpiredNoticeShown = false; }, 2500);
+      }
+
+      return result;
+    }
+
     async function apiGet(params) {
       const query = new URLSearchParams(params);
       if (currentUser && currentUser.token && !query.has("token")) {
         query.set("token", currentUser.token);
       }
 
-      return await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString());
+      const result = await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString());
+      return handleApiAuthFailure(result);
     }
 
     async function apiPost(params) {
@@ -3966,10 +4079,12 @@ function applyPointGuide(textMap) {
         body.set("token", currentUser.token);
       }
 
-      return await fetchJsonWithTimeout(SHEET_URL, {
+      const result = await fetchJsonWithTimeout(SHEET_URL, {
         method: "POST",
         body
       });
+
+      return handleApiAuthFailure(result);
     }
 
 
@@ -4055,7 +4170,7 @@ function applyPointGuide(textMap) {
       error.textContent = "로그인 확인 중입니다...";
 
       try {
-        const result = await apiGet({ action: "login", id, pw });
+        const result = await apiPost({ action: "login", id, pw });
 
         if (!result.success) {
           error.textContent = result.message || "로그인에 실패했습니다.";
@@ -4917,6 +5032,9 @@ async function updateRetestStatusFromWeb(rowNumber) {
   }
 
   const status = select.value.trim();
+  const className = select.dataset.className || "";
+  const studentName = select.dataset.studentName || "";
+  const date = select.dataset.date || "";
 
   if (!status) {
     alert("판정결과를 선택하세요.");
@@ -4927,6 +5045,9 @@ async function updateRetestStatusFromWeb(rowNumber) {
     const result = await apiPost({
       action: "updateRetestStatus",
       rowNumber,
+      className,
+      studentName,
+      date,
       status
     });
 
@@ -4943,7 +5064,7 @@ async function updateRetestStatusFromWeb(rowNumber) {
 }
 
 
-async function deleteRetestRowFromWeb(rowNumber, studentName) {
+async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", date = "") {
   if (!isRetestAdmin()) {
     alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
     return;
@@ -4958,7 +5079,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName) {
   try {
     const result = await apiPost({
       action: "deleteRetestRow",
-      rowNumber
+      rowNumber,
+      className,
+      studentName,
+      date
     });
 
     if (!result.success) {
@@ -4984,82 +5108,141 @@ async function deleteRetestRowFromWeb(rowNumber, studentName) {
     async function loadRetest() {
   renderRetestAdminPanel();
 
-  const data = await fetchSheet("Retest");
   const target = document.getElementById("retest-table");
-  const canManage = isRetestAdmin();
+  target.innerHTML = "<div class='card'>재시험 명단을 불러오는 중입니다...</div>";
 
-  if (!Array.isArray(data) || data.length <= 1) {
-    target.innerHTML = "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>";
-    return;
-  }
+  try {
+    const result = await apiGet({ action: "getRetestList" });
 
-  let html = "<table><tr>"
-    + data[0]
-      .map(h => `<th>${escapeHtml(h)}</th>`)
-      .filter(h => !h.includes("재시험"))
-      .join("")
-    + (canManage ? "<th>관리</th>" : "")
-    + "</tr>";
+    if (!result.success) {
+      target.innerHTML = `<div class='card empty-card'>${escapeHtml(result.message || "재시험 명단을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
 
-  for (let i = 1; i < data.length; i++) {
-    const sheetRowNumber = i + 1;
-    const studentName = String(data[i][1] || "");
-    const statusValue = String(data[i][5] || "");
+    const headers = Array.isArray(result.headers) && result.headers.length
+      ? result.headers
+      : ["반", "이름", "날짜", "시험범위", "재시험", "판정결과"];
 
-    html += "<tr>" + data[i].map((cell, j) => {
-      const header = data[0][j];
+    const rows = Array.isArray(result.rows) ? result.rows : [];
+    const canManage = !!result.canManage;
 
-      if (j === 2) {
-        return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-      }
+    if (rows.length === 0) {
+      target.innerHTML = canManage
+        ? "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>"
+        : "<div class='card empty-card'>현재 내 재시험 대상이 없습니다.</div>";
+      return;
+    }
 
-      if (header === "재시험") {
-        return null;
-      }
+    if (!canManage) {
+      let cardHtml = "<div class='retest-card-list'>";
 
-      if (header === "판정결과") {
-        const value = String(cell || "");
+      rows.forEach(item => {
+        const row = item.values || [];
+        const className = row[0] || "";
+        const studentName = row[1] || "";
+        const dateValue = cleanDate(row[2] || "");
+        const testRange = row[3] || "";
+        const statusValue = row[5] || "재시험 대상";
+        const badgeClass = String(statusValue).includes("단어쓰기")
+          ? "badge-warning"
+          : String(statusValue).includes("대상")
+            ? "badge-danger"
+            : "badge-success";
 
-        const badgeClass =
-          value.includes("단어쓰기")
-            ? "badge-warning"
-            : value.includes("대상")
-              ? "badge-danger"
-              : "badge-success";
+        cardHtml += `
+          <div class="retest-card">
+            <div class="retest-card-top">
+              <span class="retest-card-title">${escapeHtml(studentName)}</span>
+              <span class="badge ${badgeClass}">${escapeHtml(statusValue)}</span>
+            </div>
+            <div class="retest-card-meta">${escapeHtml(className)} · ${escapeHtml(dateValue)}</div>
+            <div class="retest-card-range"><b>시험범위</b><br>${escapeHtml(testRange || "-")}</div>
+          </div>
+        `;
+      });
 
-        return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
-      }
+      cardHtml += "</div>";
+      target.innerHTML = cardHtml;
+      return;
+    }
 
-      if (header === "시험범위") {
-        return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
-      }
+    let html = "<table><tr>"
+      + headers
+        .map(h => `<th>${escapeHtml(h)}</th>`)
+        .filter(h => !h.includes("재시험"))
+        .join("")
+      + "<th>관리</th>"
+      + "</tr>";
 
-      return `<td>${escapeHtml(cell)}</td>`;
-    }).filter(c => c).join("");
+    rows.forEach(item => {
+      const row = item.values || [];
+      const sheetRowNumber = item.rowNumber;
+      const className = String(row[0] || "");
+      const studentName = String(row[1] || "");
+      const dateValue = cleanDate(row[2] || "");
+      const statusValue = String(row[5] || "");
 
-    if (canManage) {
+      html += "<tr>" + row.map((cell, j) => {
+        const header = headers[j];
+
+        if (j === 2) {
+          return `<td>${escapeHtml(cleanDate(cell))}</td>`;
+        }
+
+        if (header === "재시험") {
+          return null;
+        }
+
+        if (header === "판정결과") {
+          const value = String(cell || "");
+
+          const badgeClass =
+            value.includes("단어쓰기")
+              ? "badge-warning"
+              : value.includes("대상")
+                ? "badge-danger"
+                : "badge-success";
+
+          return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
+        }
+
+        if (header === "시험범위") {
+          return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
+        }
+
+        return `<td>${escapeHtml(cell)}</td>`;
+      }).filter(c => c).join("");
+
       html += `
         <td>
           <div class="retest-row-actions">
-            <select id="retest-status-${sheetRowNumber}">
+            <select
+              id="retest-status-${sheetRowNumber}"
+              data-class-name="${escapeHtml(className)}"
+              data-student-name="${escapeHtml(studentName)}"
+              data-date="${escapeHtml(dateValue)}"
+            >
               ${getRetestStatusOptions(statusValue)}
             </select>
 
             <div class="retest-row-action-buttons">
               <button class="small-btn" onclick="updateRetestStatusFromWeb(${sheetRowNumber})">저장</button>
-              <button class="small-btn warning" onclick='deleteRetestRowFromWeb(${sheetRowNumber}, ${JSON.stringify(studentName)})'>삭제</button>
+              <button class="small-btn warning" onclick='deleteRetestRowFromWeb(${sheetRowNumber}, ${JSON.stringify(studentName)}, ${JSON.stringify(className)}, ${JSON.stringify(dateValue)})'>삭제</button>
             </div>
           </div>
         </td>
       `;
-    }
 
-    html += "</tr>";
+      html += "</tr>";
+    });
+
+    html += "</table>";
+    target.innerHTML = html;
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = "<div class='card empty-card'>재시험 명단 API 연결에 실패했습니다.</div>";
   }
-
-  html += "</table>";
-
-  target.innerHTML = html;
 }
 
     /************************************************************
@@ -5069,7 +5252,14 @@ async function deleteRetestRowFromWeb(rowNumber, studentName) {
       const target = document.getElementById("vocab-view");
 
       try {
-        vocabData = await fetchSheet("Vocab");
+        const vocabResult = await apiGet({ action: "getVocabData" });
+
+        if (!vocabResult.success) {
+          target.innerHTML = `<div class='card'>${escapeHtml(vocabResult.message || "단어장 데이터를 불러오지 못했습니다.")}</div>`;
+          return;
+        }
+
+        vocabData = vocabResult.values || [];
 
         if (!Array.isArray(vocabData) || vocabData.length < 2) {
           target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
@@ -6685,7 +6875,7 @@ async function submitPointAdjustment() {
       if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
       if (!confirm("Vocab 시트의 A열 단어장명을 기준으로 F:G index표를 찾아 E열 정렬번호를 채울까요?")) return;
 
-      const result = await apiGet({ action: "fillVocabOrderNumbers" });
+      const result = await apiPost({ action: "fillVocabOrderNumbers" });
       alert(result.message || (result.success ? "완료" : "실패"));
     }
 
@@ -6693,7 +6883,7 @@ async function submitPointAdjustment() {
       if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
       if (!confirm("현재 TestManager 스프레드시트 백업 사본을 만들까요?")) return;
 
-      const result = await apiGet({ action: "backupSpreadsheet" });
+      const result = await apiPost({ action: "backupSpreadsheet" });
       if (result.success) {
         alert("백업이 완료되었습니다.\n" + (result.url || ""));
       } else {
