@@ -6714,114 +6714,148 @@ function renderPointSetupAdmin(result) {
   const target = document.getElementById("admin-view");
   if (!target) return;
 
-  const classes = result.classes || [];
   const plans = result.plans || [];
   const defaultTime = Number(result.defaultTimeLimitMinutes || 8);
+  const currentYear = result.currentYear || new Date().getFullYear();
+  const currentCommonPlanId = result.currentCommonPlanId || "";
 
-  const classOptions = classes.length
-    ? classes.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")
-    : `<option value="">Users 시트에 학생 반 정보가 없습니다.</option>`;
-
-  let planOptions = `<option value="">단어를 넣을 계획 선택</option>`;
+  let planOptions = `<option value="">주차를 선택하세요</option>`;
   plans.forEach(plan => {
-    const label = `${plan.weekStart || ""} / ${plan.className || ""} / ${plan.planId || ""} / ${plan.wordCount || 0}개`;
-    planOptions += `<option value="${escapeHtml(plan.planId || "")}">${escapeHtml(label)}</option>`;
+    const selected = plan.planId === currentCommonPlanId ? " selected" : "";
+    const status = plan.ready ? "준비완료" : `${plan.wordCount || 0}/${plan.requiredWords || 50}개`;
+    const label = `${plan.weekStart || ""} ~ ${plan.weekEnd || ""} · ${plan.title || plan.planId || ""} · ${status}`;
+    planOptions += `<option value="${escapeHtml(plan.planId || "")}"${selected}>${escapeHtml(label)}</option>`;
   });
 
+  let currentPlan = plans.find(plan => plan.planId === currentCommonPlanId) || plans[0] || null;
+
+  const visiblePlans = plans.slice(0, 12);
   let planRows = "";
-  plans.forEach(plan => {
+  visiblePlans.forEach(plan => {
     const readyClass = plan.ready ? "point-ready-row" : "point-not-ready-row";
-    const status = plan.ready ? "준비완료" : "미완료";
+    const status = plan.ready ? "준비완료" : "단어 입력 필요";
     planRows += `
       <tr class="${readyClass}">
         <td>${escapeHtml(plan.weekStart || "")}</td>
-        <td>${escapeHtml(plan.weekEnd || "")}</td>
-        <td>${escapeHtml(plan.className || "")}</td>
+        <td>${escapeHtml(plan.title || "")}</td>
         <td>${escapeHtml(plan.planId || "")}</td>
         <td>${escapeHtml(plan.wordCount || 0)} / ${escapeHtml(plan.requiredWords || 50)}</td>
         <td>${escapeHtml(plan.timeLimitMinutes || defaultTime)}분</td>
-        <td>${escapeHtml(plan.active || "Y")}</td>
         <td>${escapeHtml(status)}</td>
       </tr>
     `;
   });
 
   if (!planRows) {
-    planRows = `<tr><td colspan="8">등록된 포인트 시험 계획이 없습니다.</td></tr>`;
+    planRows = `<tr><td colspan="6">아직 생성된 포인트 시험 주차 계획이 없습니다. 먼저 올해 주차를 자동 생성하세요.</td></tr>`;
   }
 
   target.innerHTML = `
     <div class="card">
-      <b>포인트 시험 최종 관리</b><br>
-      운영 규칙: 반별 주간 단어 <b>${escapeHtml(result.requiredWords || 50)}개</b> 등록 → 무작위 <b>${escapeHtml(result.questionCount || 30)}개</b> 출제 → 스펠링 입력 → 전부 정답 시 1P 지급<br>
-      기본 제한시간: <b>${escapeHtml(defaultTime)}분</b>
-    </div>
-
-    <div class="button-row">
-      <button class="vocab-btn secondary" onclick="setupPointSheetsFromAdmin()">PointPlan/PointWords 시트 만들기</button>
-      <button class="vocab-btn secondary" onclick="showPointSetupAdmin()">새로고침</button>
+      <b>포인트 시험 관리</b><br>
+      운영 방식: <b>전 학년 공통 단어 50개</b> → 무작위 <b>${escapeHtml(result.questionCount || 30)}개</b> 스펠링 시험 → <b>30개 전부 정답</b>이면 1P 지급<br>
+      기본 제한시간: <b>${escapeHtml(defaultTime)}분</b><br>
+      <span class="muted">선생님은 매주 단어 50개만 붙여넣으면 됩니다. 주차, 종료일, 제목, 단어장ID는 자동으로 관리됩니다.</span>
     </div>
 
     <div class="control-card">
-      <div class="section-title">1. 주간 포인트 시험 계획 만들기</div>
+      <div class="section-title">1. 주차 계획 자동 생성</div>
       <div class="point-admin-help">
-        주차시작일은 일요일로 넣는 것을 추천합니다. 저장하면 단어장ID가 자동으로 <b>P_YYYYMMDD_반</b> 형식으로 만들어집니다.
+        1년치 일요일~토요일 주차를 자동으로 만듭니다. 대상은 <b>전체</b>로 통일되고, 단어장ID는 <b>P_YYYYMMDD_ALL</b> 형식으로 자동 생성됩니다.
       </div>
       <div class="control-grid">
         <label>
-          <span class="field-label">주차시작일</span>
-          <input id="point-plan-week-start" type="date" value="${escapeHtml(result.weekStart || "")}">
-        </label>
-        <label>
-          <span class="field-label">반</span>
-          <select id="point-plan-class">${classOptions}</select>
-        </label>
-        <label>
-          <span class="field-label">시험 제목</span>
-          <input id="point-plan-title" type="text" placeholder="예: 7월 1주차 포인트 단어" autocomplete="off">
+          <span class="field-label">생성 연도</span>
+          <input id="point-generate-year" type="text" value="${escapeHtml(currentYear)}" autocomplete="off">
         </label>
         <label>
           <span class="field-label">제한시간(분)</span>
-          <input id="point-plan-time" type="text" value="${escapeHtml(defaultTime)}" autocomplete="off">
+          <input id="point-generate-time" type="text" value="${escapeHtml(defaultTime)}" autocomplete="off">
         </label>
       </div>
-      <label>
-        <span class="field-label">메모</span>
-        <input id="point-plan-memo" type="text" placeholder="예: 수능특강 3강 어휘" autocomplete="off">
-      </label>
       <div class="button-row">
-        <button class="vocab-btn" onclick="savePointPlanFromAdmin()">계획 저장</button>
+        <button class="vocab-btn" onclick="generatePointPlansFromAdmin()">전체 공통 주차 자동 생성</button>
+        <button class="vocab-btn secondary" onclick="setupPointSheetsFromAdmin()">시트 준비/정리</button>
+        <button class="vocab-btn secondary" onclick="showPointSetupAdmin()">새로고침</button>
       </div>
-      <div id="point-plan-message" class="mini-card muted">계획을 먼저 만든 뒤, 아래에서 해당 단어장ID를 선택하고 50개 단어를 붙여넣으세요.</div>
+      <div id="point-generate-message" class="mini-card muted">이미 생성된 주차는 건너뛰므로 여러 번 눌러도 중복 생성되지 않습니다.</div>
     </div>
 
     <div class="control-card">
-      <div class="section-title">2. 포인트 단어 50개 붙여넣기</div>
+      <div class="section-title">2. 이번 주 단어 50개 입력</div>
       <div class="point-admin-help">
-        붙여넣기 형식: <b>영어[TAB]뜻</b>을 추천합니다. 엑셀/스프레드시트에서 영어열과 뜻열 50행을 복사해 붙이면 가장 정확합니다.<br>
-        예: <code>achieve&nbsp;&nbsp;성취하다</code>
+        아래에서 주차를 고르고 <b>영어[TAB]뜻</b> 형식으로 정확히 50줄을 붙여넣으세요. 같은 주차에 다시 저장하면 기존 50개가 새 단어로 교체됩니다.
       </div>
       <label>
-        <span class="field-label">단어장ID 선택</span>
-        <select id="point-words-plan">${planOptions}</select>
+        <span class="field-label">주차 선택</span>
+        <select id="point-words-plan" onchange="updatePointSelectedPlanPreview()">${planOptions}</select>
       </label>
-      <textarea id="point-words-text" class="point-admin-wordbox" placeholder="영어[TAB]뜻 형식으로 정확히 50줄을 붙여넣으세요.\nachieve\t성취하다\naccurate\t정확한"></textarea>
-      <div class="button-row">
-        <button class="vocab-btn" onclick="savePointWordsFromAdmin()">50개 단어 저장</button>
+      <div id="point-selected-plan-preview" class="mini-card muted">
+        ${currentPlan ? `현재 선택: ${escapeHtml(currentPlan.title || currentPlan.planId)}<br>단어장ID: ${escapeHtml(currentPlan.planId || "")}` : "생성된 주차 계획이 없습니다."}
       </div>
-      <div id="point-words-message" class="mini-card muted">단어 저장 시 기존 같은 단어장ID의 단어는 새 50개로 교체됩니다.</div>
+      <textarea id="point-words-text" class="point-admin-wordbox" placeholder="영어[TAB]뜻 형식으로 정확히 50줄을 붙여넣으세요.&#10;achieve&#9;성취하다&#10;accurate&#9;정확한"></textarea>
+      <div class="button-row">
+        <button class="vocab-btn" onclick="savePointWordsFromAdmin()">선택 주차에 50개 단어 저장</button>
+      </div>
+      <div id="point-words-message" class="mini-card muted">PointWords 시트를 직접 만질 필요 없이 여기에서 붙여넣는 방식을 추천합니다.</div>
     </div>
 
     <div class="card">
-      <b>현재 포인트 시험 계획</b>
+      <b>최근 포인트 시험 계획</b>
       <table>
         <tr>
-          <th>시작</th><th>끝</th><th>반</th><th>단어장ID</th><th>단어수</th><th>시간</th><th>사용</th><th>상태</th>
+          <th>시작</th><th>제목</th><th>단어장ID</th><th>단어수</th><th>시간</th><th>상태</th>
         </tr>
         ${planRows}
       </table>
+      <div class="notice-small" style="margin-top:0.7em;">표는 최근 계획 일부만 보여줍니다. 전체 목록은 PointPlan 시트에서 확인할 수 있습니다.</div>
     </div>
   `;
+}
+
+function updatePointSelectedPlanPreview() {
+  const select = document.getElementById("point-words-plan");
+  const preview = document.getElementById("point-selected-plan-preview");
+  if (!select || !preview) return;
+
+  const text = select.options[select.selectedIndex]?.textContent || "";
+  const value = select.value || "";
+
+  if (!value) {
+    preview.innerHTML = "주차를 선택하세요.";
+    return;
+  }
+
+  preview.innerHTML = `선택한 주차: ${escapeHtml(text)}<br>단어장ID: ${escapeHtml(value)}`;
+}
+
+async function generatePointPlansFromAdmin() {
+  if (!isAdmin()) return;
+
+  const message = document.getElementById("point-generate-message");
+  const year = document.getElementById("point-generate-year")?.value || new Date().getFullYear();
+  const timeLimitMinutes = document.getElementById("point-generate-time")?.value || "8";
+
+  if (message) message.textContent = "주차 계획을 자동 생성하는 중입니다...";
+
+  try {
+    const result = await apiPost({
+      action: "generatePointPlansForYear",
+      year,
+      target: "전체",
+      timeLimitMinutes
+    });
+
+    if (!result.success) {
+      if (message) message.textContent = result.message || "주차 계획 생성에 실패했습니다.";
+      return;
+    }
+
+    if (message) message.textContent = result.message || "주차 계획 생성이 완료되었습니다.";
+    await showPointSetupAdmin();
+  } catch (err) {
+    if (message) message.textContent = "주차 계획 생성 API 연결에 실패했습니다: " + (err.message || err);
+  }
 }
 
 async function setupPointSheetsFromAdmin() {
