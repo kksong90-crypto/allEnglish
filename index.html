@@ -4059,7 +4059,11 @@ function applyPointGuide(textMap) {
         authExpiredNoticeShown = true;
         setTimeout(() => { authExpiredNoticeShown = false; }, 2500);
       }
+      const adminTabButton = document.getElementById("admin-tab-button");
+      if (adminTabButton) adminTabButton.style.display = "none";
 
+      const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+      if (fullMenuAdminButton) fullMenuAdminButton.style.display = "none";
       return result;
     }
 
@@ -4197,10 +4201,16 @@ function applyPointGuide(textMap) {
 
   updateUserLabel();
 
-  if (["admin", "teacher"].includes(String(currentUser.role).toLowerCase())) {
-    document.getElementById("admin-tab-button").style.display = "block";
-    const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
-    if (fullMenuAdminButton) fullMenuAdminButton.style.display = "flex";
+  const adminTabButton = document.getElementById("admin-tab-button");
+  const fullMenuAdminButton = document.getElementById("full-menu-admin-button");
+  const isAdminUser = ["admin", "teacher"].includes(String(currentUser.role).toLowerCase());
+
+  if (adminTabButton) {
+    adminTabButton.style.display = isAdminUser ? "block" : "none";
+  }
+
+  if (fullMenuAdminButton) {
+    fullMenuAdminButton.style.display = isAdminUser ? "flex" : "none";
   }
 
   loadFavoriteFolders();
@@ -4212,7 +4222,6 @@ function applyPointGuide(textMap) {
     showFavorites();
   }
 }
-
     function logout() {
       clearUserSession();
       currentUser = null;
