@@ -3515,6 +3515,7 @@ body.dark .retest-card-meta {
       <select id="vocab-search-scope">
         <option value="current-day">현재 Day에서 검색</option>
         <option value="current-book">현재 단어장에서 검색</option>
+        <option value="point-current">이번 주 포인트 단어에서 검색</option>
         <option value="all">전체 단어장에서 검색</option>
       </select>
       <div class="button-row">
@@ -5737,6 +5738,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
       renderStudentProgress(selectedBook, selectedDay);
 
+      const isPointStudyBook = String(selectedBook) === "🎯 이번주 포인트 단어";
+
       let html = `
         <div class="summary-card" style="padding:1em; margin:0.8em 0 1em;">
           <div class="status-grid">
@@ -5754,6 +5757,13 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
             </div>
           </div>
         </div>
+        ${isPointStudyBook ? `
+          <div class="mini-card">
+            <b>포인트 시험 학습용 단어</b><br>
+            이 목록은 현재 주차에 공개된 포인트 단어 50개입니다.<br>
+            실제 포인트 시험은 이 50개 중 무작위 30개가 출제됩니다.
+          </div>
+        ` : ""}
 
         <div class="button-row">
           <button class="vocab-btn secondary" onclick="toggleWordHide()">
@@ -5865,6 +5875,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         rows = rows.filter(row => String(row[0]) === String(selectedBook) && String(row[1]) === String(selectedDay));
       } else if (scope === "current-book") {
         rows = rows.filter(row => String(row[0]) === String(selectedBook));
+      } else if (scope === "point-current") {
+        rows = rows.filter(row => String(row[0]) === "🎯 이번주 포인트 단어");
       }
 
       const found = sortWordsByOrder(rows.filter(row =>
@@ -6444,8 +6456,48 @@ function renderPointSummary(result) {
       <b>제한 시간:</b> ${escapeHtml(timeLimitMinutes)}분<br>
       <b>상태:</b> ${escapeHtml(readyText)}<br>
       ${result.message ? `<br><span class="muted">${escapeHtml(result.message)}</span>` : ""}
+      ${totalWords === requiredWords ? `
+        <div class="button-row" style="margin-top:1em;">
+          <button class="vocab-btn secondary" onclick="openCurrentPointVocabStudy()">
+            이번 주 포인트 단어 공부하기
+          </button>
+        </div>
+      ` : ""}
     </div>
   `;
+}
+
+async function openCurrentPointVocabStudy() {
+  showTab('vocab');
+
+  try {
+    await loadVocabBooksOnce(true);
+
+    const bookSelect = document.getElementById('vocab-book-select');
+    const daySelect = document.getElementById('vocab-day-select');
+    const pointBook = '🎯 이번주 포인트 단어';
+
+    if (!bookSelect || !daySelect) return;
+
+    const option = [...bookSelect.options].find(opt => opt.value === pointBook);
+
+    if (!option) {
+      document.getElementById('vocab-view').innerHTML =
+        "<div class='card'>이번 주 포인트 단어가 아직 준비되지 않았습니다.</div>";
+      return;
+    }
+
+    bookSelect.value = pointBook;
+    await loadVocabDays();
+
+    const firstDay = [...daySelect.options].find(opt => opt.value);
+    if (firstDay) {
+      daySelect.value = firstDay.value;
+      showVocabList();
+    }
+  } catch (err) {
+    alert('이번 주 포인트 단어를 불러오지 못했습니다.');
+  }
 }
 
 async function startPointTest() {
