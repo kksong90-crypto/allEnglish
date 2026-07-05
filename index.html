@@ -3505,6 +3505,118 @@ body.dark .error {
     font-size: 1.04rem;
   }
 }
+
+/************************************************************
+ * 학교시험 성적관리 관리자 UI
+ ************************************************************/
+.school-score-toolbar {
+  display: flex;
+  gap: 0.55em;
+  flex-wrap: wrap;
+  margin: 0.85em 0 1em;
+}
+
+.school-score-toolbar button {
+  flex: 1;
+  min-width: 140px;
+}
+
+.school-exam-list {
+  display: grid;
+  gap: 0.85em;
+  margin-top: 1em;
+}
+
+.school-exam-card {
+  padding: 1em;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--brand-line);
+  box-shadow: var(--brand-shadow-soft);
+}
+
+.school-exam-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75em;
+  margin-bottom: 0.65em;
+}
+
+.school-exam-title {
+  color: var(--brand-dark);
+  font-size: 1.08em;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.school-exam-meta {
+  color: var(--brand-muted);
+  font-size: 0.9em;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.school-score-progress {
+  margin-top: 0.75em;
+  padding: 0.75em;
+  border-radius: 14px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line);
+}
+
+.school-score-progress-bar {
+  height: 12px;
+  margin-top: 0.45em;
+  border-radius: 999px;
+  background: #e7f0ec;
+  overflow: hidden;
+}
+
+.school-score-progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f3b642, #1f8a4c);
+}
+
+.school-score-range {
+  margin-top: 0.65em;
+  color: #344d47;
+  line-height: 1.55;
+}
+
+body.dark .school-exam-card,
+body.dark .school-score-progress {
+  background: #1f2a27 !important;
+  color: #eef8f5 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .school-exam-title,
+body.dark .school-score-range {
+  color: #f6fffc !important;
+}
+
+body.dark .school-exam-meta {
+  color: #cfe1db !important;
+}
+
+body.dark .school-score-progress-bar {
+  background: #243d37 !important;
+}
+
+@media (max-width: 760px) {
+  .school-exam-card-top {
+    flex-direction: column;
+  }
+
+  .school-score-toolbar {
+    flex-direction: column;
+  }
+}
+
+    
   </style>
 </head>
 
@@ -3930,6 +4042,11 @@ body.dark .error {
       <button class="vocab-btn secondary" onclick="showPointSetupAdmin()">포인트 시험 범위 관리</button>
     </div>
 
+    <div class="button-row">
+      <button class="vocab-btn" onclick="showSchoolScoreAdmin()">학교시험 성적관리</button>
+      <button class="vocab-btn secondary" onclick="loadSchoolExamListOnly()">학교시험 목록 새로고침</button>
+    </div>
+    
     <div id="admin-view"></div>
   </section>
 
@@ -8011,7 +8128,213 @@ async function submitPointAdjustment() {
         target.innerHTML = "<div class='card'>관리자 API 연결에 실패했습니다.</div>";
       }
     }
+let schoolScoreState = {
+  dashboard: null,
+  exams: []
+};
 
+async function showSchoolScoreAdmin() {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>학교시험 성적관리 정보를 불러오는 중입니다...</div>";
+
+  try {
+    const dashboard = await apiPost({ action: "getSchoolScoreDashboard" });
+    const list = await apiPost({ action: "getSchoolExamList" });
+
+    if (!dashboard.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(dashboard.message || "학교시험 대시보드를 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    if (!list.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(list.message || "학교시험 목록을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    schoolScoreState.dashboard = dashboard;
+    schoolScoreState.exams = list.exams || [];
+
+    renderSchoolScoreAdmin();
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          학교시험 성적관리 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+async function loadSchoolExamListOnly() {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>학교시험 목록을 새로고침하는 중입니다...</div>";
+
+  try {
+    const list = await apiPost({ action: "getSchoolExamList" });
+
+    if (!list.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(list.message || "학교시험 목록을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+
+    schoolScoreState.dashboard = null;
+    schoolScoreState.exams = list.exams || [];
+
+    target.innerHTML = `
+      <div class="mini-card">
+        <b>학교시험 목록</b><br>
+        <span class="muted">총 ${escapeHtml(list.count || 0)}개의 시험을 불러왔습니다.</span>
+      </div>
+      ${renderSchoolExamList(schoolScoreState.exams)}
+    `;
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          학교시험 목록 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+function renderSchoolScoreAdmin() {
+  const target = document.getElementById("admin-view");
+  if (!target) return;
+
+  const dashboard = schoolScoreState.dashboard || {};
+  const exams = schoolScoreState.exams || [];
+
+  target.innerHTML = `
+    <div class="summary-card" style="padding:1em; margin:0.8em 0 1em;">
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">오늘 저장</span>
+          <span class="status-value">${escapeHtml(dashboard.todaySavedCount || 0)}건</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">전체 저장</span>
+          <span class="status-value">${escapeHtml(dashboard.totalSavedCount || 0)}건</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">전체 시험</span>
+          <span class="status-value">${escapeHtml(dashboard.totalExamCount || 0)}개</span>
+        </div>
+      </div>
+
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-label">입력대기</span>
+          <span class="status-value">${escapeHtml(dashboard.waitingCount || 0)}개</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">일부입력</span>
+          <span class="status-value">${escapeHtml(dashboard.partialCount || 0)}개</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">완료</span>
+          <span class="status-value">${escapeHtml(dashboard.completeCount || 0)}개</span>
+        </div>
+      </div>
+
+      <div class="mini-card">
+        <b>최근 저장</b><br>
+        ${escapeHtml(dashboard.latestSavedAt || "저장 기록 없음")}
+      </div>
+    </div>
+
+    <div class="school-score-toolbar">
+      <button class="vocab-btn" onclick="showSchoolScoreAdmin()">전체 새로고침</button>
+      <button class="vocab-btn secondary" onclick="loadSchoolExamListOnly()">시험 목록만 새로고침</button>
+    </div>
+
+    <div class="mini-card">
+      <b>학교시험 목록</b><br>
+      <span class="muted">최근 시험부터 표시됩니다. 다음 단계에서 이 카드에 성적 입력 버튼을 연결합니다.</span>
+    </div>
+
+    ${renderSchoolExamList(exams)}
+  `;
+}
+
+function renderSchoolExamList(exams) {
+  if (!Array.isArray(exams) || exams.length === 0) {
+    return "<div class='card empty-card'>표시할 학교시험이 없습니다. ScoreManager의 시험관리 시트를 확인하세요.</div>";
+  }
+
+  let html = `<div class="school-exam-list">`;
+
+  exams.forEach(exam => {
+    const progressRate = Math.max(0, Math.min(100, Number(exam.progressRate || 0)));
+    const statusClass = getSchoolExamStatusBadgeClass(exam.inputStatus);
+
+    html += `
+      <div class="school-exam-card">
+        <div class="school-exam-card-top">
+          <div>
+            <div class="school-exam-title">${escapeHtml(exam.title || exam.examId || "제목 없음")}</div>
+            <div class="school-exam-meta">
+              시험ID: ${escapeHtml(exam.examId || "-")}<br>
+              상태: ${escapeHtml(exam.status || "-")} / 입력: ${escapeHtml(exam.inputStatus || "-")}<br>
+              기간: ${escapeHtml(exam.startDateText || "-")} ~ ${escapeHtml(exam.endDateText || "-")}
+            </div>
+          </div>
+          <span class="badge ${statusClass}">${escapeHtml(exam.inputStatus || "미입력")}</span>
+        </div>
+
+        <div class="school-score-progress">
+          <b>입력 진행률</b> ${escapeHtml(exam.progressText || "0 / 0")}명
+          <div class="school-score-progress-bar">
+            <div class="school-score-progress-fill" style="width:${progressRate}%;"></div>
+          </div>
+          <div class="muted" style="margin-top:0.35em;">${escapeHtml(progressRate)}%</div>
+        </div>
+
+        <div class="school-score-range">
+          <b>시험범위</b><br>
+          ${escapeHtml(exam.rangeSummary || "시험범위 요약 없음")}
+        </div>
+
+        <div class="button-row" style="margin-top:0.85em;">
+          <button class="vocab-btn secondary" onclick="alert('다음 단계에서 대상자 준비 기능을 연결합니다.')">대상자 준비</button>
+          <button class="vocab-btn" onclick="alert('다음 단계에서 모바일 성적입력 기능을 연결합니다.')">성적 입력</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+function getSchoolExamStatusBadgeClass(status) {
+  const text = String(status || "").trim();
+
+  if (text === "완료") return "badge-success";
+  if (text === "일부입력" || text === "입력대기") return "badge-warning";
+  return "badge-danger";
+}
+
+    
     async function runVocabErrorCheck() {
       const target = document.getElementById("admin-view");
       if (!isAdmin()) return alert("관리자 계정으로 로그인해야 합니다.");
