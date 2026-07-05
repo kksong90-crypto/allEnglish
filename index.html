@@ -3835,6 +3835,236 @@ body.dark .school-report-bar {
     grid-template-columns: 1fr 1fr;
   }
 }
+/************************************************************
+ * 학교시험 학생 리포트 시각화 패치 v1
+ ************************************************************/
+.school-report-visual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 0.85em;
+  margin: 1em 0;
+}
+
+.school-report-chart-card {
+  padding: 1em;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--brand-line, #d7e4df);
+  box-shadow: var(--brand-shadow-soft, 0 5px 16px rgba(36, 59, 53, 0.08));
+  overflow: hidden;
+}
+
+.school-report-chart-title {
+  font-weight: 950;
+  color: var(--brand-dark, #243b35);
+  margin-bottom: 0.25em;
+}
+
+.school-report-chart-subtitle {
+  color: var(--brand-muted, #71807b);
+  font-size: 0.88em;
+  font-weight: 800;
+  line-height: 1.45;
+  margin-bottom: 0.75em;
+}
+
+.school-report-chart-svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.school-report-chart-axis {
+  stroke: #cfded8;
+  stroke-width: 1;
+}
+
+.school-report-chart-grid {
+  stroke: #e6efeb;
+  stroke-width: 1;
+}
+
+.school-report-chart-label {
+  fill: #71807b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.school-report-chart-value-label {
+  fill: #243b35;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.school-report-line-score {
+  fill: none;
+  stroke: #1f8a4c;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.school-report-line-average {
+  fill: none;
+  stroke: #f3b642;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 8 7;
+}
+
+.school-report-dot-score {
+  fill: #1f8a4c;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.school-report-dot-average {
+  fill: #f3b642;
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+
+.school-report-gap-bar-positive {
+  fill: #1f8a4c;
+}
+
+.school-report-gap-bar-negative {
+  fill: #c84b45;
+}
+
+.school-report-gap-bar-zero {
+  fill: #9aa8a3;
+}
+
+.school-report-legend {
+  display: flex;
+  gap: 0.8em;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.65em;
+  color: var(--brand-muted, #71807b);
+  font-size: 0.84em;
+  font-weight: 900;
+}
+
+.school-report-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.school-report-legend-dot {
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.school-report-legend-dot.score {
+  background: #1f8a4c;
+}
+
+.school-report-legend-dot.average {
+  background: #f3b642;
+}
+
+.school-report-legend-dot.positive {
+  background: #1f8a4c;
+}
+
+.school-report-legend-dot.negative {
+  background: #c84b45;
+}
+
+.school-report-grade-timeline {
+  display: flex;
+  gap: 0.55em;
+  overflow-x: auto;
+  padding: 0.25em 0 0.1em;
+}
+
+.school-report-grade-pill {
+  flex: 0 0 auto;
+  min-width: 86px;
+  padding: 0.75em 0.65em;
+  border-radius: 16px;
+  border: 1px solid var(--brand-line, #d7e4df);
+  background: #f8fbfa;
+  text-align: center;
+}
+
+.school-report-grade-pill .grade {
+  display: block;
+  font-size: 1.35em;
+  font-weight: 950;
+  color: var(--brand-dark, #243b35);
+}
+
+.school-report-grade-pill .label {
+  display: block;
+  margin-top: 0.25em;
+  color: var(--brand-muted, #71807b);
+  font-size: 0.78em;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.school-report-grade-pill.good {
+  background: #e6f7ed;
+  border-color: #bde5cc;
+}
+
+.school-report-grade-pill.mid {
+  background: #fff4d7;
+  border-color: #f2d990;
+}
+
+.school-report-grade-pill.weak {
+  background: #fdebea;
+  border-color: #f2b9b6;
+}
+
+body.dark .school-report-chart-card,
+body.dark .school-report-grade-pill {
+  background: #1f2a27 !important;
+  color: #eef8f5 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .school-report-chart-title,
+body.dark .school-report-grade-pill .grade,
+body.dark .school-report-chart-value-label {
+  color: #f6fffc !important;
+  fill: #f6fffc !important;
+}
+
+body.dark .school-report-chart-subtitle,
+body.dark .school-report-legend,
+body.dark .school-report-grade-pill .label,
+body.dark .school-report-chart-label {
+  color: #cfe1db !important;
+  fill: #cfe1db !important;
+}
+
+body.dark .school-report-chart-grid {
+  stroke: #2f4741 !important;
+}
+
+body.dark .school-report-chart-axis {
+  stroke: #4a645d !important;
+}
+
+@media (max-width: 760px) {
+  .school-report-visual-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .school-report-chart-card {
+    padding: 0.85em;
+  }
+}
     
   </style>
 </head>
@@ -9311,6 +9541,8 @@ function renderSchoolStudentReport(result) {
     return;
   }
 
+  html += buildSchoolReportVisuals(records);
+  
   html += `
     <div class="mini-card">
       <b>최고점</b>: ${escapeHtml(formatSchoolReportValue(summary.bestScore, "점"))}
@@ -9376,6 +9608,343 @@ function renderSchoolStudentReport(result) {
   target.innerHTML = html;
 }
 
+function buildSchoolReportVisuals(records) {
+  const rows = normalizeSchoolReportChartRows(records);
+
+  if (!rows.length) {
+    return "";
+  }
+
+  return `
+    <div class="school-report-visual-grid">
+      <div class="school-report-chart-card">
+        <div class="school-report-chart-title">원점수 / 학교평균 추이</div>
+        <div class="school-report-chart-subtitle">
+          최근 ${escapeHtml(rows.length)}개 성적 기준입니다. 초록색은 원점수, 노란 점선은 학교평균입니다.
+        </div>
+        ${buildSchoolReportScoreChart(rows)}
+        <div class="school-report-legend">
+          <span class="school-report-legend-item">
+            <span class="school-report-legend-dot score"></span> 원점수
+          </span>
+          <span class="school-report-legend-item">
+            <span class="school-report-legend-dot average"></span> 학교평균
+          </span>
+        </div>
+      </div>
+
+      <div class="school-report-chart-card">
+        <div class="school-report-chart-title">평균대비</div>
+        <div class="school-report-chart-subtitle">
+          0보다 크면 학교평균 이상, 0보다 작으면 학교평균 이하입니다.
+        </div>
+        ${buildSchoolReportGapChart(rows)}
+        <div class="school-report-legend">
+          <span class="school-report-legend-item">
+            <span class="school-report-legend-dot positive"></span> 평균 이상
+          </span>
+          <span class="school-report-legend-item">
+            <span class="school-report-legend-dot negative"></span> 평균 이하
+          </span>
+        </div>
+      </div>
+    </div>
+
+    ${buildSchoolReportGradeTimeline(rows)}
+  `;
+}
+
+
+function normalizeSchoolReportChartRows(records) {
+  const source = (records || [])
+    .filter(record => {
+      return schoolReportNumberOrNull(record.score) !== null ||
+             schoolReportNumberOrNull(record.average) !== null ||
+             schoolReportNumberOrNull(record.gap) !== null ||
+             schoolReportGradeOrNull(record.gradeResult) !== null;
+    })
+    .slice(-8);
+
+  return source.map((record, index) => {
+    return {
+      index,
+      label: makeSchoolReportShortLabel(record, index),
+      title: makeSchoolReportExamTitle(record),
+      score: schoolReportNumberOrNull(record.score),
+      average: schoolReportNumberOrNull(record.average),
+      gap: schoolReportNumberOrNull(record.gap),
+      grade: schoolReportGradeOrNull(record.gradeResult)
+    };
+  });
+}
+
+
+function buildSchoolReportScoreChart(rows) {
+  const width = 720;
+  const height = 260;
+  const left = 42;
+  const right = 22;
+  const top = 18;
+  const bottom = 44;
+  const chartWidth = width - left - right;
+  const chartHeight = height - top - bottom;
+
+  const count = rows.length;
+
+  const getX = index => {
+    if (count <= 1) return left + chartWidth / 2;
+    return left + chartWidth * index / (count - 1);
+  };
+
+  const getY = value => {
+    const safe = Math.max(0, Math.min(100, Number(value)));
+    return top + chartHeight * (100 - safe) / 100;
+  };
+
+  const scorePoints = rows
+    .filter(row => row.score !== null)
+    .map(row => `${getX(row.index)},${getY(row.score)}`)
+    .join(" ");
+
+  const averagePoints = rows
+    .filter(row => row.average !== null)
+    .map(row => `${getX(row.index)},${getY(row.average)}`)
+    .join(" ");
+
+  let grid = "";
+  [100, 75, 50, 25, 0].forEach(value => {
+    const y = getY(value);
+
+    grid += `
+      <line class="school-report-chart-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"></line>
+      <text class="school-report-chart-label" x="8" y="${y + 4}">${value}</text>
+    `;
+  });
+
+  let dots = "";
+
+  rows.forEach(row => {
+    const x = getX(row.index);
+
+    if (row.score !== null) {
+      const y = getY(row.score);
+
+      dots += `
+        <circle class="school-report-dot-score" cx="${x}" cy="${y}" r="6">
+          <title>${escapeHtml(row.title)} / 원점수 ${escapeHtml(row.score)}점</title>
+        </circle>
+        <text class="school-report-chart-value-label" x="${x}" y="${y - 12}" text-anchor="middle">
+          ${escapeHtml(row.score)}
+        </text>
+      `;
+    }
+
+    if (row.average !== null) {
+      const y = getY(row.average);
+
+      dots += `
+        <circle class="school-report-dot-average" cx="${x}" cy="${y}" r="5">
+          <title>${escapeHtml(row.title)} / 학교평균 ${escapeHtml(row.average)}점</title>
+        </circle>
+      `;
+    }
+  });
+
+  let labels = "";
+
+  rows.forEach(row => {
+    const x = getX(row.index);
+
+    labels += `
+      <text class="school-report-chart-label" x="${x}" y="${height - 15}" text-anchor="middle">
+        ${escapeHtml(row.label)}
+      </text>
+    `;
+  });
+
+  const scoreLine = scorePoints
+    ? `<polyline class="school-report-line-score" points="${scorePoints}"></polyline>`
+    : "";
+
+  const averageLine = averagePoints
+    ? `<polyline class="school-report-line-average" points="${averagePoints}"></polyline>`
+    : "";
+
+  return `
+    <svg class="school-report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="원점수와 학교평균 추이 그래프">
+      ${grid}
+      <line class="school-report-chart-axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line>
+      ${averageLine}
+      ${scoreLine}
+      ${dots}
+      ${labels}
+    </svg>
+  `;
+}
+
+
+function buildSchoolReportGapChart(rows) {
+  const gapRows = rows.filter(row => row.gap !== null);
+
+  if (!gapRows.length) {
+    return `
+      <div class="mini-card">
+        학교평균 데이터가 없어 평균대비 그래프를 만들 수 없습니다.
+      </div>
+    `;
+  }
+
+  const width = 360;
+  const height = 260;
+  const left = 24;
+  const right = 18;
+  const top = 28;
+  const bottom = 44;
+  const chartWidth = width - left - right;
+  const chartHeight = height - top - bottom;
+  const baseline = top + chartHeight / 2;
+  const maxAbs = Math.max(
+    5,
+    ...gapRows.map(row => Math.abs(Number(row.gap || 0)))
+  );
+
+  const barGap = 7;
+  const barWidth = Math.max(18, (chartWidth - barGap * (gapRows.length - 1)) / gapRows.length);
+
+  let bars = "";
+  let labels = "";
+
+  gapRows.forEach((row, index) => {
+    const x = left + index * (barWidth + barGap);
+    const ratio = Math.min(1, Math.abs(row.gap) / maxAbs);
+    const barHeight = ratio * (chartHeight / 2 - 10);
+    const isPositive = row.gap > 0;
+    const isNegative = row.gap < 0;
+    const y = isPositive ? baseline - barHeight : baseline;
+    const className = isPositive
+      ? "school-report-gap-bar-positive"
+      : isNegative
+        ? "school-report-gap-bar-negative"
+        : "school-report-gap-bar-zero";
+
+    bars += `
+      <rect
+        class="${className}"
+        x="${x}"
+        y="${y}"
+        width="${barWidth}"
+        height="${Math.max(3, barHeight)}"
+        rx="7"
+      >
+        <title>${escapeHtml(row.title)} / 평균대비 ${escapeHtml(formatSchoolReportSigned(row.gap, "점"))}</title>
+      </rect>
+      <text
+        class="school-report-chart-value-label"
+        x="${x + barWidth / 2}"
+        y="${isPositive ? y - 7 : y + Math.max(15, barHeight + 17)}"
+        text-anchor="middle"
+      >
+        ${escapeHtml(formatSchoolReportSigned(row.gap, ""))}
+      </text>
+    `;
+
+    labels += `
+      <text
+        class="school-report-chart-label"
+        x="${x + barWidth / 2}"
+        y="${height - 15}"
+        text-anchor="middle"
+      >
+        ${escapeHtml(row.label)}
+      </text>
+    `;
+  });
+
+  return `
+    <svg class="school-report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="학교평균 대비 막대 그래프">
+      <line class="school-report-chart-grid" x1="${left}" y1="${top}" x2="${width - right}" y2="${top}"></line>
+      <line class="school-report-chart-axis" x1="${left}" y1="${baseline}" x2="${width - right}" y2="${baseline}"></line>
+      <line class="school-report-chart-grid" x1="${left}" y1="${top + chartHeight}" x2="${width - right}" y2="${top + chartHeight}"></line>
+      <text class="school-report-chart-label" x="4" y="${baseline + 4}">0</text>
+      ${bars}
+      ${labels}
+    </svg>
+  `;
+}
+
+
+function buildSchoolReportGradeTimeline(rows) {
+  const gradeRows = rows.filter(row => row.grade !== null);
+
+  if (!gradeRows.length) {
+    return "";
+  }
+
+  let html = `
+    <div class="school-report-chart-card">
+      <div class="school-report-chart-title">등급 변화 타임라인</div>
+      <div class="school-report-chart-subtitle">
+        낮은 숫자가 더 좋은 등급입니다. 최근 성적일수록 오른쪽에 표시됩니다.
+      </div>
+      <div class="school-report-grade-timeline">
+  `;
+
+  gradeRows.forEach(row => {
+    const gradeClass =
+      row.grade <= 3
+        ? "good"
+        : row.grade <= 5
+          ? "mid"
+          : "weak";
+
+    html += `
+      <div class="school-report-grade-pill ${gradeClass}">
+        <span class="grade">${escapeHtml(row.grade)}등급</span>
+        <span class="label">${escapeHtml(row.label)}</span>
+      </div>
+    `;
+  });
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+
+function makeSchoolReportShortLabel(record, index) {
+  const date = String(record.examDateText || "").trim();
+  const dateLabel = date ? date.slice(5).replace("-", "/") : "";
+  const examLabel = String(record.examLabel || record.examType || "").trim();
+
+  if (dateLabel) return dateLabel;
+  if (examLabel) return examLabel;
+
+  return "시험" + (index + 1);
+}
+
+
+function schoolReportNumberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : null;
+}
+
+
+function schoolReportGradeOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const number = Number(value);
+
+  if (!Number.isInteger(number)) return null;
+  if (number < 1 || number > 9) return null;
+
+  return number;
+}    
 
 function makeSchoolReportExamTitle(record) {
   return [
