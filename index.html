@@ -8578,7 +8578,13 @@ function renderSchoolScoreEntry(result) {
 
     <div class="button-row">
       <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">시험 목록으로 돌아가기</button>
-      <button class="vocab-btn warning" onclick="alert('다음 단계에서 실제 저장 기능을 연결합니다.')">저장 기능 준비중</button>
+      <button
+  class="vocab-btn"
+  data-exam-id="${schoolScoreAttr(exam.examId || "")}"
+  onclick="saveSchoolScoresFromWeb(this.dataset.examId)"
+>
+  성적 저장하기
+</button>
     </div>
   `;
 
@@ -8689,6 +8695,118 @@ function renderSchoolScoreEntry(result) {
   html += `</div>`;
 
   target.innerHTML = html;
+}
+
+function collectSchoolScoreRowsFromWeb() {
+  const cards = document.querySelectorAll(".school-score-entry-card");
+  const rows = [];
+
+  cards.forEach(card => {
+    const item = {
+      examId: card.dataset.examId || "",
+      studentId: card.dataset.studentId || "",
+      score: "",
+      average: "",
+      gradeResult: "",
+      rank: "",
+      takerCount: "",
+      memo: ""
+    };
+
+    card.querySelectorAll(".school-score-input").forEach(input => {
+      const field = input.dataset.field;
+      if (!field) return;
+
+      item[field] = input.value || "";
+    });
+
+    rows.push(item);
+  });
+
+  return rows;
+}
+
+
+async function saveSchoolScoresFromWeb(examId) {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  if (!examId) {
+    alert("시험ID가 없습니다.");
+    return;
+  }
+
+  const rows = collectSchoolScoreRowsFromWeb();
+  const filledCount = rows.filter(row => String(row.score || "").trim() !== "").length;
+
+  if (filledCount === 0) {
+    alert("저장할 점수가 없습니다. 원점수를 입력한 학생만 저장됩니다.");
+    return;
+  }
+
+  if (!confirm(filledCount + "명의 성적을 저장할까요?")) {
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>성적을 저장하는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "saveSchoolScores",
+      examId,
+      rowsJson: JSON.stringify(rows)
+    }, API_LONG_TIMEOUT_MS);
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "성적 저장에 실패했습니다.")}</span>
+          <div class="button-row" style="margin-top:1em;">
+            <button class="vocab-btn secondary" onclick="openSchoolScoreEntry('${schoolScoreAttr(examId)}')">
+              입력 화면으로 돌아가기
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    renderSchoolScoreEntry(result);
+
+  } catch (err) {
+    console.error(err);
+
+    const isAbort =
+      err && (
+        err.name === "AbortError" ||
+        String(err.message || "").toLowerCase().includes("abort")
+      );
+
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          ${isAbort
+            ? "성적 저장 시간이 너무 오래 걸려 요청이 중단되었습니다."
+            : "성적 저장 API 연결에 실패했습니다."
+          }<br>
+          ${isAbort
+            ? "ScoreManager의 Scores 시트에 일부 저장되었을 수도 있으니 확인 후 다시 성적 입력 화면을 열어보세요."
+            : escapeHtml(err.message || String(err))
+          }
+        </span>
+
+        <div class="button-row" style="margin-top:1em;">
+          <button class="vocab-btn secondary" onclick="openSchoolScoreEntry('${schoolScoreAttr(examId)}')">
+            입력 화면 다시 열기
+          </button>
+        </div>
+      </div>
+    `;
+  }
 }
     
 function getSchoolExamStatusBadgeClass(status) {
