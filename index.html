@@ -8668,10 +8668,10 @@ async function openSchoolScoreEntry(examId) {
   target.innerHTML = "<div class='card'>성적입력 화면을 불러오는 중입니다...</div>";
 
   try {
-    const result = await apiPost({
-  action: "getSchoolScoreEntry",
-  examId
-}, API_LONG_TIMEOUT_MS);
+  const result = await apiPost({
+    action: "getSchoolScoreEntry",
+    examId
+  }, API_LONG_TIMEOUT_MS);
     
 
     if (!result.success && result.needPrepare) {
