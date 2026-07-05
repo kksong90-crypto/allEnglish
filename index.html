@@ -3413,12 +3413,7 @@ body.dark .retest-card-meta {
   font-weight: 800;
 }
 
-@media (max-width: 560px) {
-  .rank-card {
-    padding: 14px;
-    align-items: flex-start;
-  }
-body.dark .rank-hero {
+    body.dark .rank-hero {
   background: linear-gradient(135deg, #2f2a18, #1f2a27 55%, #20283a) !important;
   border: 1px solid #4a5f58;
   color: #f6fffc;
@@ -3471,6 +3466,12 @@ body.dark .error {
 body.dark .error {
   color: #ff9b93 !important;
 }
+    
+@media (max-width: 560px) {
+  .rank-card {
+    padding: 14px;
+    align-items: flex-start;
+  }
   
   .rank-main {
     gap: 10px;
@@ -8141,8 +8142,10 @@ async function loadPointRanking() {
   try {
     box.innerHTML = `<div class="rank-loading">랭킹 불러오는 중...</div>`;
 
-    const url = `${SHEET_URL}?action=getPointRanking&limit=10`;
-    const json = await fetchJsonWithTimeout(url);
+    const json = await apiPost({
+      action: "getPointRanking",
+      limit: 10
+    });
 
     if (!json.success) {
       box.innerHTML = `<p class="error">포인트 랭킹을 불러오지 못했습니다.</p>`;
