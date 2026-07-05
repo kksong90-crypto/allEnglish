@@ -4184,6 +4184,7 @@ body.dark .school-score-entry-card.saved {
 
 
     const API_TIMEOUT_MS = 15000;
+    const API_LONG_TIMEOUT_MS = 90000;
 
     async function fetchJsonWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
       const controller = new AbortController();
@@ -4774,7 +4775,7 @@ function applyPointGuide(textMap) {
       return handleApiAuthFailure(result);
     }
 
-    async function apiPost(params) {
+    async function apiPost(params, timeoutMs = API_TIMEOUT_MS) {
       const body = new URLSearchParams(params);
       if (currentUser && currentUser.token && !body.has("token")) {
         body.set("token", currentUser.token);
@@ -4783,7 +4784,7 @@ function applyPointGuide(textMap) {
       const result = await fetchJsonWithTimeout(SHEET_URL, {
         method: "POST",
         body
-      });
+      }, timeoutMs);
 
       return handleApiAuthFailure(result);
     }
@@ -8455,7 +8456,7 @@ async function prepareSchoolExamFromWeb(examId) {
     const result = await apiPost({
       action: "prepareSchoolExam",
       examId
-    });
+    }, API_LONG_TIMEOUT_MS);
 
     if (!result.success) {
       target.innerHTML = `
@@ -8470,11 +8471,24 @@ async function prepareSchoolExamFromWeb(examId) {
 
   } catch (err) {
     console.error(err);
+
+    const isAbort =
+      err && (
+        err.name === "AbortError" ||
+        String(err.message || "").toLowerCase().includes("abort")
+      );
+
     target.innerHTML = `
       <div class='card'>
         <span class="result-wrong">
-          대상자 준비 API 연결에 실패했습니다.<br>
-          ${escapeHtml(err.message || String(err))}
+          ${isAbort
+            ? "대상자 준비 시간이 너무 오래 걸려 요청이 중단되었습니다."
+            : "대상자 준비 API 연결에 실패했습니다."
+          }<br>
+          ${isAbort
+            ? "잠시 후 다시 시도하거나, ScoreManager에서 시험 준비하기를 먼저 실행한 뒤 성적 입력을 눌러보세요."
+            : escapeHtml(err.message || String(err))
+          }
         </span>
       </div>
     `;
