@@ -3700,6 +3700,141 @@ body.dark .school-score-entry-card.saved {
     grid-template-columns: 1fr;
   }
 }
+
+/************************************************************
+ * 학교시험 학생 리포트 UI
+ ************************************************************/
+.school-report-filter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65em;
+  margin: 1em 0;
+}
+
+.school-report-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65em;
+  margin: 1em 0;
+}
+
+.school-report-summary .status-item {
+  min-height: 76px;
+}
+
+.school-report-comment {
+  padding: 0.85em;
+  margin-top: 0.55em;
+  border-radius: 14px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line);
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.school-report-record-list {
+  display: grid;
+  gap: 0.8em;
+  margin-top: 1em;
+}
+
+.school-report-record {
+  padding: 1em;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--brand-line);
+  box-shadow: var(--brand-shadow-soft);
+}
+
+.school-report-record-title {
+  font-weight: 900;
+  color: var(--brand-dark);
+  line-height: 1.45;
+}
+
+.school-report-record-meta {
+  margin-top: 0.35em;
+  color: var(--brand-muted);
+  font-size: 0.9em;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.school-report-score-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5em;
+  margin-top: 0.75em;
+}
+
+.school-report-score-box {
+  padding: 0.7em;
+  border-radius: 14px;
+  background: #f8fbfa;
+  border: 1px solid var(--brand-line);
+}
+
+.school-report-score-label {
+  display: block;
+  color: var(--brand-muted);
+  font-size: 0.8em;
+  font-weight: 900;
+}
+
+.school-report-score-value {
+  display: block;
+  margin-top: 0.2em;
+  color: var(--brand-dark);
+  font-size: 1.15em;
+  font-weight: 950;
+}
+
+.school-report-bar {
+  height: 12px;
+  margin-top: 0.75em;
+  border-radius: 999px;
+  background: #e7f0ec;
+  overflow: hidden;
+}
+
+.school-report-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f3b642, #1f8a4c);
+}
+
+body.dark .school-report-comment,
+body.dark .school-report-record,
+body.dark .school-report-score-box {
+  background: #1f2a27 !important;
+  color: #eef8f5 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .school-report-record-title,
+body.dark .school-report-score-value {
+  color: #f6fffc !important;
+}
+
+body.dark .school-report-record-meta,
+body.dark .school-report-score-label {
+  color: #cfe1db !important;
+}
+
+body.dark .school-report-bar {
+  background: #243d37 !important;
+}
+
+@media (max-width: 760px) {
+  .school-report-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .school-report-summary,
+  .school-report-score-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
     
   </style>
 </head>
@@ -8350,6 +8485,7 @@ function renderSchoolScoreAdmin() {
     <div class="school-score-toolbar">
       <button class="vocab-btn" onclick="showSchoolScoreAdmin()">전체 새로고침</button>
       <button class="vocab-btn secondary" onclick="loadSchoolExamListOnly()">시험 목록만 새로고침</button>
+      <button class="vocab-btn" onclick="showSchoolStudentReportPicker()">학생 리포트</button>
       <button class="vocab-btn warning" onclick="checkSchoolScoreErrorsFromWeb()">성적 오류검사</button>
     </div>
 
@@ -8956,6 +9092,326 @@ function renderSchoolScoreErrors(result) {
 
   html += `</div>`;
   target.innerHTML = html;
+}
+
+let schoolReportState = {
+  students: []
+};
+
+
+async function showSchoolStudentReportPicker() {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>학생 목록을 불러오는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "getSchoolStudentList"
+    }, API_LONG_TIMEOUT_MS);
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "학생 목록을 불러오지 못했습니다.")}</span>
+        </div>
+      `;
+      return;
+    }
+
+    schoolReportState.students = result.students || [];
+    renderSchoolStudentReportPicker(result.students || []);
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          학생 리포트 목록 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+
+function renderSchoolStudentReportPicker(students) {
+  const target = document.getElementById("admin-view");
+
+  let options = `<option value="">학생 선택</option>`;
+
+  students.forEach(st => {
+    const label = [
+      st.name,
+      st.grade ? st.grade + "학년" : "",
+      st.academyClass || "",
+      "성적 " + (st.scoreCount || 0) + "건"
+    ].filter(Boolean).join(" / ");
+
+    options += `
+      <option value="${schoolScoreAttr(st.studentId)}">
+        ${escapeHtml(label)}
+      </option>
+    `;
+  });
+
+  target.innerHTML = `
+    <div class="school-score-entry-header">
+      <b>학생별 성적 리포트</b><br>
+      <span class="muted">학생을 선택하면 저장된 학교시험 성적을 분석합니다.</span>
+    </div>
+
+    <div class="school-report-filter">
+      <select id="school-report-student-select">
+        ${options}
+      </select>
+
+      <button class="vocab-btn" onclick="loadSchoolStudentReportFromSelect()">
+        리포트 보기
+      </button>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
+    </div>
+
+    <div class="mini-card">
+      총 ${escapeHtml(students.length)}명의 학생을 불러왔습니다.
+      성적이 많은 학생 순으로 정렬됩니다.
+    </div>
+  `;
+}
+
+
+function loadSchoolStudentReportFromSelect() {
+  const select = document.getElementById("school-report-student-select");
+  const studentId = select ? select.value : "";
+
+  if (!studentId) {
+    alert("학생을 선택하세요.");
+    return;
+  }
+
+  loadSchoolStudentReport(studentId);
+}
+
+
+async function loadSchoolStudentReport(studentId) {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>학생 리포트를 불러오는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "getSchoolStudentReport",
+      studentId
+    }, API_LONG_TIMEOUT_MS);
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "학생 리포트를 불러오지 못했습니다.")}</span>
+        </div>
+      `;
+      return;
+    }
+
+    renderSchoolStudentReport(result);
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          학생 리포트 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+
+function renderSchoolStudentReport(result) {
+  const target = document.getElementById("admin-view");
+  const student = result.student || {};
+  const summary = result.summary || {};
+  const records = result.records || [];
+  const comments = result.comments || [];
+
+  let html = `
+    <div class="school-score-entry-header">
+      <b>${escapeHtml(student.name || student.studentId || "학생")} 성적 리포트</b><br>
+      <span class="muted">
+        ${escapeHtml(student.school || "-")}
+        ${student.grade ? " " + escapeHtml(student.grade) + "학년" : ""}
+        / ${escapeHtml(student.academyClass || "-")}
+      </span>
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="showSchoolStudentReportPicker()">학생 다시 선택</button>
+      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
+    </div>
+
+    <div class="school-report-summary">
+      <div class="status-item">
+        <span class="status-label">저장 성적</span>
+        <span class="status-value">${escapeHtml(summary.totalCount || 0)}건</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">평균 점수</span>
+        <span class="status-value">${escapeHtml(formatSchoolReportValue(summary.averageScore, "점"))}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">평균대비</span>
+        <span class="status-value">${escapeHtml(formatSchoolReportSigned(summary.averageGap, "점"))}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">최근 점수</span>
+        <span class="status-value">${escapeHtml(formatSchoolReportValue(summary.latestScore, "점"))}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">직전 대비</span>
+        <span class="status-value">${escapeHtml(formatSchoolReportSigned(summary.scoreChange, "점"))}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">최근 등급</span>
+        <span class="status-value">${escapeHtml(summary.latestGrade || "-")}</span>
+      </div>
+    </div>
+  `;
+
+  if (comments.length) {
+    html += `<div class="card">`;
+    comments.forEach(comment => {
+      html += `<div class="school-report-comment">${escapeHtml(comment)}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (!records.length) {
+    html += `
+      <div class="card empty-card">
+        저장된 성적이 없습니다.
+      </div>
+    `;
+    target.innerHTML = html;
+    return;
+  }
+
+  html += `
+    <div class="mini-card">
+      <b>최고점</b>: ${escapeHtml(formatSchoolReportValue(summary.bestScore, "점"))}
+      ${summary.bestExam ? ` / ${escapeHtml(summary.bestExam)}` : ""}<br>
+      <b>최저점</b>: ${escapeHtml(formatSchoolReportValue(summary.worstScore, "점"))}
+      ${summary.worstExam ? ` / ${escapeHtml(summary.worstExam)}` : ""}
+    </div>
+  `;
+
+  html += `<div class="school-report-record-list">`;
+
+  records.slice().reverse().forEach(record => {
+    const scoreWidth = getSchoolReportScoreWidth(record.score);
+    const gapText = formatSchoolReportSigned(record.gap, "점");
+
+    html += `
+      <div class="school-report-record">
+        <div class="school-report-record-title">
+          ${escapeHtml(makeSchoolReportExamTitle(record))}
+        </div>
+
+        <div class="school-report-record-meta">
+          ${escapeHtml(record.examDateText || "-")}
+          / ${escapeHtml(record.school || "-")}
+          / ${escapeHtml(record.academyClass || "-")}
+          ${record.savedAt ? `<br>저장: ${escapeHtml(record.savedAt)}` : ""}
+        </div>
+
+        <div class="school-report-score-row">
+          <div class="school-report-score-box">
+            <span class="school-report-score-label">원점수</span>
+            <span class="school-report-score-value">${escapeHtml(formatSchoolReportValue(record.score, "점"))}</span>
+          </div>
+          <div class="school-report-score-box">
+            <span class="school-report-score-label">학교평균</span>
+            <span class="school-report-score-value">${escapeHtml(formatSchoolReportValue(record.average, "점"))}</span>
+          </div>
+          <div class="school-report-score-box">
+            <span class="school-report-score-label">평균대비</span>
+            <span class="school-report-score-value">${escapeHtml(gapText)}</span>
+          </div>
+          <div class="school-report-score-box">
+            <span class="school-report-score-label">등급</span>
+            <span class="school-report-score-value">${escapeHtml(record.gradeResult || "-")}</span>
+          </div>
+        </div>
+
+        <div class="school-report-bar">
+          <div class="school-report-bar-fill" style="width:${scoreWidth}%;"></div>
+        </div>
+
+        <div class="school-report-record-meta">
+          석차: ${escapeHtml(record.rank || "-")}
+          / 응시자수: ${escapeHtml(record.takerCount || "-")}
+          / 입력유형: ${escapeHtml(record.inputType || "-")}
+          ${record.memo ? `<br>메모: ${escapeHtml(record.memo)}` : ""}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  target.innerHTML = html;
+}
+
+
+function makeSchoolReportExamTitle(record) {
+  return [
+    record.year,
+    record.school,
+    record.grade ? record.grade + "학년" : "",
+    record.examLabel || record.examType,
+    record.subject
+  ].filter(Boolean).join(" ");
+}
+
+
+function formatSchoolReportValue(value, suffix) {
+  if (value === null || value === undefined || value === "") return "-";
+  return String(value) + (suffix || "");
+}
+
+
+function formatSchoolReportSigned(value, suffix) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return String(value) + (suffix || "");
+  }
+
+  if (number > 0) return "+" + number + (suffix || "");
+  return String(number) + (suffix || "");
+}
+
+
+function getSchoolReportScoreWidth(score) {
+  const number = Number(score);
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(100, number));
 }
     
 function getSchoolExamStatusBadgeClass(status) {
