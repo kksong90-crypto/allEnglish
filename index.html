@@ -8350,6 +8350,7 @@ function renderSchoolScoreAdmin() {
     <div class="school-score-toolbar">
       <button class="vocab-btn" onclick="showSchoolScoreAdmin()">전체 새로고침</button>
       <button class="vocab-btn secondary" onclick="loadSchoolExamListOnly()">시험 목록만 새로고침</button>
+      <button class="vocab-btn warning" onclick="checkSchoolScoreErrorsFromWeb()">성적 오류검사</button>
     </div>
 
     <div class="mini-card">
@@ -8807,6 +8808,135 @@ async function saveSchoolScoresFromWeb(examId) {
       </div>
     `;
   }
+}
+
+async function checkSchoolScoreErrorsFromWeb() {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>성적 오류를 검사하는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "checkSchoolScoreErrors"
+    }, API_LONG_TIMEOUT_MS);
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "성적 오류검사에 실패했습니다.")}</span>
+        </div>
+      `;
+      return;
+    }
+
+    renderSchoolScoreErrors(result);
+
+  } catch (err) {
+    console.error(err);
+
+    const isAbort =
+      err && (
+        err.name === "AbortError" ||
+        String(err.message || "").toLowerCase().includes("abort")
+      );
+
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          ${isAbort
+            ? "성적 오류검사 시간이 너무 오래 걸려 요청이 중단되었습니다."
+            : "성적 오류검사 API 연결에 실패했습니다."
+          }<br>
+          ${isAbort
+            ? "점수 데이터가 많으면 시간이 걸릴 수 있습니다. 다시 시도해 주세요."
+            : escapeHtml(err.message || String(err))
+          }
+        </span>
+      </div>
+    `;
+  }
+}
+
+
+function renderSchoolScoreErrors(result) {
+  const target = document.getElementById("admin-view");
+  const issues = result.issues || [];
+
+  let html = `
+    <div class="school-score-entry-header">
+      <b>성적 오류검사 결과</b><br>
+      <span class="muted">검사 시각: ${escapeHtml(result.checkedAt || "")}</span>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-item">
+        <span class="status-label">전체 문제</span>
+        <span class="status-value">${escapeHtml(result.totalIssueCount || 0)}건</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">오류</span>
+        <span class="status-value">${escapeHtml(result.errorCount || 0)}건</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">주의</span>
+        <span class="status-value">${escapeHtml(result.warningCount || 0)}건</span>
+      </div>
+    </div>
+
+    <div class="button-row" style="margin-top:1em;">
+      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
+      <button class="vocab-btn" onclick="checkSchoolScoreErrorsFromWeb()">다시 검사</button>
+    </div>
+  `;
+
+  if (!issues.length) {
+    html += `
+      <div class="card" style="margin-top:1em;">
+        <span class="result-correct">현재 발견된 성적 오류가 없습니다.</span>
+      </div>
+    `;
+    target.innerHTML = html;
+    return;
+  }
+
+  html += `<div class="school-exam-list" style="margin-top:1em;">`;
+
+  issues.forEach(issue => {
+    const isError = issue.level === "error";
+    const badgeClass = isError ? "badge-danger" : "badge-warning";
+    const label = isError ? "오류" : "주의";
+
+    html += `
+      <div class="school-exam-card">
+        <div class="school-exam-card-top">
+          <div>
+            <div class="school-exam-title">
+              ${escapeHtml(issue.type || "검사 항목")}
+              <span class="badge ${badgeClass}" style="margin-left:0.35em;">${label}</span>
+            </div>
+            <div class="school-exam-meta">
+              Scores 행: ${escapeHtml(issue.rowNumber || "-")}<br>
+              시험ID: ${escapeHtml(issue.examId || "-")}<br>
+              학생: ${escapeHtml(issue.name || "-")}
+              ${issue.studentId ? ` / ${escapeHtml(issue.studentId)}` : ""}
+            </div>
+          </div>
+        </div>
+
+        <div class="school-score-range">
+          ${escapeHtml(issue.message || "")}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  target.innerHTML = html;
 }
     
 function getSchoolExamStatusBadgeClass(status) {
