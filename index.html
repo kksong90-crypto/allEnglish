@@ -8672,7 +8672,7 @@ async function openSchoolScoreEntry(examId) {
   action: "getSchoolScoreEntry",
   examId
 }, API_LONG_TIMEOUT_MS);
-    });
+    
 
     if (!result.success && result.needPrepare) {
       target.innerHTML = `
