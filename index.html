@@ -3616,6 +3616,90 @@ body.dark .school-score-progress-bar {
   }
 }
 
+    /************************************************************
+ * 학교시험 성적입력 카드 UI
+ ************************************************************/
+.school-score-entry-header {
+  padding: 1em;
+  margin: 0.8em 0 1em;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffffff, #f4fbf8);
+  border: 1px solid var(--brand-line);
+  box-shadow: var(--brand-shadow-soft);
+}
+
+.school-score-entry-list {
+  display: grid;
+  gap: 0.85em;
+}
+
+.school-score-entry-card {
+  padding: 1em;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid var(--brand-line);
+  box-shadow: var(--brand-shadow-soft);
+}
+
+.school-score-student-name {
+  color: var(--brand-dark);
+  font-size: 1.15em;
+  font-weight: 900;
+  margin-bottom: 0.25em;
+}
+
+.school-score-student-meta {
+  color: var(--brand-muted);
+  font-size: 0.9em;
+  font-weight: 800;
+  line-height: 1.45;
+  margin-bottom: 0.75em;
+}
+
+.school-score-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65em;
+}
+
+.school-score-input-grid label {
+  display: block;
+}
+
+.school-score-input-grid input {
+  margin: 0.25em 0 0;
+}
+
+.school-score-entry-card.saved {
+  border-color: #bce5cd;
+  background: #f6fffa;
+}
+
+body.dark .school-score-entry-header,
+body.dark .school-score-entry-card {
+  background: #1f2a27 !important;
+  color: #eef8f5 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .school-score-student-name {
+  color: #f6fffc !important;
+}
+
+body.dark .school-score-student-meta {
+  color: #cfe1db !important;
+}
+
+body.dark .school-score-entry-card.saved {
+  background: #182522 !important;
+  border-color: #3f7a5e !important;
+}
+
+@media (max-width: 760px) {
+  .school-score-input-grid {
+    grid-template-columns: 1fr;
+  }
+}
     
   </style>
 </head>
@@ -8315,8 +8399,20 @@ function renderSchoolExamList(exams) {
         </div>
 
         <div class="button-row" style="margin-top:0.85em;">
-          <button class="vocab-btn secondary" onclick="alert('다음 단계에서 대상자 준비 기능을 연결합니다.')">대상자 준비</button>
-          <button class="vocab-btn" onclick="alert('다음 단계에서 모바일 성적입력 기능을 연결합니다.')">성적 입력</button>
+          <button
+  class="vocab-btn secondary"
+  data-exam-id="${schoolScoreAttr(exam.examId)}"
+  onclick="prepareSchoolExamFromWeb(this.dataset.examId)"
+>
+  대상자 준비
+</button>
+<button
+  class="vocab-btn"
+  data-exam-id="${schoolScoreAttr(exam.examId)}"
+  onclick="openSchoolScoreEntry(this.dataset.examId)"
+>
+  성적 입력
+</button>
         </div>
       </div>
     `;
@@ -8326,6 +8422,261 @@ function renderSchoolExamList(exams) {
   return html;
 }
 
+function schoolScoreAttr(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
+async function prepareSchoolExamFromWeb(examId) {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  if (!examId) {
+    alert("시험ID가 없습니다. ScoreManager 시험관리에서 시험ID를 먼저 확인하세요.");
+    return;
+  }
+
+  if (!confirm("이 시험의 대상자를 준비할까요?\n기존 같은 시험ID의 ExamTargets는 새로 계산됩니다.")) {
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>대상자를 준비하는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "prepareSchoolExam",
+      examId
+    });
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "대상자 준비에 실패했습니다.")}</span>
+        </div>
+      `;
+      return;
+    }
+
+    renderSchoolScoreEntry(result);
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          대상자 준비 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+
+async function openSchoolScoreEntry(examId) {
+  const target = document.getElementById("admin-view");
+
+  if (!isAdmin()) {
+    target.innerHTML = "<div class='card'>관리자 계정으로 로그인해야 사용할 수 있습니다.</div>";
+    return;
+  }
+
+  if (!examId) {
+    alert("시험ID가 없습니다. ScoreManager 시험관리에서 시험ID를 먼저 확인하세요.");
+    return;
+  }
+
+  target.innerHTML = "<div class='card'>성적입력 화면을 불러오는 중입니다...</div>";
+
+  try {
+    const result = await apiPost({
+      action: "getSchoolScoreEntry",
+      examId
+    });
+
+    if (!result.success && result.needPrepare) {
+      target.innerHTML = `
+        <div class='card'>
+          <b>대상자 준비가 필요합니다.</b><br>
+          ${escapeHtml(result.message || "")}
+
+          <div class="button-row" style="margin-top:1em;">
+            <button class="vocab-btn" onclick="prepareSchoolExamFromWeb('${schoolScoreAttr(examId)}')">
+              대상자 준비하기
+            </button>
+            <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">
+              목록으로 돌아가기
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (!result.success) {
+      target.innerHTML = `
+        <div class='card'>
+          <span class="result-wrong">${escapeHtml(result.message || "성적입력 화면을 불러오지 못했습니다.")}</span>
+        </div>
+      `;
+      return;
+    }
+
+    renderSchoolScoreEntry(result);
+
+  } catch (err) {
+    console.error(err);
+    target.innerHTML = `
+      <div class='card'>
+        <span class="result-wrong">
+          성적입력 API 연결에 실패했습니다.<br>
+          ${escapeHtml(err.message || String(err))}
+        </span>
+      </div>
+    `;
+  }
+}
+
+
+function renderSchoolScoreEntry(result) {
+  const target = document.getElementById("admin-view");
+  if (!target) return;
+
+  const exam = result.exam || {};
+  const rows = result.entryRows || [];
+
+  let html = `
+    <div class="school-score-entry-header">
+      <b>학교시험 성적입력</b><br>
+      <span class="muted">${escapeHtml(exam.title || exam.examId || "")}</span><br>
+      대상자: ${escapeHtml(result.targetCount || rows.length || 0)}명
+      ${result.message ? `<br><span class="result-correct">${escapeHtml(result.message)}</span>` : ""}
+    </div>
+
+    <div class="button-row">
+      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">시험 목록으로 돌아가기</button>
+      <button class="vocab-btn warning" onclick="alert('다음 단계에서 실제 저장 기능을 연결합니다.')">저장 기능 준비중</button>
+    </div>
+  `;
+
+  if (!rows.length) {
+    html += "<div class='card empty-card'>성적을 입력할 대상자가 없습니다.</div>";
+    target.innerHTML = html;
+    return;
+  }
+
+  html += `<div class="school-score-entry-list">`;
+
+  rows.forEach(row => {
+    const savedClass = row.savedStatus ? " saved" : "";
+
+    html += `
+      <div
+        class="school-score-entry-card${savedClass}"
+        data-exam-id="${schoolScoreAttr(row.examId)}"
+        data-student-id="${schoolScoreAttr(row.studentId)}"
+      >
+        <div class="school-score-student-name">
+          ${escapeHtml(row.no)}. ${escapeHtml(row.name)}
+          ${row.savedStatus ? `<span class="badge badge-success" style="margin-left:0.4em;">${escapeHtml(row.savedStatus)}</span>` : ""}
+        </div>
+
+        <div class="school-score-student-meta">
+          ${escapeHtml(row.school)} ${escapeHtml(row.grade)}학년 / ${escapeHtml(row.academyClass || "-")}<br>
+          학생ID: ${escapeHtml(row.studentId)}
+          ${row.note ? `<br><span class="result-wrong">${escapeHtml(row.note)}</span>` : ""}
+        </div>
+
+        <div class="school-score-input-grid">
+          <label>
+            <span class="field-label">원점수</span>
+            <input
+              class="school-score-input"
+              data-field="score"
+              type="text"
+              inputmode="decimal"
+              value="${escapeHtml(row.score ?? "")}"
+              placeholder="예: 87"
+            >
+          </label>
+
+          <label>
+            <span class="field-label">학교평균</span>
+            <input
+              class="school-score-input"
+              data-field="average"
+              type="text"
+              inputmode="decimal"
+              value="${escapeHtml(row.average ?? "")}"
+              placeholder="예: 62.4"
+            >
+          </label>
+
+          <label>
+            <span class="field-label">등급</span>
+            <input
+              class="school-score-input"
+              data-field="gradeResult"
+              type="text"
+              inputmode="numeric"
+              value="${escapeHtml(row.gradeResult ?? "")}"
+              placeholder="예: 2"
+            >
+          </label>
+
+          <label>
+            <span class="field-label">석차</span>
+            <input
+              class="school-score-input"
+              data-field="rank"
+              type="text"
+              inputmode="numeric"
+              value="${escapeHtml(row.rank ?? "")}"
+              placeholder="예: 15"
+            >
+          </label>
+
+          <label>
+            <span class="field-label">응시자수</span>
+            <input
+              class="school-score-input"
+              data-field="takerCount"
+              type="text"
+              inputmode="numeric"
+              value="${escapeHtml(row.takerCount ?? "")}"
+              placeholder="예: 210"
+            >
+          </label>
+
+          <label>
+            <span class="field-label">메모</span>
+            <input
+              class="school-score-input"
+              data-field="memo"
+              type="text"
+              value="${escapeHtml(row.memo ?? "")}"
+              placeholder="상담 메모"
+            >
+          </label>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+
+  target.innerHTML = html;
+}
+    
 function getSchoolExamStatusBadgeClass(status) {
   const text = String(status || "").trim();
 
