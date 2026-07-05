@@ -3189,7 +3189,321 @@ body.dark .retest-card-meta {
       }
     }
 
+.rank-hero {
+  text-align: center;
+  padding: 18px 16px;
+  margin-bottom: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff7d1, #ffffff 55%, #eef2ff);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
 
+.rank-hero-title {
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.rank-hero-sub {
+  margin-top: 6px;
+  color: #666;
+  font-size: 0.92rem;
+}
+
+.rank-toggle-btn {
+  margin-top: 14px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+  background: #222;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+.rank-toggle-btn:active {
+  transform: translateY(1px);
+}
+
+.rank-list {
+  margin-top: 16px;
+}
+
+.ranking-board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rank-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.rank-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.rank-number {
+  min-width: 76px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.rank-info {
+  min-width: 0;
+}
+
+.rank-name {
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.rank-title {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.7px;
+  background: rgba(0,0,0,0.06);
+}
+
+.rank-points {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.point-line span {
+  margin-right: 6px;
+  color: #666;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.point-line strong {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.active-point strong {
+  font-size: 1.18rem;
+  color: #111;
+}
+
+.active-point span {
+  color: #111;
+}
+
+.rank-first {
+  position: relative;
+  border: 2px solid #f6c343;
+  background: linear-gradient(135deg, #fff3b0, #ffffff 48%, #ffe27a);
+  box-shadow: 0 0 22px rgba(246,195,67,0.52);
+  animation: pointKingGlow 1.8s ease-in-out infinite alternate;
+  overflow: hidden;
+}
+
+.rank-first::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 40%;
+  height: 180%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  transform: rotate(25deg);
+  animation: pointShine 2.8s ease-in-out infinite;
+}
+
+.rank-first .rank-name {
+  text-shadow: 0 0 8px rgba(246,195,67,0.75);
+}
+
+.rank-first .rank-title {
+  background: #f6c343;
+  color: #3a2600;
+}
+
+.rank-second {
+  border: 2px solid #bfc7d5;
+  background: linear-gradient(135deg, #f3f6fb, #ffffff 52%, #e5e9f2);
+  box-shadow: 0 0 16px rgba(150,165,190,0.36);
+}
+
+.rank-second .rank-title {
+  background: #dce3ee;
+  color: #243044;
+}
+
+.rank-third {
+  border: 2px solid #d98a4a;
+  background: linear-gradient(135deg, #fff0df, #ffffff 52%, #ffd4ad);
+  box-shadow: 0 0 16px rgba(217,138,74,0.32);
+}
+
+.rank-third .rank-title {
+  background: #d98a4a;
+  color: #ffffff;
+}
+
+.rank-normal {
+  background: linear-gradient(135deg, #ffffff, #f8f8ff);
+}
+
+.rank-normal .rank-title {
+  background: #eeeeff;
+  color: #444;
+}
+
+@keyframes pointKingGlow {
+  from {
+    transform: translateY(0);
+    box-shadow: 0 0 14px rgba(246,195,67,0.36);
+  }
+
+  to {
+    transform: translateY(-2px);
+    box-shadow: 0 0 28px rgba(246,195,67,0.68);
+  }
+}
+
+@keyframes pointShine {
+  0% {
+    left: -45%;
+  }
+
+  45% {
+    left: 120%;
+  }
+
+  100% {
+    left: 120%;
+  }
+}
+
+.rank-loading,
+.empty-message,
+.error {
+  text-align: center;
+  padding: 24px;
+  border-radius: 14px;
+  background: #fff;
+  color: #666;
+}
+
+.error {
+  color: #d93025;
+  font-weight: 800;
+}
+
+@media (max-width: 560px) {
+  .rank-card {
+    padding: 14px;
+    align-items: flex-start;
+  }
+body.dark .rank-hero {
+  background: linear-gradient(135deg, #2f2a18, #1f2a27 55%, #20283a) !important;
+  border: 1px solid #4a5f58;
+  color: #f6fffc;
+}
+
+body.dark .rank-hero-sub {
+  color: #cfe1db;
+}
+
+body.dark .rank-toggle-btn {
+  background: #dcedc8;
+  color: #173b35;
+}
+
+body.dark .rank-card {
+  background: #1f2a27 !important;
+  border-color: #35514a !important;
+  color: #eef8f5 !important;
+}
+
+body.dark .rank-name,
+body.dark .rank-number,
+body.dark .point-line strong,
+body.dark .active-point strong,
+body.dark .active-point span {
+  color: #f6fffc !important;
+}
+
+body.dark .point-line span {
+  color: #cfe1db !important;
+}
+
+body.dark .rank-normal {
+  background: linear-gradient(135deg, #1f2a27, #182522) !important;
+}
+
+body.dark .rank-normal .rank-title {
+  background: #243d37 !important;
+  color: #dcedc8 !important;
+}
+
+body.dark .rank-loading,
+body.dark .empty-message,
+body.dark .error {
+  background: #1f2a27 !important;
+  border: 1px solid #35514a;
+  color: #cfe1db;
+}
+
+body.dark .error {
+  color: #ff9b93 !important;
+}
+  
+  .rank-main {
+    gap: 10px;
+  }
+
+  .rank-number {
+    min-width: 62px;
+    font-size: 0.92rem;
+  }
+
+  .rank-name {
+    font-size: 1.05rem;
+  }
+
+  .rank-title {
+    font-size: 0.66rem;
+  }
+
+  .point-line span {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 1px;
+    font-size: 0.7rem;
+  }
+
+  .point-line strong {
+    font-size: 0.95rem;
+  }
+
+  .active-point strong {
+    font-size: 1.04rem;
+  }
+}
   </style>
 </head>
 
@@ -3308,6 +3622,7 @@ body.dark .retest-card-meta {
         <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
         <button onclick="goTabFromFullMenu('point')"><span>🎯</span><b>포인트</b></button>
+        <button onclick="goTabFromFullMenu('pointRank')"><span>🏆</span><b>랭킹</b></button>
         <button id="full-menu-admin-button" onclick="goTabFromFullMenu('admin')"><span>⚙️</span><b>관리자</b></button>
       </div>
     </div>
@@ -3345,6 +3660,7 @@ body.dark .retest-card-meta {
     <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
     <button data-tab="point" onclick="showTab('point')">🎯포인트</button>
+    <button data-tab="pointRank" onclick="showTab('pointRank')">🏆랭킹</button>
     <button data-tab="admin" id="admin-tab-button" onclick="showTab('admin')">관리자</button>
   </nav>
 
@@ -3558,12 +3874,37 @@ body.dark .retest-card-meta {
     <div id="point-summary-view"></div>
 
     <div class="button-row">
-      <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
-      <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 상태 새로고침</button>
-    </div>
+  <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
+  <button class="vocab-btn secondary" onclick="showTab('pointRank')">포인트 랭킹 보기</button>
+</div>
+
+<div class="button-row">
+  <button class="vocab-btn secondary" onclick="loadPointHome()">포인트 상태 새로고침</button>
+</div>
 
     <div id="point-test-view"></div>
   </section>  
+
+   <!-- 포인트 랭킹 -->
+  <section id="pointRank">
+    <div class="rank-hero">
+      <div id="pointRankTitle" class="rank-hero-title">
+        🏆 현재 포인트 랭킹 TOP 10
+      </div>
+
+      <div id="pointRankSub" class="rank-hero-sub">
+        현재 보유 포인트 기준 순위입니다. 누적포인트도 함께 표시됩니다.
+      </div>
+
+      <button id="pointRankToggleBtn" class="rank-toggle-btn" onclick="togglePointRankingMode()">
+        누적순위 보기
+      </button>
+    </div>
+
+    <div id="pointRankList" class="rank-list">
+      랭킹 불러오는 중...
+    </div>
+  </section>
   
   <!-- 관리자 -->
   <section id="admin">
@@ -4551,6 +4892,17 @@ async function loadPointHomeOnce(force = false) {
     throw err;
   }
 }
+async function loadPointRankingOnce(force = false) {
+  if (pointRankingLoaded && !force) return;
+
+  const success = await loadPointRanking();
+
+  if (success) {
+    pointRankingLoaded = true;
+  } else {
+    pointRankingLoaded = false;
+  }
+}
     
     function showTab(tabId, options = {}) {
       const section = document.getElementById(tabId);
@@ -4598,7 +4950,11 @@ if (tabId === "retest") {
 if (tabId === "point") {
   loadPointHomeOnce();
 }
-
+      
+if (tabId === "pointRank") {
+  loadPointRankingOnce();
+}
+      
 if (tabId === "admin") {
   const adminView = document.getElementById("admin-view");
 
@@ -7770,7 +8126,156 @@ async function submitPointAdjustment() {
     }, 200);
   }
 };
-  
+
+    let pointRankingLoaded = false;
+let pointRankingMode = "current";
+let pointRankingPayload = {
+  currentTop10: [],
+  totalTop10: []
+};
+
+async function loadPointRanking() {
+  const box = document.getElementById("pointRankList");
+  if (!box) return false;
+
+  try {
+    box.innerHTML = `<div class="rank-loading">랭킹 불러오는 중...</div>`;
+
+    const url = `${SHEET_URL}?action=getPointRanking&limit=10`;
+    const json = await fetchJsonWithTimeout(url);
+
+    if (!json.success) {
+      box.innerHTML = `<p class="error">포인트 랭킹을 불러오지 못했습니다.</p>`;
+      return false;
+    }
+
+    pointRankingPayload.currentTop10 = json.currentTop10 || [];
+    pointRankingPayload.totalTop10 = json.totalTop10 || [];
+
+    renderPointRanking();
+    return true;
+
+  } catch (err) {
+    console.error(err);
+    box.innerHTML = `<p class="error">포인트 랭킹을 불러오지 못했습니다.</p>`;
+    return false;
+  }
+}
+
+function togglePointRankingMode() {
+  pointRankingMode = pointRankingMode === "current" ? "total" : "current";
+  renderPointRanking();
+}
+
+function renderPointRanking() {
+  const box = document.getElementById("pointRankList");
+  const title = document.getElementById("pointRankTitle");
+  const sub = document.getElementById("pointRankSub");
+  const toggleBtn = document.getElementById("pointRankToggleBtn");
+
+  if (!box) return;
+
+  const isCurrentMode = pointRankingMode === "current";
+
+  const data = isCurrentMode
+    ? pointRankingPayload.currentTop10
+    : pointRankingPayload.totalTop10;
+
+  if (title) {
+    title.textContent = isCurrentMode
+      ? "🏆 현재 포인트 랭킹 TOP 10"
+      : "🏆 누적 포인트 랭킹 TOP 10";
+  }
+
+  if (sub) {
+    sub.textContent = isCurrentMode
+      ? "현재 보유 포인트 기준 순위입니다. 누적포인트도 함께 표시됩니다."
+      : "지금까지 획득한 총 포인트 기준 순위입니다. 현재포인트도 함께 표시됩니다.";
+  }
+
+  if (toggleBtn) {
+    toggleBtn.textContent = isCurrentMode
+      ? "누적순위 보기"
+      : "현재순위 보기";
+  }
+
+  if (!data || !data.length) {
+    box.innerHTML = `<p class="empty-message">아직 포인트 랭킹이 없습니다.</p>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="ranking-board">
+      ${data.map(item => {
+        const displayRank = isCurrentMode ? item.currentRank : item.totalRank;
+        const rankTitle = isCurrentMode ? item.currentRankTitle : item.totalRankTitle;
+
+        return `
+          <div class="rank-card ${getPointRankClass(displayRank)}">
+            <div class="rank-main">
+              <div class="rank-number">
+                ${getPointRankIcon(displayRank)} ${displayRank}위
+              </div>
+
+              <div class="rank-info">
+                <div class="rank-name">${escapeHtmlForPointRank(item.name)}</div>
+                <div class="rank-title">${escapeHtmlForPointRank(rankTitle || getPointRankTitle(displayRank))}</div>
+              </div>
+            </div>
+
+            <div class="rank-points">
+              <div class="point-line ${isCurrentMode ? "active-point" : ""}">
+                <span>현재</span>
+                <strong>${Number(item.currentPoint || 0).toLocaleString()}P</strong>
+              </div>
+
+              <div class="point-line ${!isCurrentMode ? "active-point" : ""}">
+                <span>누적</span>
+                <strong>${Number(item.totalPoint || 0).toLocaleString()}P</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function getPointRankClass(rank) {
+  rank = Number(rank);
+
+  if (rank === 1) return "rank-first";
+  if (rank === 2) return "rank-second";
+  if (rank === 3) return "rank-third";
+  return "rank-normal";
+}
+
+function getPointRankIcon(rank) {
+  rank = Number(rank);
+
+  if (rank === 1) return "👑";
+  if (rank === 2) return "💎";
+  if (rank === 3) return "🔥";
+  return "⭐";
+}
+
+function getPointRankTitle(rank) {
+  rank = Number(rank);
+
+  if (rank === 1) return "LEGEND";
+  if (rank === 2) return "MASTER";
+  if (rank === 3) return "ACE";
+  return "RANKER";
+}
+
+function escapeHtmlForPointRank(text) {
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
   </script>
 </body>
 </html>
