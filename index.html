@@ -8468,8 +8468,25 @@ async function prepareSchoolExamFromWeb(examId) {
       return;
     }
 
-    renderSchoolScoreEntry(result);
+    target.innerHTML = `
+  <div class="card">
+    <span class="result-correct">${escapeHtml(result.message || "대상자 준비가 완료되었습니다.")}</span>
 
+    <div class="button-row" style="margin-top:1em;">
+      <button
+        class="vocab-btn"
+        data-exam-id="${schoolScoreAttr(examId)}"
+        onclick="openSchoolScoreEntry(this.dataset.examId)"
+      >
+        성적 입력 열기
+      </button>
+
+      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">
+        시험 목록으로 돌아가기
+      </button>
+    </div>
+  </div>
+`;
   } catch (err) {
     console.error(err);
 
