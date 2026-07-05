@@ -8470,7 +8470,9 @@ async function prepareSchoolExamFromWeb(examId) {
 
     target.innerHTML = `
   <div class="card">
-    <span class="result-correct">${escapeHtml(result.message || "대상자 준비가 완료되었습니다.")}</span>
+    <span class="result-correct">
+      ${escapeHtml(result.message || "대상자 준비가 완료되었습니다.")}
+    </span>
 
     <div class="button-row" style="margin-top:1em;">
       <button
