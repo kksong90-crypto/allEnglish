@@ -4314,6 +4314,348 @@ body.dark .retest-admin-memo {
   }
 }
 </style>
+
+<style id="school-report-v56-style">
+  .school-report-v56 {
+    color: var(--brand-text, #173b35);
+  }
+
+  .report-v56-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    border: 1px solid var(--brand-line, #dce9e5);
+    background:
+      radial-gradient(circle at top right, rgba(53,111,99,.18), transparent 300px),
+      linear-gradient(135deg, rgba(255,255,255,.98), rgba(244,250,248,.95));
+    box-shadow: var(--brand-shadow, 0 12px 30px rgba(29, 67, 60, 0.12));
+    padding: 20px;
+    margin: 12px 0 14px;
+  }
+
+  .report-v56-hero::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 7px;
+    width: 100%;
+    background: linear-gradient(90deg, #1d433c, #356f63, #f0b94a);
+  }
+
+  .report-v56-hero-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .report-v56-kicker {
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: .11em;
+    color: var(--brand, #356f63);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .report-v56-title {
+    font-size: clamp(1.35rem, 4.8vw, 2rem);
+    font-weight: 950;
+    letter-spacing: -.05em;
+    line-height: 1.05;
+  }
+
+  .report-v56-sub {
+    margin-top: 7px;
+    font-size: .88rem;
+    font-weight: 800;
+    color: var(--brand-muted, #6d817b);
+  }
+
+  .report-v56-logo-mark {
+    width: 82px;
+    height: 82px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #173b35, #356f63);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 950;
+    letter-spacing: -.08em;
+    box-shadow: 0 12px 24px rgba(29,67,60,.20);
+    flex-shrink: 0;
+  }
+
+  .report-v56-logo-mark span {
+    font-size: 1.15rem;
+  }
+
+  .report-v56-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .report-v56-summary {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .report-v56-metric {
+    background: #fff;
+    border: 1px solid var(--brand-line, #dce9e5);
+    border-radius: 18px;
+    padding: 12px;
+    min-height: 76px;
+    box-shadow: var(--brand-shadow-soft, 0 6px 18px rgba(29,67,60,.08));
+  }
+
+  .report-v56-label {
+    display: block;
+    font-size: .74rem;
+    font-weight: 900;
+    color: var(--brand-muted, #6d817b);
+    margin-bottom: 6px;
+  }
+
+  .report-v56-value {
+    display: block;
+    font-size: 1.18rem;
+    font-weight: 950;
+    color: var(--brand-text, #173b35);
+    letter-spacing: -.03em;
+  }
+
+  .report-v56-value.good { color: #1f7f52; }
+  .report-v56-value.weak { color: #b83d3a; }
+
+  .report-v56-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, .78fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .report-v56-card {
+    border: 1px solid var(--brand-line, #dce9e5);
+    border-radius: 24px;
+    background: rgba(255,255,255,.96);
+    box-shadow: var(--brand-shadow-soft, 0 6px 18px rgba(29,67,60,.08));
+    padding: 16px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .report-v56-card-title {
+    font-size: 1rem;
+    font-weight: 950;
+    color: var(--brand-text, #173b35);
+    margin-bottom: 4px;
+  }
+
+  .report-v56-card-sub {
+    font-size: .78rem;
+    font-weight: 800;
+    color: var(--brand-muted, #6d817b);
+    margin-bottom: 10px;
+  }
+
+  .report-v56-chart-wrap {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .report-v56-chart-svg {
+    width: 100%;
+    min-width: 720px;
+    height: auto;
+    display: block;
+  }
+
+  .report-v56-grid-line { stroke: #e5efeb; stroke-width: 1; }
+  .report-v56-axis-line { stroke: #c9dcd5; stroke-width: 1; }
+  .report-v56-middle-band { fill: #eef4f1; opacity: .72; }
+  .report-v56-middle-note { fill: #8b9b95; font-size: 10px; font-weight: 900; }
+  .report-v56-score-line { fill: none; stroke: #1f7f52; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+  .report-v56-average-line { fill: none; stroke: #f0b94a; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 8 7; }
+  .report-v56-forecast-line { stroke: #a7b0ad; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 7 8; fill: none; }
+  .report-v56-target-line { stroke: #c3cbc8; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 3 8; fill: none; }
+  .report-v56-score-dot { fill: #1f7f52; stroke: #fff; stroke-width: 3; }
+  .report-v56-average-dot { fill: #f0b94a; stroke: #fff; stroke-width: 2.5; }
+  .report-v56-forecast-dot { fill: #a7b0ad; stroke: #fff; stroke-width: 2.5; }
+  .report-v56-target-dot { fill: #c3cbc8; stroke: #fff; stroke-width: 2.5; }
+  .report-v56-chart-label { fill: #6d817b; font-size: 10px; font-weight: 850; }
+  .report-v56-chart-value { fill: #173b35; font-size: 11px; font-weight: 950; }
+  .report-v56-forecast-value { fill: #8f9c98; font-size: 10px; font-weight: 950; }
+
+  .report-v56-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    color: var(--brand-muted, #6d817b);
+    font-size: .78rem;
+    font-weight: 900;
+    margin-top: 8px;
+  }
+
+  .report-v56-legend-dot {
+    width: 9px;
+    height: 9px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: -1px;
+  }
+
+  .report-v56-legend-dot.score { background: #1f7f52; }
+  .report-v56-legend-dot.average { background: #f0b94a; }
+  .report-v56-legend-dot.forecast { background: #a7b0ad; }
+  .report-v56-legend-dot.target { background: #c3cbc8; }
+
+  .report-v56-forecast-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .report-v56-forecast-pill {
+    border-radius: 18px;
+    background: #f6f8f7;
+    border: 1px solid #e0e8e4;
+    padding: 12px;
+  }
+
+  .report-v56-forecast-pill b {
+    display: block;
+    font-size: 1.15rem;
+    color: var(--brand-text, #173b35);
+    margin-top: 3px;
+  }
+
+  .report-v56-insight {
+    background: linear-gradient(135deg, #173b35, #356f63);
+    color: #fff;
+  }
+
+  .report-v56-insight .report-v56-card-title,
+  .report-v56-insight .report-v56-card-sub {
+    color: #fff;
+  }
+
+  .report-v56-insight p {
+    color: rgba(255,255,255,.88);
+    font-weight: 760;
+    line-height: 1.5;
+    margin: 8px 0 0;
+    word-break: keep-all;
+  }
+
+  .report-v56-record {
+    border: 1px solid var(--brand-line, #dce9e5);
+    background: #fff;
+    border-radius: 18px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .report-v56-record-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .report-v56-record-title {
+    font-weight: 950;
+    color: var(--brand-text, #173b35);
+  }
+
+  .report-v56-record-date {
+    font-size: .76rem;
+    color: var(--brand-muted, #6d817b);
+    font-weight: 850;
+    white-space: nowrap;
+  }
+
+  .report-v56-record-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .report-v56-record-box {
+    border-radius: 14px;
+    background: var(--brand-mint-2, #f4faf8);
+    border: 1px solid var(--brand-line, #dce9e5);
+    padding: 8px;
+  }
+
+  .report-v56-record-box small {
+    display: block;
+    font-size: .68rem;
+    font-weight: 900;
+    color: var(--brand-muted, #6d817b);
+    margin-bottom: 3px;
+  }
+
+  .report-v56-record-box b {
+    display: block;
+    color: var(--brand-text, #173b35);
+    font-weight: 950;
+  }
+
+  body.dark .report-v56-card,
+  body.dark .report-v56-metric,
+  body.dark .report-v56-record {
+    background: rgba(18, 34, 31, .96);
+    border-color: rgba(255,255,255,.12);
+  }
+
+  body.dark .report-v56-hero {
+    background:
+      radial-gradient(circle at top right, rgba(80,150,130,.16), transparent 300px),
+      linear-gradient(135deg, rgba(18,34,31,.98), rgba(22,45,40,.95));
+  }
+
+  body.dark .report-v56-record-box,
+  body.dark .report-v56-forecast-pill {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.11);
+  }
+
+  @media (max-width: 860px) {
+    .report-v56-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .report-v56-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .report-v56-hero-top {
+      grid-template-columns: 1fr;
+    }
+
+    .report-v56-logo-mark {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+    }
+
+    .report-v56-record-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
 </head>
 
 <body>
@@ -10661,5 +11003,459 @@ function escapeHtmlForPointRank(text) {
     .replaceAll("'", "&#039;");
 }
   </script>
+
+<script id="school-report-v56-script">
+(function () {
+  function n(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  function round1(value) {
+    if (!Number.isFinite(Number(value))) return null;
+    return Math.round(Number(value) * 10) / 10;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function v56ShortSchoolName(name) {
+    let text = String(name || "").trim();
+    if (!text) return "시험";
+    text = text
+      .replace(/여자고등학교/g, "여고")
+      .replace(/고등학교/g, "고")
+      .replace(/중학교/g, "중")
+      .replace(/초등학교/g, "초")
+      .replace(/\s+/g, "");
+    return text.length > 6 ? text.slice(0, 6) : text;
+  }
+
+  function v56ExamLabel(record) {
+    const school = v56ShortSchoolName(record.school || record.schoolName || "");
+    const year = record.year ? String(record.year).slice(-2) : "";
+    const semester = record.semester || "";
+    const examType = record.examType || record.testType || record.examLabel || "";
+    const parts = [];
+    if (school) parts.push(school);
+    const code = [year, semester, examType].filter(Boolean).join("-");
+    if (code) parts.push(code);
+    return parts.join(" ") || makeSchoolReportExamTitle(record);
+  }
+
+  function v56IsMiddleRecord(record) {
+    const text = [
+      record.school,
+      record.course,
+      record.schoolGradeGroup,
+      record.examLabel
+    ].join(" ");
+    return /중|중등|middle/i.test(text);
+  }
+
+  function v56IsHighStudent(student, records) {
+    const text = [
+      student && student.school,
+      student && student.course,
+      student && student.grade,
+      records && records.length ? records[records.length - 1].school : "",
+      records && records.length ? records[records.length - 1].course : ""
+    ].join(" ");
+    return /고|고등|high/i.test(text);
+  }
+
+  function v56NormalizeRows(records, student) {
+    const source = (records || []).filter(record => {
+      return n(record.score) !== null ||
+             n(record.average) !== null ||
+             n(record.gap) !== null ||
+             schoolReportGradeOrNull(record.gradeResult) !== null;
+    });
+
+    const rows = source.map((record, index) => ({
+      index,
+      record,
+      label: v56ExamLabel(record),
+      title: makeSchoolReportExamTitle(record),
+      score: n(record.score),
+      average: n(record.average),
+      gap: n(record.gap),
+      grade: schoolReportGradeOrNull(record.gradeResult),
+      isMiddle: v56IsMiddleRecord(record),
+      forecast: false
+    }));
+
+    const forecast = v56Forecast(rows);
+    if (forecast) {
+      rows.push({
+        index: rows.length,
+        record: null,
+        label: "다음시험",
+        title: "다음 시험 예상",
+        score: null,
+        average: null,
+        gap: null,
+        grade: null,
+        isMiddle: false,
+        forecast: true,
+        predicted: forecast.predicted,
+        target: forecast.target
+      });
+    }
+
+    rows.highMode = v56IsHighStudent(student, source);
+    rows.forecastInfo = forecast;
+    return rows;
+  }
+
+  function v56Forecast(rows) {
+    const actual = rows.filter(r => r.score !== null && !r.forecast);
+    if (!actual.length) return null;
+
+    const scores = actual.map(r => Number(r.score));
+    const latest = scores[scores.length - 1];
+    const previous = scores.length >= 2 ? scores[scores.length - 2] : latest;
+    const allAvg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const recent = scores.slice(-3);
+    const recentWeighted = recent.reduce((sum, score, idx) => sum + score * (idx + 1), 0) /
+      recent.reduce((sum, _, idx) => sum + idx + 1, 0);
+    const trendPoint = latest + (latest - previous) * 0.35;
+
+    let predicted = recentWeighted * 0.55 + trendPoint * 0.35 + allAvg * 0.10;
+
+    if (latest >= 75 && latest - previous >= 10) {
+      predicted = Math.max(predicted, latest - 2);
+    }
+
+    predicted = round1(clamp(predicted, 0, 100));
+
+    let target = Math.max(predicted + 5, latest + 5);
+    if (latest >= 85) target = Math.max(predicted + 3, latest + 3);
+    target = round1(clamp(target, 0, 100));
+
+    return { predicted, target, latest, change: round1(latest - previous) };
+  }
+
+  function v56XFactory(rows, left, chartWidth) {
+    const actualRows = rows.filter(r => !r.forecast);
+    const middleCount = actualRows.filter(r => r.isMiddle).length;
+    const highCount = actualRows.length - middleCount;
+    const highMode = rows.highMode && middleCount > 0 && highCount > 0;
+    const actualCount = actualRows.length;
+    const totalCount = rows.length;
+
+    if (!highMode) {
+      return index => {
+        if (totalCount <= 1) return left + chartWidth / 2;
+        return left + chartWidth * index / (totalCount - 1);
+      };
+    }
+
+    const middleWidth = chartWidth * 0.22;
+    const highStart = left + middleWidth + 20;
+    const highWidth = chartWidth - middleWidth - 20;
+
+    return index => {
+      const row = rows[index];
+      if (!row) return left;
+      if (row.forecast) return left + chartWidth;
+
+      const middleIndex = rows.slice(0, index + 1).filter(r => !r.forecast && r.isMiddle).length - 1;
+      const highIndex = rows.slice(0, index + 1).filter(r => !r.forecast && !r.isMiddle).length - 1;
+
+      if (row.isMiddle) {
+        if (middleCount <= 1) return left + middleWidth / 2;
+        return left + middleWidth * middleIndex / (middleCount - 1);
+      }
+
+      if (highCount <= 1) return highStart + highWidth * 0.5;
+      return highStart + highWidth * highIndex / Math.max(1, highCount - 1 + 0.35);
+    };
+  }
+
+  function v56Svg(rows) {
+    const width = 940;
+    const height = 350;
+    const left = 48;
+    const right = 28;
+    const top = 24;
+    const bottom = 74;
+    const chartWidth = width - left - right;
+    const chartHeight = height - top - bottom;
+    const getY = value => top + chartHeight * (100 - clamp(Number(value), 0, 100)) / 100;
+    const getX = v56XFactory(rows, left, chartWidth);
+
+    let grid = "";
+    [100, 75, 50, 25, 0].forEach(value => {
+      const y = getY(value);
+      grid += `<line class="report-v56-grid-line" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"></line>`;
+      grid += `<text class="report-v56-chart-label" x="10" y="${y + 4}">${value}</text>`;
+    });
+
+    let middleBand = "";
+    if (rows.highMode) {
+      const actualMiddle = rows.filter(r => !r.forecast && r.isMiddle);
+      if (actualMiddle.length) {
+        const x1 = Math.max(left, getX(rows.indexOf(actualMiddle[0])) - 18);
+        const x2 = Math.min(width - right, getX(rows.indexOf(actualMiddle[actualMiddle.length - 1])) + 18);
+        middleBand = `<rect class="report-v56-middle-band" x="${x1}" y="${top}" width="${Math.max(22, x2 - x1)}" height="${chartHeight}" rx="14"></rect>
+          <text class="report-v56-middle-note" x="${x1 + 7}" y="${top + 15}">중학교 구간</text>`;
+      }
+    }
+
+    const scorePoints = rows
+      .filter(row => !row.forecast && row.score !== null)
+      .map(row => `${getX(rows.indexOf(row))},${getY(row.score)}`)
+      .join(" ");
+
+    const averagePoints = rows
+      .filter(row => !row.forecast && row.average !== null)
+      .map(row => `${getX(rows.indexOf(row))},${getY(row.average)}`)
+      .join(" ");
+
+    const latestActual = rows.slice().reverse().find(row => !row.forecast && row.score !== null);
+    const forecastRow = rows.find(row => row.forecast);
+    let forecastLines = "";
+    if (latestActual && forecastRow && forecastRow.predicted !== null) {
+      const x1 = getX(rows.indexOf(latestActual));
+      const y1 = getY(latestActual.score);
+      const x2 = getX(rows.indexOf(forecastRow));
+      const yp = getY(forecastRow.predicted);
+      const yt = getY(forecastRow.target);
+      forecastLines += `<line class="report-v56-forecast-line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${yp}"></line>`;
+      forecastLines += `<line class="report-v56-target-line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${yt}"></line>`;
+    }
+
+    let dots = "";
+    rows.forEach((row, index) => {
+      const x = getX(index);
+
+      if (!row.forecast && row.score !== null) {
+        const y = getY(row.score);
+        dots += `<circle class="report-v56-score-dot" cx="${x}" cy="${y}" r="6"></circle>`;
+        dots += `<text class="report-v56-chart-value" x="${x}" y="${y - 12}" text-anchor="middle">${escapeHtml(row.score)}</text>`;
+      }
+
+      if (!row.forecast && row.average !== null) {
+        dots += `<circle class="report-v56-average-dot" cx="${x}" cy="${getY(row.average)}" r="5"></circle>`;
+      }
+
+      if (row.forecast && row.predicted !== null) {
+        const yp = getY(row.predicted);
+        const yt = getY(row.target);
+        dots += `<circle class="report-v56-forecast-dot" cx="${x}" cy="${yp}" r="6"></circle>`;
+        dots += `<text class="report-v56-forecast-value" x="${x}" y="${yp - 13}" text-anchor="middle">${escapeHtml(row.predicted)}</text>`;
+        dots += `<circle class="report-v56-target-dot" cx="${x}" cy="${yt}" r="6"></circle>`;
+        dots += `<text class="report-v56-forecast-value" x="${x}" y="${yt - 13}" text-anchor="middle">${escapeHtml(row.target)}</text>`;
+      }
+    });
+
+    let labels = "";
+    rows.forEach((row, index) => {
+      const x = getX(index);
+      const label = String(row.label || "");
+      const bits = label.split(" ");
+      const a = bits[0] || label;
+      const b = bits.slice(1).join(" ");
+      labels += `<text class="report-v56-chart-label" x="${x}" y="${height - 46}" text-anchor="middle">`;
+      labels += `<tspan x="${x}" dy="0">${escapeHtml(a)}</tspan>`;
+      if (b) labels += `<tspan x="${x}" dy="13">${escapeHtml(b)}</tspan>`;
+      labels += `</text>`;
+    });
+
+    return `<div class="report-v56-chart-wrap">
+      <svg class="report-v56-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="전체 성적 추이와 다음 시험 예상 그래프">
+        ${grid}
+        ${middleBand}
+        <line class="report-v56-axis-line" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line>
+        ${averagePoints ? `<polyline class="report-v56-average-line" points="${averagePoints}"></polyline>` : ""}
+        ${scorePoints ? `<polyline class="report-v56-score-line" points="${scorePoints}"></polyline>` : ""}
+        ${forecastLines}
+        ${dots}
+        ${labels}
+      </svg>
+    </div>`;
+  }
+
+  function v56Legend(rows) {
+    const hasAvg = rows.some(row => row.average !== null);
+    const hasForecast = rows.some(row => row.forecast);
+    return `<div class="report-v56-legend">
+      <span><span class="report-v56-legend-dot score"></span>원점수</span>
+      ${hasAvg ? `<span><span class="report-v56-legend-dot average"></span>학교평균</span>` : `<span>학교평균 없음</span>`}
+      ${hasForecast ? `<span><span class="report-v56-legend-dot forecast"></span>다음 예상</span><span><span class="report-v56-legend-dot target"></span>목표 상향</span>` : ""}
+    </div>`;
+  }
+
+  function v56Signed(value, suffix) {
+    const num = n(value);
+    if (num === null) return "-";
+    return (num > 0 ? "+" : "") + round1(num) + (suffix || "");
+  }
+
+  function v56Value(value, suffix) {
+    const num = n(value);
+    if (num === null) return "-";
+    return round1(num) + (suffix || "");
+  }
+
+  function v56Metric(label, value, cls) {
+    return `<div class="report-v56-metric">
+      <span class="report-v56-label">${escapeHtml(label)}</span>
+      <span class="report-v56-value ${cls || ""}">${escapeHtml(value)}</span>
+    </div>`;
+  }
+
+  function v56BuildInsight(student, summary, rows) {
+    const forecast = rows.forecastInfo;
+    const latest = n(summary.latestScore);
+    const change = n(summary.scoreChange);
+    let title = "학습 흐름 점검";
+    let body = "최근 성적 흐름을 기준으로 다음 목표를 조정해 주세요.";
+
+    if (latest !== null && change !== null && change >= 10) {
+      title = "최근 반등 흐름";
+      body = `최근 점수가 직전 대비 ${v56Signed(change, "점")} 상승했습니다. 이 흐름을 유지하면서 고난도와 실수 유형을 점검하면 좋습니다.`;
+    } else if (latest !== null && latest >= 85) {
+      title = "상위권 유지";
+      body = "현재 성취도가 안정적인 편입니다. 변별 문항과 시간 관리 중심으로 다음 시험을 준비하면 좋습니다.";
+    } else if (latest !== null && latest < 60) {
+      title = "기초 안정 필요";
+      body = "최근 점수 기준으로 기본 개념과 빈출 유형을 먼저 안정화하는 것이 좋습니다.";
+    }
+
+    if (forecast && forecast.predicted !== null && forecast.target !== null) {
+      body += ` 현재 흐름의 다음 예상은 ${forecast.predicted}점, 목표 상향은 ${forecast.target}점입니다.`;
+    }
+
+    return { title, body };
+  }
+
+  function v56ReportVisuals(records, student, summary) {
+    const rows = v56NormalizeRows(records, student);
+    if (!rows.length) return "";
+
+    const forecast = rows.forecastInfo;
+    const insight = v56BuildInsight(student, summary || {}, rows);
+
+    return `<div class="report-v56-layout">
+      <div>
+        <div class="report-v56-card">
+          <div class="report-v56-card-title">전체 성적 추이 · 다음 시험 예상</div>
+          <div class="report-v56-card-sub">
+            ${rows.highMode ? "중학교 구간은 압축하고 고등학교 구간을 중심으로 표시합니다." : "저장된 전체 시험 이력을 기준으로 표시합니다."}
+          </div>
+          ${v56Svg(rows)}
+          ${v56Legend(rows)}
+          ${forecast ? `<div class="report-v56-forecast-grid">
+            <div class="report-v56-forecast-pill"><span class="report-v56-label">다음 예상</span><b>${escapeHtml(v56Value(forecast.predicted, "점"))}</b></div>
+            <div class="report-v56-forecast-pill"><span class="report-v56-label">목표 상향</span><b>${escapeHtml(v56Value(forecast.target, "점"))}</b></div>
+          </div>` : ""}
+        </div>
+        ${buildSchoolReportGradeTimeline(rows.filter(row => !row.forecast))}
+      </div>
+      <div>
+        <div class="report-v56-card report-v56-insight">
+          <div class="report-v56-card-title">${escapeHtml(insight.title)}</div>
+          <div class="report-v56-card-sub">상담용 해석</div>
+          <p>${escapeHtml(insight.body)}</p>
+        </div>
+        <div class="report-v56-card">
+          <div class="report-v56-card-title">최고점 / 최저점</div>
+          <div class="report-v56-card-sub">저장된 전체 성적 기준</div>
+          <div class="report-v56-forecast-grid">
+            <div class="report-v56-forecast-pill"><span class="report-v56-label">최고점</span><b>${escapeHtml(v56Value(summary.bestScore, "점"))}</b></div>
+            <div class="report-v56-forecast-pill"><span class="report-v56-label">최저점</span><b>${escapeHtml(v56Value(summary.worstScore, "점"))}</b></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.buildSchoolReportVisuals = function(records) {
+    return v56ReportVisuals(records, {}, {});
+  };
+
+  window.renderSchoolStudentReport = function(result) {
+    const target = document.getElementById("admin-view");
+    const student = result.student || {};
+    const summary = result.summary || {};
+    const records = result.records || [];
+    const comments = result.comments || [];
+
+    let html = `<div class="school-report-v56">
+      <div class="report-v56-hero">
+        <div class="report-v56-hero-top">
+          <div>
+            <div class="report-v56-kicker">All바른 English Performance Report</div>
+            <div class="report-v56-title">${escapeHtml(student.name || student.studentId || "학생")} 성적 리포트</div>
+            <div class="report-v56-sub">
+              ${escapeHtml(student.school || "-")}
+              ${student.grade ? " · " + escapeHtml(student.grade) + "학년" : ""}
+              · ${escapeHtml(student.academyClass || "-")}
+            </div>
+          </div>
+          <div class="report-v56-logo-mark"><span>All<br>바른</span></div>
+        </div>
+
+        <div class="report-v56-actions">
+          <button class="vocab-btn secondary" onclick="showSchoolStudentReportPicker()">학생 다시 선택</button>
+          <button class="vocab-btn" onclick="createSchoolStudentReportPdf('${schoolScoreAttr(student.studentId || "")}')">상담용 PDF 만들기</button>
+          <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
+        </div>
+        <div id="school-report-pdf-status"></div>
+      </div>
+
+      <div class="report-v56-summary">
+        ${v56Metric("저장 성적", (summary.totalCount || 0) + "건")}
+        ${v56Metric("평균 점수", v56Value(summary.averageScore, "점"))}
+        ${v56Metric("평균대비", v56Signed(summary.averageGap, "점"), n(summary.averageGap) > 0 ? "good" : n(summary.averageGap) < 0 ? "weak" : "")}
+        ${v56Metric("최근 점수", v56Value(summary.latestScore, "점"))}
+        ${v56Metric("직전 대비", v56Signed(summary.scoreChange, "점"), n(summary.scoreChange) > 0 ? "good" : n(summary.scoreChange) < 0 ? "weak" : "")}
+        ${v56Metric("최근 등급", summary.latestGrade || "-")}
+      </div>`;
+
+    if (!records.length) {
+      html += `<div class="card empty-card">저장된 성적이 없습니다.</div></div>`;
+      target.innerHTML = html;
+      return;
+    }
+
+    html += v56ReportVisuals(records, student, summary);
+
+    if (comments.length) {
+      html += `<div class="report-v56-card">
+        <div class="report-v56-card-title">상담 코멘트</div>
+        ${comments.map(comment => `<div class="school-report-comment">${escapeHtml(comment)}</div>`).join("")}
+      </div>`;
+    }
+
+    html += `<div class="report-v56-card">
+      <div class="report-v56-card-title">최근 시험별 기록</div>
+      <div class="report-v56-card-sub">최근 성적부터 표시합니다.</div>`;
+
+    records.slice().reverse().slice(0, 8).forEach(record => {
+      html += `<div class="report-v56-record">
+        <div class="report-v56-record-head">
+          <div class="report-v56-record-title">${escapeHtml(v56ExamLabel(record))}</div>
+          <div class="report-v56-record-date">${escapeHtml(record.examDateText || "-")}</div>
+        </div>
+        <div class="report-v56-record-grid">
+          <div class="report-v56-record-box"><small>원점수</small><b>${escapeHtml(v56Value(record.score, "점"))}</b></div>
+          <div class="report-v56-record-box"><small>학교평균</small><b>${escapeHtml(v56Value(record.average, "점"))}</b></div>
+          <div class="report-v56-record-box"><small>평균대비</small><b>${escapeHtml(v56Signed(record.gap, "점"))}</b></div>
+          <div class="report-v56-record-box"><small>등급</small><b>${escapeHtml(record.gradeResult || "-")}</b></div>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+    target.innerHTML = html;
+  };
+})();
+</script>
+
 </body>
 </html>
