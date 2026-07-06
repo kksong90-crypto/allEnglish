@@ -4066,6 +4066,49 @@ body.dark .school-report-chart-axis {
   }
 }
     
+
+/************************************************************
+ * 재시험 최종개편 v1 UI
+ ************************************************************/
+.small-btn.success,
+.vocab-btn.success {
+  background: linear-gradient(135deg, #1f8a4c, #176c3d) !important;
+}
+
+.retest-card.completed,
+.retest-completed-row td {
+  background: #f1f6f4 !important;
+  color: #6d817b;
+}
+
+.retest-card.completed {
+  border-color: #c9d9d4;
+}
+
+.retest-admin-note {
+  margin: 0.7em 0;
+  padding: 0.75em 0.85em;
+  border-radius: 14px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line);
+  color: var(--brand-muted);
+  font-size: 0.92em;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.retest-row-action-buttons.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.dark .retest-card.completed,
+body.dark .retest-completed-row td,
+body.dark .retest-admin-note {
+  background: #182522 !important;
+  color: #cfe1db !important;
+  border-color: #35514a !important;
+}
+
   </style>
 </head>
 
@@ -4331,8 +4374,9 @@ body.dark .school-report-chart-axis {
           <option value="재시험 대상">재시험 대상</option>
           <option value="재시험 대상(녹음x)">재시험 대상(녹음x)</option>
           <option value="단어쓰기 과제">단어쓰기 과제</option>
-          <option value="통과">통과</option>
-          <option value="재시험 완료">재시험 완료</option>
+          <option value="재시험통과">재시험통과</option>
+          <option value="보류">보류</option>
+          <option value="제외">제외</option>
         </select>
       </label>
 
@@ -5906,11 +5950,20 @@ function getRetestStatusOptions(selectedValue) {
     "재시험 대상",
     "재시험 대상(녹음x)",
     "단어쓰기 과제",
-    "통과",
-    "재시험 완료"
+    "재시험통과",
+    "보류",
+    "제외"
   ];
 
-  const current = String(selectedValue || "").trim();
+  const legacyMap = {
+    "통과": "재시험통과",
+    "합격": "재시험통과",
+    "완료": "재시험통과",
+    "재시험 완료": "재시험통과"
+  };
+
+  const currentRaw = String(selectedValue || "").trim();
+  const current = legacyMap[currentRaw] || currentRaw;
 
   const finalOptions =
     current && !options.includes(current)
@@ -5923,6 +5976,24 @@ function getRetestStatusOptions(selectedValue) {
   }).join("");
 }
 
+
+function getRetestBadgeClass(statusValue, processState = "") {
+  const status = String(statusValue || "");
+  const state = String(processState || "");
+
+  if (status.includes("통과") || state === "완료") return "badge-success";
+  if (status.includes("단어쓰기") || status.includes("보류")) return "badge-warning";
+  if (status.includes("제외")) return "badge-warning";
+  if (status.includes("대상")) return "badge-danger";
+  return "badge-success";
+}
+
+
+function isRetestCompletedRow(row) {
+  const status = String((row || [])[5] || "");
+  const state = String((row || [])[6] || "");
+  return status.includes("통과") || status.includes("제외") || state === "완료" || state === "제외";
+}
 
 function renderRetestAdminPanel() {
   const panel = document.getElementById("retest-admin-panel");
@@ -6040,7 +6111,7 @@ async function importRetestAllClassesByDateFromWeb() {
   const ok = confirm(
     selectedDate +
     " 날짜의 전체 반 재시험 대상자를 불러올까요?\n\n" +
-    "이미 같은 날짜 · 같은 반 · 같은 이름이 있으면 중복 추가하지 않습니다."
+    "재시험통과/완료 기록이 있는 학생은 다시 추가하지 않습니다."
   );
 
   if (!ok) {
@@ -6075,7 +6146,9 @@ async function importRetestAllClassesByDateFromWeb() {
       result.added +
       "명 / 중복 제외 " +
       result.skippedDuplicate +
-      "명 / 통과 제외 " +
+      "명 / 이미 통과·완료 제외 " +
+      (result.skippedCompleted || 0) +
+      "명 / 원본 점수 통과 제외 " +
       result.skippedPassed +
       "명 / 녹음x 기준 적용 " +
       result.specialRuleCount +
@@ -6100,7 +6173,6 @@ async function importRetestAllClassesByDateFromWeb() {
     }
   }
 }
-
 async function updateRetestStatusFromWeb(rowNumber) {
   if (!isRetestAdmin()) {
     alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
@@ -6146,13 +6218,53 @@ async function updateRetestStatusFromWeb(rowNumber) {
 }
 
 
+async function updateRetestStatusQuickFromWeb(rowNumber, status, className = "", studentName = "", date = "") {
+  if (!isRetestAdmin()) {
+    alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
+    return;
+  }
+
+  if (status === "재시험통과") {
+    const ok = confirm(`${studentName || "이 학생"}을 재시험통과 처리할까요?\n\n오늘은 완료 상태로 표시되고, 내일부터 목록에서 자동 정리됩니다.`);
+
+    if (!ok) {
+      return;
+    }
+  }
+
+  try {
+    const result = await apiPost({
+      action: "updateRetestStatus",
+      rowNumber,
+      className,
+      studentName,
+      date,
+      status
+    });
+
+    if (!result.success) {
+      alert(result.message || "판정결과 수정에 실패했습니다.");
+      return;
+    }
+
+    await loadRetest();
+
+  } catch (err) {
+    alert("판정결과 수정 API 연결에 실패했습니다.");
+  }
+}
+
+
 async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", date = "") {
   if (!isRetestAdmin()) {
     alert("관리자/선생님 계정에서만 사용할 수 있습니다.");
     return;
   }
 
-  const ok = confirm(`${studentName || "이 학생"}의 재시험 명단을 삭제할까요?`);
+  const ok = confirm(
+    `${studentName || "이 학생"}의 재시험 행을 삭제할까요?\n\n` +
+    "삭제는 잘못 추가한 행을 제거할 때만 사용하세요. 재시험을 통과한 학생은 [통과] 버튼을 사용하는 것이 좋습니다."
+  );
 
   if (!ok) {
     return;
@@ -6178,6 +6290,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     alert("재시험 명단 삭제 API 연결에 실패했습니다.");
   }
 }
+
     function getRetestTodayInputValue() {
   const now = new Date();
 
@@ -6203,20 +6316,24 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
     const headers = Array.isArray(result.headers) && result.headers.length
       ? result.headers
-      : ["반", "이름", "날짜", "시험범위", "재시험", "판정결과"];
+      : ["반", "이름", "날짜", "시험범위", "재시험", "판정결과", "처리상태", "처리일시", "숨김일자", "메모"];
 
     const rows = Array.isArray(result.rows) ? result.rows : [];
     const canManage = !!result.canManage;
+    const archived = Number(result.archived || 0);
+    const archiveNotice = archived > 0
+      ? `<div class="retest-admin-note">완료된 재시험 ${escapeHtml(archived)}건이 RetestArchive로 자동 이동되었습니다.</div>`
+      : "";
 
     if (rows.length === 0) {
-      target.innerHTML = canManage
+      target.innerHTML = archiveNotice + (canManage
         ? "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>"
-        : "<div class='card empty-card'>현재 내 재시험 대상이 없습니다.</div>";
+        : "<div class='card empty-card'>현재 내 재시험 대상이 없습니다.</div>");
       return;
     }
 
     if (!canManage) {
-      let cardHtml = "<div class='retest-card-list'>";
+      let cardHtml = archiveNotice + "<div class='retest-card-list'>";
 
       rows.forEach(item => {
         const row = item.values || [];
@@ -6225,19 +6342,17 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         const dateValue = cleanDate(row[2] || "");
         const testRange = row[3] || "";
         const statusValue = row[5] || "재시험 대상";
-        const badgeClass = String(statusValue).includes("단어쓰기")
-          ? "badge-warning"
-          : String(statusValue).includes("대상")
-            ? "badge-danger"
-            : "badge-success";
+        const processState = row[6] || "진행중";
+        const badgeClass = getRetestBadgeClass(statusValue, processState);
+        const completedClass = isRetestCompletedRow(row) ? " completed" : "";
 
         cardHtml += `
-          <div class="retest-card">
+          <div class="retest-card${completedClass}">
             <div class="retest-card-top">
               <span class="retest-card-title">${escapeHtml(studentName)}</span>
               <span class="badge ${badgeClass}">${escapeHtml(statusValue)}</span>
             </div>
-            <div class="retest-card-meta">${escapeHtml(className)} · ${escapeHtml(dateValue)}</div>
+            <div class="retest-card-meta">${escapeHtml(className)} · ${escapeHtml(dateValue)} · ${escapeHtml(processState || "진행중")}</div>
             <div class="retest-card-range"><b>시험범위</b><br>${escapeHtml(testRange || "-")}</div>
           </div>
         `;
@@ -6248,10 +6363,11 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       return;
     }
 
-    let html = "<table><tr>"
-      + headers
-        .map(h => `<th>${escapeHtml(h)}</th>`)
-        .filter(h => !h.includes("재시험"))
+    const visibleIndexes = [0, 1, 2, 3, 5, 6];
+
+    let html = archiveNotice + "<table><tr>"
+      + visibleIndexes
+        .map(index => `<th>${escapeHtml(headers[index] || "")}</th>`)
         .join("")
       + "<th>관리</th>"
       + "</tr>";
@@ -6262,38 +6378,39 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       const className = String(row[0] || "");
       const studentName = String(row[1] || "");
       const dateValue = cleanDate(row[2] || "");
-      const statusValue = String(row[5] || "");
+      const statusValue = String(row[5] || "재시험 대상");
+      const processState = String(row[6] || "진행중");
+      const rowClassName = isRetestCompletedRow(row) ? ` class="retest-completed-row"` : "";
 
-      html += "<tr>" + row.map((cell, j) => {
-        const header = headers[j];
+      html += `<tr${rowClassName}>`;
 
-        if (j === 2) {
-          return `<td>${escapeHtml(cleanDate(cell))}</td>`;
-        }
+      visibleIndexes.forEach(index => {
+        const header = headers[index];
+        const cell = row[index] || "";
 
-        if (header === "재시험") {
-          return null;
+        if (index === 2) {
+          html += `<td>${escapeHtml(cleanDate(cell))}</td>`;
+          return;
         }
 
         if (header === "판정결과") {
-          const value = String(cell || "");
+          const badgeClass = getRetestBadgeClass(cell, processState);
+          html += `<td><span class="badge ${badgeClass}">${escapeHtml(cell || "-")}</span></td>`;
+          return;
+        }
 
-          const badgeClass =
-            value.includes("단어쓰기")
-              ? "badge-warning"
-              : value.includes("대상")
-                ? "badge-danger"
-                : "badge-success";
-
-          return `<td><span class="badge ${badgeClass}">${escapeHtml(value)}</span></td>`;
+        if (header === "처리상태") {
+          html += `<td>${escapeHtml(cell || "진행중")}</td>`;
+          return;
         }
 
         if (header === "시험범위") {
-          return `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
+          html += `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
+          return;
         }
 
-        return `<td>${escapeHtml(cell)}</td>`;
-      }).filter(c => c).join("");
+        html += `<td>${escapeHtml(cell)}</td>`;
+      });
 
       html += `
         <td>
@@ -6308,6 +6425,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
             </select>
 
             <div class="retest-row-action-buttons">
+              <button class="small-btn success" onclick='updateRetestStatusQuickFromWeb(${sheetRowNumber}, "재시험통과", ${JSON.stringify(className)}, ${JSON.stringify(studentName)}, ${JSON.stringify(dateValue)})'>통과</button>
               <button class="small-btn" onclick="updateRetestStatusFromWeb(${sheetRowNumber})">저장</button>
               <button class="small-btn warning" onclick='deleteRetestRowFromWeb(${sheetRowNumber}, ${JSON.stringify(studentName)}, ${JSON.stringify(className)}, ${JSON.stringify(dateValue)})'>삭제</button>
             </div>
@@ -6326,6 +6444,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     target.innerHTML = "<div class='card empty-card'>재시험 명단 API 연결에 실패했습니다.</div>";
   }
 }
+
 
     /************************************************************
      *  6. 단어장 불러오기 / Day 이동
