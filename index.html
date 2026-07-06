@@ -4109,7 +4109,211 @@ body.dark .retest-admin-note {
   border-color: #35514a !important;
 }
 
-  </style>
+  
+
+/************************************************************
+ * 재시험 관리자 카드 UI v2.6 - 모바일 가독성 개선
+ ************************************************************/
+#retest-table > table {
+  display: none !important;
+}
+
+.retest-admin-card-list {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.95em;
+}
+
+.retest-admin-card {
+  padding: 1.05em;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffffff, #f8fcfa);
+}
+
+.retest-admin-card-top {
+  align-items: flex-start;
+}
+
+.retest-admin-student-block {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22em;
+}
+
+.retest-admin-card .retest-card-title {
+  display: block;
+  color: var(--brand-dark, #24534a);
+  font-size: 1.28em;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+
+.retest-admin-card .retest-card-meta {
+  display: block;
+  margin: 0;
+  color: var(--brand-muted, #6d817b);
+  font-size: 0.93em;
+  font-weight: 850;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.retest-admin-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 0.65em;
+  margin-top: 0.85em;
+}
+
+.retest-info-box {
+  padding: 0.78em 0.82em;
+  border-radius: 16px;
+  background: #f4fbf8;
+  border: 1px solid var(--brand-line, #dce9e5);
+  min-width: 0;
+}
+
+.retest-info-box.range {
+  grid-row: span 2;
+}
+
+.retest-info-box span {
+  display: block;
+  margin-bottom: 0.22em;
+  color: var(--brand-muted, #6d817b);
+  font-size: 0.78em;
+  font-weight: 950;
+}
+
+.retest-info-box b {
+  display: block;
+  color: var(--brand-text, #173b35);
+  font-size: 1.02em;
+  line-height: 1.48;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.retest-info-box.compact b {
+  font-size: 1.05em;
+  line-height: 1.35;
+}
+
+.retest-admin-memo {
+  margin-top: 0.65em;
+  padding: 0.7em 0.8em;
+  border-radius: 14px;
+  background: #fff9e8;
+  border: 1px solid #f3d990;
+  color: #6d4b00;
+  font-size: 0.9em;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.retest-action-panel {
+  margin-top: 0.85em;
+  padding: 0.78em;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--brand-line, #dce9e5);
+}
+
+.retest-action-label {
+  display: block;
+  margin-bottom: 0.35em;
+  color: var(--brand-dark, #24534a);
+  font-size: 0.82em;
+  font-weight: 950;
+}
+
+.retest-action-panel select {
+  margin: 0;
+  min-height: 44px;
+  font-size: 0.98em;
+  font-weight: 850;
+}
+
+.retest-card-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.48em;
+  margin-top: 0.62em;
+}
+
+.retest-card-buttons .small-btn {
+  min-height: 42px;
+  border-radius: 13px;
+  font-size: 0.92em;
+  padding: 0.55em 0.3em;
+}
+
+body.dark .retest-admin-card {
+  background: #1f2a27 !important;
+}
+
+body.dark .retest-info-box,
+body.dark .retest-action-panel {
+  background: #182522 !important;
+  border-color: #35514a !important;
+}
+
+body.dark .retest-info-box b,
+body.dark .retest-admin-card .retest-card-title,
+body.dark .retest-action-label {
+  color: #f6fffc !important;
+}
+
+body.dark .retest-admin-card .retest-card-meta,
+body.dark .retest-info-box span {
+  color: #cfe1db !important;
+}
+
+body.dark .retest-admin-memo {
+  background: #3d321f !important;
+  border-color: #6f5520 !important;
+  color: #ffe4a3 !important;
+}
+
+@media (max-width: 760px) {
+  .retest-admin-card-list,
+  .retest-card-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .retest-admin-card {
+    padding: 0.95em;
+    border-radius: 20px;
+  }
+
+  .retest-admin-card-top {
+    gap: 0.65em;
+  }
+
+  .retest-admin-card .retest-card-title {
+    font-size: 1.22em;
+  }
+
+  .retest-admin-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .retest-info-box.range {
+    grid-row: auto;
+  }
+
+  .retest-card-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 390px) {
+  .retest-card-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -6363,14 +6567,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       return;
     }
 
-    const visibleIndexes = [0, 1, 2, 3, 5, 6];
-
-    let html = archiveNotice + "<table><tr>"
-      + visibleIndexes
-        .map(index => `<th>${escapeHtml(headers[index] || "")}</th>`)
-        .join("")
-      + "<th>관리</th>"
-      + "</tr>";
+    let html = archiveNotice + "<div class='retest-card-list retest-admin-card-list'>";
 
     rows.forEach(item => {
       const row = item.values || [];
@@ -6378,43 +6575,48 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       const className = String(row[0] || "");
       const studentName = String(row[1] || "");
       const dateValue = cleanDate(row[2] || "");
+      const testRange = String(row[3] || "");
+      const retestValue = String(row[4] || "");
       const statusValue = String(row[5] || "재시험 대상");
       const processState = String(row[6] || "진행중");
-      const rowClassName = isRetestCompletedRow(row) ? ` class="retest-completed-row"` : "";
+      const memoValue = String(row[9] || "");
+      const badgeClass = getRetestBadgeClass(statusValue, processState);
+      const completedClass = isRetestCompletedRow(row) ? " completed" : "";
 
-      html += `<tr${rowClassName}>`;
+      const retestInfoHtml = retestValue
+        ? `<div class="retest-info-box compact"><span>재시험 기록</span><b>${escapeHtml(retestValue)}</b></div>`
+        : "";
 
-      visibleIndexes.forEach(index => {
-        const header = headers[index];
-        const cell = row[index] || "";
-
-        if (index === 2) {
-          html += `<td>${escapeHtml(cleanDate(cell))}</td>`;
-          return;
-        }
-
-        if (header === "판정결과") {
-          const badgeClass = getRetestBadgeClass(cell, processState);
-          html += `<td><span class="badge ${badgeClass}">${escapeHtml(cell || "-")}</span></td>`;
-          return;
-        }
-
-        if (header === "처리상태") {
-          html += `<td>${escapeHtml(cell || "진행중")}</td>`;
-          return;
-        }
-
-        if (header === "시험범위") {
-          html += `<td class="meaning-cell">${escapeHtml(cell)}</td>`;
-          return;
-        }
-
-        html += `<td>${escapeHtml(cell)}</td>`;
-      });
+      const memoHtml = memoValue
+        ? `<div class="retest-admin-memo">${escapeHtml(memoValue)}</div>`
+        : "";
 
       html += `
-        <td>
-          <div class="retest-row-actions">
+        <div class="retest-card retest-admin-card${completedClass}">
+          <div class="retest-card-top retest-admin-card-top">
+            <div class="retest-admin-student-block">
+              <span class="retest-card-title">${escapeHtml(studentName || "이름 없음")}</span>
+              <span class="retest-card-meta">${escapeHtml(className || "반 정보 없음")} · ${escapeHtml(dateValue || "날짜 없음")}</span>
+            </div>
+            <span class="badge ${badgeClass}">${escapeHtml(statusValue || "재시험 대상")}</span>
+          </div>
+
+          <div class="retest-admin-info-grid">
+            <div class="retest-info-box range">
+              <span>시험범위</span>
+              <b>${escapeHtml(testRange || "-")}</b>
+            </div>
+            <div class="retest-info-box compact">
+              <span>처리상태</span>
+              <b>${escapeHtml(processState || "진행중")}</b>
+            </div>
+            ${retestInfoHtml}
+          </div>
+
+          ${memoHtml}
+
+          <div class="retest-action-panel">
+            <label class="retest-action-label" for="retest-status-${sheetRowNumber}">판정결과 변경</label>
             <select
               id="retest-status-${sheetRowNumber}"
               data-class-name="${escapeHtml(className)}"
@@ -6424,19 +6626,17 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
               ${getRetestStatusOptions(statusValue)}
             </select>
 
-            <div class="retest-row-action-buttons">
+            <div class="retest-row-action-buttons retest-card-buttons">
               <button class="small-btn success" onclick='updateRetestStatusQuickFromWeb(${sheetRowNumber}, "재시험통과", ${JSON.stringify(className)}, ${JSON.stringify(studentName)}, ${JSON.stringify(dateValue)})'>통과</button>
               <button class="small-btn" onclick="updateRetestStatusFromWeb(${sheetRowNumber})">저장</button>
               <button class="small-btn warning" onclick='deleteRetestRowFromWeb(${sheetRowNumber}, ${JSON.stringify(studentName)}, ${JSON.stringify(className)}, ${JSON.stringify(dateValue)})'>삭제</button>
             </div>
           </div>
-        </td>
+        </div>
       `;
-
-      html += "</tr>";
     });
 
-    html += "</table>";
+    html += "</div>";
     target.innerHTML = html;
 
   } catch (err) {
