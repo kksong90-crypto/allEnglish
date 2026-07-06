@@ -9490,10 +9490,13 @@ function renderSchoolStudentReport(result) {
       </span>
     </div>
 
-    <div class="button-row">
-      <button class="vocab-btn secondary" onclick="showSchoolStudentReportPicker()">학생 다시 선택</button>
-      <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
-    </div>
+  <div class="button-row">
+    <button class="vocab-btn secondary" onclick="showSchoolStudentReportPicker()">학생 다시 선택</button>
+    <button class="vocab-btn" onclick="createSchoolStudentReportPdf('${schoolScoreAttr(student.studentId || "")}')">상담용 PDF 만들기</button>
+    <button class="vocab-btn secondary" onclick="showSchoolScoreAdmin()">학교시험 목록으로 돌아가기</button>
+  </div>
+
+  <div id="school-report-pdf-status"></div>
 
     <div class="school-report-summary">
       <div class="status-item">
@@ -9946,6 +9949,84 @@ function schoolReportGradeOrNull(value) {
   return number;
 }    
 
+async function createSchoolStudentReportPdf(studentId) {
+  if (!studentId) {
+    alert("학생ID가 없어 PDF를 만들 수 없습니다.");
+    return;
+  }
+
+  const status = document.getElementById("school-report-pdf-status");
+
+  if (status) {
+    status.innerHTML = `
+      <div class="mini-card">
+        상담용 1페이지 PDF를 생성하는 중입니다...
+      </div>
+    `;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "createSchoolStudentReportPdf",
+      studentId
+    }, API_LONG_TIMEOUT_MS);
+
+    if (!result.success) {
+      if (status) {
+        status.innerHTML = `
+          <div class="card">
+            <span class="result-wrong">${escapeHtml(result.message || "PDF 생성에 실패했습니다.")}</span>
+          </div>
+        `;
+      } else {
+        alert(result.message || "PDF 생성에 실패했습니다.");
+      }
+      return;
+    }
+
+    if (status) {
+      status.innerHTML = `
+        <div class="card">
+          <span class="result-correct">${escapeHtml(result.message || "PDF 생성이 완료되었습니다.")}</span><br>
+          <span class="muted">${escapeHtml(result.fileName || "")}</span>
+
+          <div class="button-row" style="margin-top:0.9em;">
+            <a
+              class="vocab-btn"
+              href="${schoolScoreAttr(result.url || "")}"
+              target="_blank"
+              rel="noopener"
+              style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;"
+            >
+              PDF 열기
+            </a>
+          </div>
+
+          <div class="mini-card" style="margin-top:0.8em;">
+            PDF에는 개인 성적 정보가 포함되어 있습니다. 학부모에게 전달하기 전 내용을 한 번 확인하세요.
+          </div>
+        </div>
+      `;
+    }
+
+  } catch (err) {
+    console.error(err);
+
+    if (status) {
+      status.innerHTML = `
+        <div class="card">
+          <span class="result-wrong">
+            PDF 생성 API 연결에 실패했습니다.<br>
+            ${escapeHtml(err.message || String(err))}
+          </span>
+        </div>
+      `;
+    } else {
+      alert("PDF 생성 API 연결에 실패했습니다.");
+    }
+  }
+}
+    
 function makeSchoolReportExamTitle(record) {
   return [
     record.year,
