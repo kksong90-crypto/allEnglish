@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.0.0-COREDB-BETA.2" />
+  <meta name="allbarun-student-version" content="6.0.2-CONTENT-NATIVE-STAGING" />
 
-  <title>All바른 English v6 STAGING</title>
-  <meta name="allbarun-student-api-version" content="6.0.0-COREDB-BETA" />
+  <title>All바른 English v6.0.2 STAGING</title>
+  <meta name="allbarun-student-api-version" content="6.0.2-CONTENT-NATIVE-STAGING" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4317,7 +4317,7 @@ body.dark .retest-admin-memo {
   <div id="login-screen">
     <div class="login-box">
       <h2>All바른 English</h2>
-      <p>학생 ID와 비밀번호를 입력하세요.<br><small>v6 STAGING · 운영센터 계정 기준</small></p>
+      <p>학생 ID와 비밀번호를 입력하세요.<br><small>v6.0.2 STAGING · CoreDB 콘텐츠 네이티브</small></p>
 
       <input
         type="text"
@@ -4964,6 +4964,11 @@ async function fetchSheet(sheetName) {
 
     const APP_CONTENT_SHEET_NAME = "AppContent";
 let appContentPromise = null;
+let studentContentPromise = null;
+let studentContentPayload = null;
+let currentPopupSignature = "";
+const STUDENT_CONTENT_CACHE_KEY = "allbarun-v6.0.2-content-cache";
+const STUDENT_POPUP_HIDE_KEY = "allbarun-v6.0.2-popup-hide";
 
 async function fetchAppContentSheet() {
   if (!appContentPromise) {
@@ -4976,6 +4981,39 @@ async function fetchAppContentSheet() {
     appContentPromise = null;
     throw err;
   }
+}
+
+async function fetchStudentContent(forceRefresh = false) {
+  if (forceRefresh) studentContentPromise = null;
+  if (!studentContentPromise) {
+    studentContentPromise = apiGet({ action: "getStudentContent" });
+  }
+  try {
+    const result = await studentContentPromise;
+    if (!result || result.success === false) throw new Error(result?.message || "학생 콘텐츠를 불러오지 못했습니다.");
+    return result;
+  } catch (err) {
+    studentContentPromise = null;
+    throw err;
+  }
+}
+
+function contentPayloadToHomeMap(payload) {
+  const home = payload?.home || {};
+  const guide = payload?.pointGuide || null;
+  const map = { ...home };
+  if (guide) {
+    map.pointGuideTitle = guide.title || "포인트 시험 안내";
+    map.pointGuide = guide.body || "";
+  }
+  return map;
+}
+
+function applyStudentContentPayload(payload) {
+  studentContentPayload = payload || null;
+  homeTextMap = contentPayloadToHomeMap(payload || {});
+  applyHomeText(homeTextMap);
+  applyPointGuide(homeTextMap);
 }
 
 function isContentActive(value) {
@@ -5068,19 +5106,11 @@ function getDefaultPointGuide() {
 function applyPointGuide(textMap) {
   const target = document.getElementById("point-guide-card");
   if (!target) return;
-
   const defaultGuide = getDefaultPointGuide();
-
-  const title =
-    String(textMap.pointGuideTitle || defaultGuide.title).trim();
-
-  const content =
-    String(textMap.pointGuide || defaultGuide.content).trim();
-
-  target.innerHTML = `
-    <b>${escapeHtml(title)}</b><br>
-    ${formatMultilineHtml(content)}
-  `;
+  const nativeGuide = studentContentPayload && studentContentPayload.pointGuide;
+  const title = String(nativeGuide?.title || textMap?.pointGuideTitle || defaultGuide.title).trim();
+  const content = String(nativeGuide?.body || textMap?.pointGuide || defaultGuide.content).trim();
+  target.innerHTML = `<b>${escapeHtml(title)}</b><br>${formatMultilineHtml(content)}`;
 }
 
     /************************************************************
@@ -5113,19 +5143,19 @@ function applyPointGuide(textMap) {
     }
 
     function loadHomeTextFromCache() {
-  const cached = localStorage.getItem("allbarun-home-text");
-
-  if (cached) {
-    try {
-      homeTextMap = JSON.parse(cached);
-      applyHomeText(homeTextMap);
-      applyPointGuide(homeTextMap);
+  try {
+    // 구형 TestManager/HomeText 캐시는 v6에서 사용하지 않습니다.
+    localStorage.removeItem("allbarun-home-text");
+    const cached = localStorage.getItem(STUDENT_CONTENT_CACHE_KEY);
+    if (cached) {
+      const payload = JSON.parse(cached);
+      applyStudentContentPayload(payload);
       return;
-    } catch (err) {
-      console.warn("저장된 홈 문구를 불러오지 못했습니다.", err);
     }
+  } catch (err) {
+    console.warn("저장된 v6 콘텐츠 캐시를 불러오지 못했습니다.", err);
   }
-
+  studentContentPayload = null;
   homeTextMap = getDefaultHomeText();
   applyHomeText(homeTextMap);
   applyPointGuide(homeTextMap);
@@ -5133,52 +5163,18 @@ function applyPointGuide(textMap) {
 
     async function loadHomeText() {
   try {
-    const data = await fetchAppContentSheet();
-    const parsed = parseAppContentData(data);
-    const textMap = parsed.textMap || {};
-
-    homeTextMap = textMap;
-
-    localStorage.setItem(
-      "allbarun-home-text",
-      JSON.stringify(textMap)
-    );
-
-    applyHomeText(textMap);
-    applyPointGuide(textMap);
-
+    const payload = await fetchStudentContent(true);
+    applyStudentContentPayload(payload);
+    localStorage.setItem(STUDENT_CONTENT_CACHE_KEY, JSON.stringify(payload));
+    return payload;
   } catch (err) {
-    console.warn("AppContent 시트를 불러오지 못했습니다. 기존 HomeText 시트로 대체합니다.", err);
-
-    try {
-      const data = await fetchSheet("HomeText");
-      const textMap = {};
-
-      data.slice(1).forEach(row => {
-        const key = String(row[0] || "").trim();
-        const text = String(row[1] || "").trim();
-
-        if (key && text) {
-          textMap[key] = text;
-        }
-      });
-
-      homeTextMap = textMap;
-
-      localStorage.setItem(
-        "allbarun-home-text",
-        JSON.stringify(textMap)
-      );
-
-      applyHomeText(textMap);
-      applyPointGuide(textMap);
-
-    } catch (fallbackErr) {
-      console.warn("HomeText 시트도 불러오지 못했습니다.", fallbackErr);
+    console.warn("CoreDB 학생 콘텐츠를 불러오지 못했습니다.", err);
+    if (!studentContentPayload) {
       homeTextMap = getDefaultHomeText();
       applyHomeText(homeTextMap);
       applyPointGuide(homeTextMap);
     }
+    throw err;
   }
 }
 
@@ -5213,49 +5209,31 @@ function applyPointGuide(textMap) {
     }
 
     function loadMainPopupFromHomeText() {
-      const today = getTodayString();
-      const hiddenDate = localStorage.getItem("allbarun-popup-hidden-date");
+  const popupData = studentContentPayload && studentContentPayload.popup;
+  if (!popupData || !popupData.title || !popupData.body) return;
 
-      if (hiddenDate === today) {
-        return;
-      }
+  const today = getTodayString();
+  currentPopupSignature = [popupData.contentId || "", popupData.title, popupData.body, popupData.startAt || "", popupData.endAt || ""].join("|");
 
-      const enabled = getHomeTextValue("popupEnabled").toUpperCase();
-      const title = getHomeTextValue("popupTitle");
-      const message = getHomeTextValue("popupMessage");
-      const startDate = getHomeTextValue("popupStartDate");
-      const endDate = getHomeTextValue("popupEndDate");
-      const buttonText = getHomeTextValue("popupButtonText") || "확인";
-      const buttonLink = getHomeTextValue("popupButtonLink");
+  try {
+    const hidden = JSON.parse(localStorage.getItem(STUDENT_POPUP_HIDE_KEY) || "null");
+    if (hidden && hidden.date === today && hidden.signature === currentPopupSignature) return;
+  } catch (ignore) {}
 
-      if (enabled !== "Y") return;
-      if (!title || !message) return;
-      if (!isTodayInRange(startDate, endDate)) return;
+  const popup = document.getElementById("main-popup");
+  const titleEl = document.getElementById("popup-title");
+  const messageEl = document.getElementById("popup-message");
+  const linkButton = document.getElementById("popup-link-button");
+  if (!popup || !titleEl || !messageEl || !linkButton) return;
 
-      const popup = document.getElementById("main-popup");
-      const titleEl = document.getElementById("popup-title");
-      const messageEl = document.getElementById("popup-message");
-      const linkButton = document.getElementById("popup-link-button");
-
-      if (!popup || !titleEl || !messageEl || !linkButton) {
-        console.warn("팝업 HTML 요소를 찾지 못했습니다.");
-        return;
-      }
-
-      titleEl.textContent = title;
-      messageEl.textContent = message;
-      linkButton.textContent = buttonText;
-      currentPopupLink = buttonLink;
-
-      if (buttonLink) {
-        linkButton.style.display = "block";
-      } else {
-        linkButton.style.display = "none";
-      }
-
-      popup.style.display = "flex";
-      popup.setAttribute("aria-hidden", "false");
-    }
+  titleEl.textContent = popupData.title;
+  messageEl.textContent = popupData.body;
+  linkButton.textContent = popupData.buttonText || "확인";
+  currentPopupLink = popupData.linkUrl || "";
+  linkButton.style.display = currentPopupLink ? "block" : "none";
+  popup.style.display = "flex";
+  popup.setAttribute("aria-hidden", "false");
+}
 
     function closeMainPopup() {
       const popup = document.getElementById("main-popup");
@@ -5267,9 +5245,14 @@ function applyPointGuide(textMap) {
     }
 
     function hidePopupToday() {
-      localStorage.setItem("allbarun-popup-hidden-date", getTodayString());
-      closeMainPopup();
-    }
+  try {
+    localStorage.setItem(STUDENT_POPUP_HIDE_KEY, JSON.stringify({
+      date: getTodayString(),
+      signature: currentPopupSignature || ""
+    }));
+  } catch (ignore) {}
+  closeMainPopup();
+}
 
     function openPopupLink() {
       if (currentPopupLink) {
@@ -5322,6 +5305,8 @@ function applyPointGuide(textMap) {
       clearUserSession();
       currentUser = null;
       appContentPromise = null;
+      studentContentPromise = null;
+      studentContentPayload = null;
 
       const loginScreen = document.getElementById("login-screen");
       const loginError = document.getElementById("login-error");
@@ -5476,7 +5461,11 @@ function applyPointGuide(textMap) {
   updateUserLabel();
 
   appContentPromise = null;
-  Promise.allSettled([loadHomeText(), loadNotice()]);
+  studentContentPromise = null;
+  Promise.resolve(loadHomeText()).then(async () => {
+    await loadNotice();
+    setTimeout(loadMainPopupFromHomeText, 120);
+  }).catch(() => loadNotice());
   Promise.resolve(loadFavoriteFolders()).then(renderFolderControls);
   refreshMyPointSummary();
   restorePointTestDraft();
@@ -5864,35 +5853,22 @@ ${escapeHtml(content)}`;
     async function loadNotice() {
   const target = document.getElementById("notice-content");
   const homeTarget = document.getElementById("home-notice-content");
-
   if (target) target.innerHTML = "";
   if (homeTarget) homeTarget.innerHTML = "";
 
-  let rows = [];
-
+  let payload = studentContentPayload;
   try {
-    const data = await fetchAppContentSheet();
-    const parsed = parseAppContentData(data);
-
-    rows = (parsed.notices || []).map(item => [
-      item.date,
-      item.title,
-      item.content
-    ]);
-
+    if (!payload) payload = await fetchStudentContent(false);
+    studentContentPayload = payload;
   } catch (err) {
-    console.warn("AppContent 공지사항을 불러오지 못했습니다. 기존 Notice 시트로 대체합니다.", err);
-
-    try {
-      const data = await fetchSheet("Notice");
-      rows = data.slice(1).filter(row => row && (row[0] || row[1] || row[2]));
-    } catch (fallbackErr) {
-      console.warn("Notice 시트도 불러오지 못했습니다.", fallbackErr);
-      rows = [];
-    }
+    console.warn("CoreDB 공지사항을 불러오지 못했습니다.", err);
+    payload = null;
   }
 
-  if (rows.length === 0) {
+  const rows = (payload?.notices || []).map(item => [item.date, item.title, item.body]);
+  const homeRows = (payload?.homeNotices || []).map(item => [item.date, item.title, item.body]);
+
+  if (!rows.length) {
     const empty = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
     if (target) target.innerHTML = empty;
     if (homeTarget) homeTarget.innerHTML = empty;
@@ -5900,17 +5876,11 @@ ${escapeHtml(content)}`;
   }
 
   rows.forEach(row => {
-    const [date, title, content] = row;
-    if (target) {
-      target.appendChild(buildNoticeCard(date, title, content, false));
-    }
+    if (target) target.appendChild(buildNoticeCard(row[0], row[1], row[2], false));
   });
 
-  rows.slice(0, 3).forEach(row => {
-    const [date, title, content] = row;
-    if (homeTarget) {
-      homeTarget.appendChild(buildNoticeCard(date, title, content, true));
-    }
+  (homeRows.length ? homeRows : rows.slice(0,3)).forEach(row => {
+    if (homeTarget) homeTarget.appendChild(buildNoticeCard(row[0], row[1], row[2], true));
   });
 }
 
