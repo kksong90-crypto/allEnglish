@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.0.2-CONTENT-NATIVE-STAGING" />
+  <meta name="allbarun-student-version" content="6.0.3-NOTICE-DEDUP-STAGING" />
 
   <title>All바른 English v6.0.2 STAGING</title>
-  <meta name="allbarun-student-api-version" content="6.0.2-CONTENT-NATIVE-STAGING" />
+  <meta name="allbarun-student-api-version" content="6.0.3-NOTICE-DEDUP-STAGING" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4967,8 +4967,8 @@ let appContentPromise = null;
 let studentContentPromise = null;
 let studentContentPayload = null;
 let currentPopupSignature = "";
-const STUDENT_CONTENT_CACHE_KEY = "allbarun-v6.0.2-content-cache";
-const STUDENT_POPUP_HIDE_KEY = "allbarun-v6.0.2-popup-hide";
+const STUDENT_CONTENT_CACHE_KEY = "allbarun-v6.0.3-content-cache";
+const STUDENT_POPUP_HIDE_KEY = "allbarun-v6.0.3-popup-hide";
 
 async function fetchAppContentSheet() {
   if (!appContentPromise) {
@@ -5850,39 +5850,66 @@ ${escapeHtml(content)}`;
       return card;
     }
 
+    let noticeLoadSequence = 0;
+    function dedupeStudentNotices(items) {
+      const map = new Map();
+      (items || []).forEach(item => {
+        const date = cleanDate(item.date || "");
+        const title = String(item.title || "").trim().replace(/\s+/g, " ");
+        const key = `${date}|${title}`.toLowerCase();
+        if (!key.replace(/\|/g, "")) return;
+        const current = map.get(key);
+        if (!current || String(item.body || "").length > String(current.body || "").length) map.set(key, item);
+      });
+      return [...map.values()];
+    }
+
     async function loadNotice() {
-  const target = document.getElementById("notice-content");
-  const homeTarget = document.getElementById("home-notice-content");
-  if (target) target.innerHTML = "";
-  if (homeTarget) homeTarget.innerHTML = "";
+      const requestId = ++noticeLoadSequence;
+      const target = document.getElementById("notice-content");
+      const homeTarget = document.getElementById("home-notice-content");
 
-  let payload = studentContentPayload;
-  try {
-    if (!payload) payload = await fetchStudentContent(false);
-    studentContentPayload = payload;
-  } catch (err) {
-    console.warn("CoreDB 공지사항을 불러오지 못했습니다.", err);
-    payload = null;
-  }
+      let payload = studentContentPayload;
+      try {
+        if (!payload) payload = await fetchStudentContent(false);
+        if (requestId !== noticeLoadSequence) return;
+        studentContentPayload = payload;
+      } catch (err) {
+        if (requestId !== noticeLoadSequence) return;
+        console.warn("CoreDB 공지사항을 불러오지 못했습니다.", err);
+        payload = null;
+      }
 
-  const rows = (payload?.notices || []).map(item => [item.date, item.title, item.body]);
-  const homeRows = (payload?.homeNotices || []).map(item => [item.date, item.title, item.body]);
+      const notices = dedupeStudentNotices(payload?.notices || []);
+      const homeNotices = dedupeStudentNotices(payload?.homeNotices || []);
 
-  if (!rows.length) {
-    const empty = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
-    if (target) target.innerHTML = empty;
-    if (homeTarget) homeTarget.innerHTML = empty;
-    return;
-  }
+      if (!notices.length) {
+        const emptyHtml = "<div class='card empty-card'>등록된 공지사항이 없습니다.</div>";
+        if (target) target.innerHTML = emptyHtml;
+        if (homeTarget) homeTarget.innerHTML = emptyHtml;
+        return;
+      }
 
-  rows.forEach(row => {
-    if (target) target.appendChild(buildNoticeCard(row[0], row[1], row[2], false));
-  });
+      // 한 번에 대입해 여러 비동기 호출이 겹쳐도 카드가 중복 누적되지 않게 합니다.
+      if (target) {
+        target.innerHTML = notices.map(item => `
+          <div class="card notice-card">📅 ${escapeHtml(cleanDate(item.date))}
+<b>${escapeHtml(item.title || "")}</b>
+${escapeHtml(item.body || "")}</div>
+        `).join("");
+      }
 
-  (homeRows.length ? homeRows : rows.slice(0,3)).forEach(row => {
-    if (homeTarget) homeTarget.appendChild(buildNoticeCard(row[0], row[1], row[2], true));
-  });
-}
+      const previewRows = homeNotices.length ? homeNotices : notices.slice(0, 3);
+      if (homeTarget) {
+        homeTarget.innerHTML = previewRows.map(item => `
+          <div class="home-notice-card">
+            <span class="home-notice-date">📅 ${escapeHtml(cleanDate(item.date))}</span>
+            <span class="home-notice-title">${escapeHtml(item.title || "")}</span>
+            <div>${formatMultilineHtml(item.body || "")}</div>
+          </div>
+        `).join("");
+      }
+    }
 
 async function fetchExamClasses() {
   const result = await apiGet({
