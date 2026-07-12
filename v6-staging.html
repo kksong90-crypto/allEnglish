@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.0.3-NOTICE-DEDUP-STAGING" />
+  <meta name="allbarun-student-version" content="6.0.4-HOME-NOTICE-2-STAGING" />
 
-  <title>All바른 English v6.0.2 STAGING</title>
+  <title>All바른 English v6.0.4 STAGING</title>
   <meta name="allbarun-student-api-version" content="6.0.3-NOTICE-DEDUP-STAGING" />
 
   <!-- PWA / Icon -->
@@ -5899,7 +5899,7 @@ ${escapeHtml(item.body || "")}</div>
         `).join("");
       }
 
-      const previewRows = homeNotices.length ? homeNotices : notices.slice(0, 3);
+      const previewRows = (homeNotices.length ? homeNotices : notices).slice(0, 2);
       if (homeTarget) {
         homeTarget.innerHTML = previewRows.map(item => `
           <div class="home-notice-card">
