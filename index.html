@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.0.4-COREDB-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.1.0-STUDENT-REMODEL-PRODUCTION" />
 
   <title>All바른 English</title>
-  <meta name="allbarun-student-api-version" content="6.0.3-COREDB" />
+  <meta name="allbarun-student-api-version" content="6.1.0-COREDB-SCHEDULE" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4308,6 +4308,14 @@ body.dark .retest-admin-memo {
     grid-template-columns: 1fr;
   }
 }
+
+
+/************************************************************
+ * v6.1.0 내 학습일정 리모델링
+ ************************************************************/
+.home-learning-panel{margin-top:1em;padding:1.05em;border-radius:22px;background:rgba(255,255,255,.94);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow)}
+.home-learning-content{display:grid;gap:.72em}.schedule-control-card .schedule-hero-text{padding:.9em;border-radius:16px;background:#f4fbf8;border:1px solid var(--brand-line);color:var(--brand-text);line-height:1.55;margin-bottom:.85em}.schedule-range-buttons button.active-range{background:var(--brand-dark,#24534a)!important}.schedule-summary-card{padding:1em;border-radius:20px;background:linear-gradient(135deg,#fff,#f4fbf8);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow-soft);margin:.9em 0}.schedule-card-list{display:grid;gap:.9em}.schedule-day-card{border:1px solid var(--brand-line);border-radius:22px;background:#fff;box-shadow:var(--brand-shadow-soft);overflow:hidden}.schedule-day-card.today{border-color:#8fc7b8;box-shadow:0 10px 24px rgba(53,111,99,.15)}.schedule-day-card.closed{background:#f8f8f8}.schedule-day-head{display:flex;justify-content:space-between;gap:.7em;align-items:flex-start;padding:1em;background:#f4fbf8;border-bottom:1px solid var(--brand-line)}.schedule-day-title{font-size:1.15em;font-weight:950;color:var(--brand-dark)}.schedule-day-meta{margin-top:.18em;color:var(--brand-muted);font-weight:800;font-size:.88em}.schedule-day-badges{display:flex;gap:.35em;flex-wrap:wrap;justify-content:flex-end}.schedule-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:.25em .65em;border-radius:999px;background:#eaf5f1;color:var(--brand-dark);border:1px solid #bdd2cc;font-size:.82em;font-weight:950;white-space:nowrap}.schedule-pill.today{background:#fff4d7;border-color:#f3d17d;color:#7c5200}.schedule-pill.closed{background:#fdebea;border-color:#f2c3c0;color:#9a2c28}.schedule-day-body{padding:.9em 1em 1em;display:grid;gap:.62em}.schedule-item{display:grid;grid-template-columns:112px minmax(0,1fr);gap:.75em;align-items:start;padding:.72em .78em;border-radius:16px;background:#fbfdfc;border:1px solid #e4efeb}.schedule-item-label{color:var(--brand-dark);font-weight:950}.schedule-item-value{color:var(--brand-text);line-height:1.5;white-space:pre-line;word-break:keep-all}.schedule-result-box{margin-top:.2em;padding:.74em;border-radius:15px;background:#eef8f1;border:1px solid #c9e6d3;line-height:1.55}.schedule-empty{text-align:center;padding:1.2em;color:var(--brand-muted)}.home-schedule-card{margin:0}.home-schedule-date{color:var(--brand-muted);font-size:.9em;font-weight:900;margin-bottom:.3em}.home-schedule-title{color:var(--brand-dark);font-size:1.12em;font-weight:950;margin-bottom:.45em}.home-schedule-lines{display:grid;gap:.3em;line-height:1.45}body.dark .home-learning-panel,body.dark .schedule-summary-card,body.dark .schedule-day-card,body.dark .schedule-item,body.dark .schedule-control-card .schedule-hero-text,body.dark .home-schedule-card{background:#1f2a27!important;color:#eef8f5!important;border-color:#35514a!important}body.dark .schedule-day-head{background:#182522!important;border-color:#35514a!important}body.dark .schedule-day-title,body.dark .schedule-item-label,body.dark .schedule-item-value,body.dark .home-schedule-title{color:#f6fffc!important}body.dark .schedule-day-meta,body.dark .home-schedule-date{color:#cfe1db!important}body.dark .schedule-result-box{background:#183423!important;border-color:#3f7a5e!important;color:#e6fff0!important}@media(max-width:760px){.schedule-item{grid-template-columns:1fr;gap:.22em}.schedule-day-head{flex-direction:column}.schedule-day-badges{justify-content:flex-start}}
+
 </style>
 
 </head>
@@ -4422,7 +4430,7 @@ body.dark .retest-admin-memo {
       <div class="full-menu-grid">
         <button onclick="goTabFromFullMenu('home')"><span>🏠</span><b>홈</b></button>
         <button onclick="goTabFromFullMenu('notice')"><span>📢</span><b>공지사항</b></button>
-        <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>시험정보</b></button>
+        <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>학습일정</b></button>
         <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
         <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
@@ -4459,7 +4467,7 @@ body.dark .retest-admin-memo {
   <nav class="app-tabs">
     <button data-tab="home" onclick="showTab('home')" class="active">홈</button>
     <button data-tab="notice" onclick="showTab('notice')">공지사항</button>
-    <button data-tab="exam" onclick="showTab('exam')">시험정보</button>
+    <button data-tab="exam" onclick="showTab('exam')">학습일정</button>
     <button data-tab="retest" onclick="showTab('retest')">재시험</button>
     <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
@@ -4490,6 +4498,19 @@ body.dark .retest-admin-memo {
         <div class="card empty-card">공지사항을 불러오는 중입니다.</div>
       </div>
     </div>
+
+    <div class="home-learning-panel">
+      <div class="home-panel-header">
+        <div>
+          <div class="home-panel-kicker">다음 수업 준비</div>
+          <h2>내 학습일정</h2>
+        </div>
+        <button class="home-panel-action" onclick="showTab('exam')">일정 보기</button>
+      </div>
+      <div id="home-learning-content" class="home-learning-content">
+        <div class="card empty-card">로그인 후 내 학습일정을 확인할 수 있습니다.</div>
+      </div>
+    </div>
   </section>
 
   <!-- 공지사항 -->
@@ -4498,25 +4519,26 @@ body.dark .retest-admin-memo {
     <div id="notice-content"></div>
   </section>
 
-  <!-- 시험정보 -->
+  <!-- 내 학습일정 -->
   <section id="exam">
-    <div class="section-title">📝 시험정보</div>
+    <div class="section-title">📅 내 학습일정</div>
 
-    <div class="control-card">
-      <div class="control-grid">
-        <div>
-          <label class="field-label" for="exam-date">시험 날짜</label>
-          <input type="date" id="exam-date" />
-        </div>
-        <div>
-          <label class="field-label" for="class-select">반 선택</label>
-          <select id="class-select"></select>
-        </div>
+    <div class="control-card schedule-control-card">
+      <div class="schedule-hero-text">
+        <b>반 선택 없이, 로그인한 학생의 현재 반과 시험그룹 기준으로 자동 표시됩니다.</b><br>
+        단어 범위뿐 아니라 Quiz, 듣기 숙제, 일반 숙제, 수업 TEST, 수업 후 결과까지 함께 보여줍니다.
+      </div>
+      <div class="button-row schedule-range-buttons">
+        <button id="schedule-range-today" class="vocab-btn secondary" onclick="loadMySchedule('today', true)">오늘</button>
+        <button id="schedule-range-week" class="vocab-btn" onclick="loadMySchedule('week', true)">이번 주</button>
+        <button id="schedule-range-three" class="vocab-btn secondary" onclick="loadMySchedule('three', true)">3주 보기</button>
+      </div>
+      <div class="button-row">
+        <button class="vocab-btn secondary" onclick="refreshExamInfo()">학습일정 새로고침</button>
       </div>
     </div>
-<div class="button-row">
-  <button class="vocab-btn secondary" onclick="refreshExamInfo()">시험정보 새로고침</button>
-</div>
+
+    <div id="schedule-summary-view"></div>
     <div id="exam-table"></div>
   </section>
 
@@ -4719,7 +4741,7 @@ body.dark .retest-admin-memo {
 
     <button data-tab="exam" onclick="showTab('exam')">
       <span class="bottom-icon">📅</span>
-      <span>시험정보</span>
+      <span>학습일정</span>
     </button>
 
     <button data-tab="vocab" onclick="showTab('vocab')" class="bottom-logo-button">
@@ -4967,8 +4989,8 @@ let appContentPromise = null;
 let studentContentPromise = null;
 let studentContentPayload = null;
 let currentPopupSignature = "";
-const STUDENT_CONTENT_CACHE_KEY = "allbarun-v6.0.3-content-cache";
-const STUDENT_POPUP_HIDE_KEY = "allbarun-v6.0.3-popup-hide";
+const STUDENT_CONTENT_CACHE_KEY = "allbarun-v6.1.0-content-cache";
+const STUDENT_POPUP_HIDE_KEY = "allbarun-v6.1.0-popup-hide";
 
 async function fetchAppContentSheet() {
   if (!appContentPromise) {
@@ -5468,6 +5490,7 @@ function applyPointGuide(textMap) {
   }).catch(() => loadNotice());
   Promise.resolve(loadFavoriteFolders()).then(renderFolderControls);
   refreshMyPointSummary();
+  loadHomeLearningPreview(false);
   restorePointTestDraft();
 
   if (document.getElementById("favorites").classList.contains("active")) showFavorites();
@@ -5899,7 +5922,16 @@ ${escapeHtml(item.body || "")}</div>
         `).join("");
       }
 
-      const previewRows = (homeNotices.length ? homeNotices : notices).slice(0, 2);
+      const homePreviewPool = [];
+      const homePreviewKeys = new Set();
+      [...homeNotices, ...notices].forEach(item => {
+        const key = `${cleanDate(item.date || "")}|${String(item.title || "").trim().replace(/\s+/g, " ")}`.toLowerCase();
+        if (!homePreviewKeys.has(key)) {
+          homePreviewKeys.add(key);
+          homePreviewPool.push(item);
+        }
+      });
+      const previewRows = homePreviewPool.slice(0, 2);
       if (homeTarget) {
         homeTarget.innerHTML = previewRows.map(item => `
           <div class="home-notice-card">
@@ -5911,181 +5943,79 @@ ${escapeHtml(item.body || "")}</div>
       }
     }
 
-async function fetchExamClasses() {
-  const result = await apiGet({
-    action: "getExamClasses"
-  });
+let myScheduleLoadedOnce = false;
+let myScheduleCurrentRange = "week";
+let myScheduleLastPayload = null;
 
-  if (!result.success) {
-    throw new Error(result.message || "반 목록을 불러오지 못했습니다.");
-  }
-
-  return result.classes || [];
-}
-
-async function fetchExamInfo(date, className) {
-  const result = await apiGet({
-    action: "getExamInfo",
-    date,
-    className
-  });
-
-  if (!result.success) {
-    throw new Error(result.message || "시험정보를 불러오지 못했습니다.");
-  }
-
+async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
+  const result = await apiPost({ action: "getMyLearningSchedule", range, forceRefresh: forceRefresh ? "Y" : "" });
+  if (!result.success) throw new Error(result.message || "내 학습일정을 불러오지 못했습니다.");
   return result;
 }
-
-function attachExamListenersOnce() {
-  if (examListenersAttached) return;
-
-  const dateInput = document.getElementById("exam-date");
-  const classSelect = document.getElementById("class-select");
-
-  if (dateInput) {
-    dateInput.addEventListener("change", loadExam);
-  }
-
-  if (classSelect) {
-    classSelect.addEventListener("change", loadExam);
-  }
-
-  examListenersAttached = true;
+function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
+function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
+function scheduleResultHtml(result) {
+  if (!result) return "";
+  const lines = [];
+  if (result.attendance) lines.push(`출결: ${escapeHtml(result.attendance)}`);
+  if (result.vocabScore) lines.push(`단어: ${escapeHtml(result.vocabScore)}`);
+  if (result.recordingMissing) lines.push(`녹음 미제출`);
+  if (result.quizResult) lines.push(`Quiz: ${escapeHtml(result.quizResult)}`);
+  if (result.listeningScore) lines.push(`Listening: ${escapeHtml(result.listeningScore)}`);
+  if (result.lessonTestResult) lines.push(`TEST: ${escapeHtml(result.lessonTestResult)}`);
+  if (result.memo) lines.push(`메모: ${escapeHtml(result.memo)}`);
+  return lines.length ? `<div class="schedule-result-box"><b>수업 결과</b><br>${lines.join("<br>")}</div>` : "";
 }
-    
-    async function loadClassDropdown(force = false) {
-  if (examClassesLoadedOnce && !force) return;
-
-  const select = document.getElementById("class-select");
-  if (!select) return;
-
-  select.innerHTML = `<option value="">반 목록을 불러오는 중...</option>`;
-
-  try {
-    const classes = await fetchExamClasses();
-
-    select.innerHTML =
-      `<option value="">반 선택</option>` +
-      classes
-        .map(className => {
-          return `<option value="${escapeHtml(className)}">${escapeHtml(className)}</option>`;
-        })
-        .join("");
-
-    examClassesLoadedOnce = true;
-
-  } catch (err) {
-    console.error(err);
-    select.innerHTML = `<option value="">반 목록 불러오기 실패</option>`;
-  }
+function renderScheduleDay(day) {
+  const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
+  if (day.closed) return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body"><div class="schedule-item"><div class="schedule-item-label">🏖️ 일정</div><div class="schedule-item-value">${formatMultilineHtml(day.closure?.memo || "학원 일정으로 수업이 없습니다.")}</div></div></div></div>`;
+  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", day.listening?.homework), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice), scheduleResultHtml(day.result)].filter(Boolean).join("");
+  return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
 }
-
-    async function loadExam() {
-  const dateInput = document.getElementById("exam-date");
-  const classSelect = document.getElementById("class-select");
-  const table = document.getElementById("exam-table");
-
-  if (!dateInput || !classSelect || !table) return;
-
-  const date = dateInput.value;
-  const className = classSelect.value;
-
-  if (!date || !className) {
-    table.innerHTML = "<div class='card empty-card'>시험 날짜와 반을 선택하세요.</div>";
-    return;
-  }
-
-  table.innerHTML = "<div class='card'>시험정보를 불러오는 중입니다...</div>";
-
-  try {
-    const result = await fetchExamInfo(date, className);
-    const headers = result.headers || [];
-    const rows = result.rows || [];
-
-    if (rows.length === 0) {
-      table.innerHTML = "<div class='card empty-card'>선택한 날짜와 반에 해당하는 시험정보가 없습니다.</div>";
-      return;
-    }
-
-    let html =
-      "<table><tr>" +
-      headers
-        .map(h => `<th>${escapeHtml(h)}</th>`)
-        .join("") +
-      "</tr>";
-
-    rows.forEach(row => {
-      html +=
-        "<tr>" +
-        row
-          .map((cell, index) => {
-            const value = index === 1 ? cleanDate(cell) : cell;
-            return `<td>${escapeHtml(value)}</td>`;
-          })
-          .join("") +
-        "</tr>";
-    });
-
-    html += "</table>";
-
-    table.innerHTML =
-      `<div class="mini-card"><b>검색 결과 ${rows.length}건</b></div>` +
-      html;
-
-  } catch (err) {
-    console.error(err);
-    table.innerHTML = `
-      <div class='card'>
-        시험정보를 불러오지 못했습니다.<br><br>
-        <span class="muted">${escapeHtml(err.message || String(err))}</span>
-      </div>
-    `;
-  }
+function renderMySchedule(payload) {
+  const target = document.getElementById("exam-table");
+  const summary = document.getElementById("schedule-summary-view");
+  if (!target) return;
+  const days = payload.days || [];
+  const visibleDays = days.filter(day => day.hasPlan || day.isToday);
+  const className = payload.student?.className || currentUser?.className || "";
+  if (summary) summary.innerHTML = `<div class="schedule-summary-card"><b>${escapeHtml(payload.student?.name || currentUser?.name || "학생")}</b>${className ? ` · ${escapeHtml(className)}` : ""}<br><span class="muted">${escapeHtml(payload.startDate || "")} ~ ${escapeHtml(payload.endDate || "")} 기준 학습일정입니다.</span></div>`;
+  target.innerHTML = visibleDays.length ? `<div class="schedule-card-list">${visibleDays.map(renderScheduleDay).join("")}</div>` : `<div class="card empty-card">표시할 학습일정이 없습니다.</div>`;
 }
-
-    async function loadExamTabOnce(force = false) {
-  if (examClassesLoadedOnce && !force) {
-    attachExamListenersOnce();
-    return;
-  }
-
-  const table = document.getElementById("exam-table");
-
-  if (table) {
-    table.innerHTML = "<div class='card'>시험정보 준비 중입니다...</div>";
-  }
-
-  await loadClassDropdown(force);
-  attachExamListenersOnce();
-
-  if (table) {
-    table.innerHTML = "<div class='card empty-card'>시험 날짜와 반을 선택하세요.</div>";
-  }
+function renderHomeLearningPreview(payload) {
+  const target = document.getElementById("home-learning-content");
+  if (!target) return;
+  const day = payload?.nextPlan || (payload?.visibleDays || [])[0] || null;
+  if (!day) { target.innerHTML = `<div class="home-notice-card home-schedule-card">다가오는 학습일정이 없습니다.</div>`; return; }
+  const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
+  const lines = [];
+  if (day.closed) lines.push(`🏖️ ${escapeHtml(day.closure?.type || "휴원")}`);
+  if (vocabText) lines.push(`📘 ${escapeHtml(vocabText)}`);
+  if (day.quiz?.scope) lines.push(`🧩 ${escapeHtml(day.quiz.scope)}`);
+  if (day.listening?.homework) lines.push(`🎧 ${escapeHtml(day.listening.homework)}`);
+  if (day.homework?.text) lines.push(`📚 ${escapeHtml(day.homework.text)}`);
+  if (day.lessonTest?.scope) lines.push(`📝 ${escapeHtml(day.lessonTest.scope)}`);
+  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">표시할 준비사항이 없습니다.</div>`}</div></div>`;
 }
-
-async function refreshExamInfo() {
-  const dateInput = document.getElementById("exam-date");
-  const classSelect = document.getElementById("class-select");
-
-  const selectedDate = dateInput ? dateInput.value : "";
-  const selectedClass = classSelect ? classSelect.value : "";
-
-  examClassesLoadedOnce = false;
-
-  await loadExamTabOnce(true);
-
-  if (dateInput && selectedDate) {
-    dateInput.value = selectedDate;
-  }
-
-  if (classSelect && selectedClass) {
-    classSelect.value = selectedClass;
-  }
-
-  await loadExam();
+async function loadHomeLearningPreview(forceRefresh = false) {
+  if (!currentUser || !currentUser.token) return;
+  const target = document.getElementById("home-learning-content");
+  if (target) target.innerHTML = `<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>`;
+  try { const payload = await fetchMyLearningSchedule("upcoming", forceRefresh); renderHomeLearningPreview(payload); }
+  catch (err) { console.error(err); if (target) target.innerHTML = `<div class="card empty-card">학습일정을 불러오지 못했습니다.<br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`; }
 }
-    
+function setScheduleRangeActive(range) { ["today", "week", "three"].forEach(key => { const btn = document.getElementById("schedule-range-" + key); if (btn) btn.classList.toggle("active-range", key === range); }); }
+async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
+  myScheduleCurrentRange = range;
+  setScheduleRangeActive(range);
+  const target = document.getElementById("exam-table");
+  if (target) target.innerHTML = `<div class="card">내 학습일정을 불러오는 중입니다...</div>`;
+  try { const payload = await fetchMyLearningSchedule(range, forceRefresh); myScheduleLastPayload = payload; renderMySchedule(payload); renderHomeLearningPreview(payload); myScheduleLoadedOnce = true; }
+  catch (err) { console.error(err); if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`; }
+}
+async function loadExamTabOnce(force = false) { if (myScheduleLoadedOnce && !force) { renderMySchedule(myScheduleLastPayload || { days: [] }); return; } await loadMySchedule(myScheduleCurrentRange || "week", force); }
+async function refreshExamInfo() { await loadMySchedule(myScheduleCurrentRange || "week", true); }
+
 function isRetestAdmin() {
   return !!(
     currentUser &&
@@ -7986,10 +7916,10 @@ function renderPointResult(result) {
 
   try {
     // 첫 화면에 필요한 최소 데이터만 먼저 불러옵니다.
-    await Promise.all([
-      loadHomeText(),
-      loadNotice()
-    ]);
+    // 최신 CoreDB 콘텐츠를 먼저 받은 뒤 공지사항을 그립니다.
+    // 이전 캐시를 먼저 화면에 그리는 경쟁 상태를 방지합니다.
+    await loadHomeText();
+    await loadNotice();
 
 
     setTimeout(() => {
