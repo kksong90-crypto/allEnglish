@@ -5947,9 +5947,40 @@ let myScheduleLoadedOnce = false;
 let myScheduleCurrentRange = "week";
 let myScheduleLastPayload = null;
 
+function normalizeScheduleRange(range) {
+  const text = String(range || "week").toLowerCase();
+  if (["today", "week", "three", "upcoming"].includes(text)) return text;
+  if (["3week", "3weeks", "21"].includes(text)) return "three";
+  return "week";
+}
+
+function scheduleRangeDays(range) {
+  const normalized = normalizeScheduleRange(range);
+  if (normalized === "today") return 1;
+  if (normalized === "three") return 21;
+  if (normalized === "upcoming") return 7;
+  return 7;
+}
+
+function scheduleRangeLabel(range) {
+  const normalized = normalizeScheduleRange(range);
+  if (normalized === "today") return "오늘";
+  if (normalized === "three") return "3주 보기";
+  if (normalized === "upcoming") return "다가오는 일정";
+  return "이번 주";
+}
+
 async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
-  const result = await apiPost({ action: "getMyLearningSchedule", range, forceRefresh: forceRefresh ? "Y" : "" });
+  const normalized = normalizeScheduleRange(range);
+  const params = {
+    action: "getMyLearningSchedule",
+    range: normalized,
+    days: String(scheduleRangeDays(normalized)),
+    forceRefresh: forceRefresh ? "Y" : ""
+  };
+  const result = await apiPost(params);
   if (!result.success) throw new Error(result.message || "내 학습일정을 불러오지 못했습니다.");
+  result.range = normalizeScheduleRange(result.range || normalized);
   return result;
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
@@ -5976,11 +6007,38 @@ function renderMySchedule(payload) {
   const target = document.getElementById("exam-table");
   const summary = document.getElementById("schedule-summary-view");
   if (!target) return;
-  const days = payload.days || [];
-  const visibleDays = days.filter(day => day.hasPlan || day.isToday);
-  const className = payload.student?.className || currentUser?.className || "";
-  if (summary) summary.innerHTML = `<div class="schedule-summary-card"><b>${escapeHtml(payload.student?.name || currentUser?.name || "학생")}</b>${className ? ` · ${escapeHtml(className)}` : ""}<br><span class="muted">${escapeHtml(payload.startDate || "")} ~ ${escapeHtml(payload.endDate || "")} 기준 학습일정입니다.</span></div>`;
-  target.innerHTML = visibleDays.length ? `<div class="schedule-card-list">${visibleDays.map(renderScheduleDay).join("")}</div>` : `<div class="card empty-card">표시할 학습일정이 없습니다.</div>`;
+
+  const range = normalizeScheduleRange(payload?.range || myScheduleCurrentRange || "week");
+  const days = Array.isArray(payload?.days) ? payload.days : [];
+  const serverVisibleDays = Array.isArray(payload?.visibleDays) ? payload.visibleDays : [];
+
+  let visibleDays = [];
+  if (range === "today") {
+    visibleDays = days.filter(day => day.isToday || day.date === payload?.today);
+    if (!visibleDays.length && days.length) visibleDays = [days[0]];
+  } else {
+    // v6.2.4: 이번 주/3주 보기에서는 빈 날짜도 보여야 버튼이 실제로 확장된 것이 보입니다.
+    // 일정이 없는 날은 “표시할 학습일정이 없습니다” 카드로 보여 줍니다.
+    visibleDays = days.length ? days : serverVisibleDays;
+  }
+
+  const className = payload?.student?.className || currentUser?.className || "";
+  const expectedDays = scheduleRangeDays(range);
+  const isShortResult = range !== "today" && days.length > 0 && days.length < expectedDays;
+
+  if (summary) {
+    summary.innerHTML = `
+      <div class="schedule-summary-card">
+        <b>${escapeHtml(payload?.student?.name || currentUser?.name || "학생")}</b>${className ? ` · ${escapeHtml(className)}` : ""}<br>
+        <span class="muted">${escapeHtml(scheduleRangeLabel(range))} · ${escapeHtml(payload?.startDate || "")} ~ ${escapeHtml(payload?.endDate || "")} 기준 학습일정입니다.</span>
+        ${isShortResult ? `<br><span class="result-wrong">서버가 ${days.length}일치만 반환했습니다. Student API 최신 배포 상태를 확인하세요.</span>` : ""}
+      </div>
+    `;
+  }
+
+  target.innerHTML = visibleDays.length
+    ? `<div class="schedule-card-list">${visibleDays.map(renderScheduleDay).join("")}</div>`
+    : `<div class="card empty-card">표시할 학습일정이 없습니다.</div>`;
 }
 function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
@@ -6004,16 +6062,62 @@ async function loadHomeLearningPreview(forceRefresh = false) {
   try { const payload = await fetchMyLearningSchedule("upcoming", forceRefresh); renderHomeLearningPreview(payload); }
   catch (err) { console.error(err); if (target) target.innerHTML = `<div class="card empty-card">학습일정을 불러오지 못했습니다.<br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`; }
 }
-function setScheduleRangeActive(range) { ["today", "week", "three"].forEach(key => { const btn = document.getElementById("schedule-range-" + key); if (btn) btn.classList.toggle("active-range", key === range); }); }
-async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
-  myScheduleCurrentRange = range;
-  setScheduleRangeActive(range);
-  const target = document.getElementById("exam-table");
-  if (target) target.innerHTML = `<div class="card">내 학습일정을 불러오는 중입니다...</div>`;
-  try { const payload = await fetchMyLearningSchedule(range, forceRefresh); myScheduleLastPayload = payload; renderMySchedule(payload); renderHomeLearningPreview(payload); myScheduleLoadedOnce = true; }
-  catch (err) { console.error(err); if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`; }
+function setScheduleRangeActive(range) {
+  const normalized = normalizeScheduleRange(range);
+  ["today", "week", "three"].forEach(key => {
+    const btn = document.getElementById("schedule-range-" + key);
+    if (!btn) return;
+    const active = key === normalized;
+    btn.classList.toggle("active-range", active);
+    btn.classList.toggle("secondary", !active);
+    btn.disabled = active && Boolean(document.getElementById("exam-table")?.dataset?.loading);
+  });
 }
-async function loadExamTabOnce(force = false) { if (myScheduleLoadedOnce && !force) { renderMySchedule(myScheduleLastPayload || { days: [] }); return; } await loadMySchedule(myScheduleCurrentRange || "week", force); }
+
+function setScheduleButtonsDisabled(disabled) {
+  ["today", "week", "three"].forEach(key => {
+    const btn = document.getElementById("schedule-range-" + key);
+    if (btn) btn.disabled = disabled;
+  });
+}
+
+async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
+  const normalized = normalizeScheduleRange(range);
+  myScheduleCurrentRange = normalized;
+  setScheduleRangeActive(normalized);
+
+  const target = document.getElementById("exam-table");
+  if (target) {
+    target.dataset.loading = "Y";
+    target.innerHTML = `<div class="card">${escapeHtml(scheduleRangeLabel(normalized))} 학습일정을 불러오는 중입니다...</div>`;
+  }
+  setScheduleButtonsDisabled(true);
+
+  try {
+    const payload = await fetchMyLearningSchedule(normalized, forceRefresh);
+    myScheduleLastPayload = payload;
+    renderMySchedule(payload);
+    renderHomeLearningPreview(payload);
+    myScheduleLoadedOnce = true;
+  } catch (err) {
+    console.error(err);
+    if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
+  } finally {
+    if (target) delete target.dataset.loading;
+    setScheduleButtonsDisabled(false);
+    setScheduleRangeActive(normalized);
+  }
+}
+
+async function loadExamTabOnce(force = false) {
+  if (myScheduleLoadedOnce && !force) {
+    setScheduleRangeActive(myScheduleCurrentRange || "week");
+    renderMySchedule(myScheduleLastPayload || { range: myScheduleCurrentRange || "week", days: [] });
+    return;
+  }
+  await loadMySchedule(myScheduleCurrentRange || "week", force);
+}
+
 async function refreshExamInfo() { await loadMySchedule(myScheduleCurrentRange || "week", true); }
 
 function isRetestAdmin() {
