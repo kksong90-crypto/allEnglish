@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.2.1-LISTENING-TYPE-DISPLAY-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.2.2-SCHEDULE-STABILITY-PRODUCTION" />
 
   <title>All바른 English</title>
-  <meta name="allbarun-student-api-version" content="6.2.1-COREDB-LISTENING-TYPE" />
+  <meta name="allbarun-student-api-version" content="6.2.0-COREDB-LEARNING-PLAN" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4529,9 +4529,9 @@ body.dark .retest-admin-memo {
         단어 범위뿐 아니라 Quiz, 듣기 숙제, 일반 숙제, 수업 TEST, 수업 후 결과까지 함께 보여줍니다.
       </div>
       <div class="button-row schedule-range-buttons">
-        <button id="schedule-range-today" class="vocab-btn secondary" onclick="loadMySchedule('today', true)">오늘</button>
-        <button id="schedule-range-week" class="vocab-btn" onclick="loadMySchedule('week', true)">이번 주</button>
-        <button id="schedule-range-three" class="vocab-btn secondary" onclick="loadMySchedule('three', true)">3주 보기</button>
+        <button id="schedule-range-today" class="vocab-btn secondary" onclick="loadMySchedule('today', false)">오늘</button>
+        <button id="schedule-range-week" class="vocab-btn" onclick="loadMySchedule('week', false)">이번 주</button>
+        <button id="schedule-range-three" class="vocab-btn secondary" onclick="loadMySchedule('three', false)">3주 보기</button>
       </div>
       <div class="button-row">
         <button class="vocab-btn secondary" onclick="refreshExamInfo()">학습일정 새로고침</button>
@@ -4834,6 +4834,11 @@ async function fetchSheet(sheetName) {
 
     let examClassesLoadedOnce = false;
     let examListenersAttached = false;
+
+    // v6.2.2: 로그인 사용자 변경과 늦게 도착한 API 응답을 구분한다.
+    let studentSessionEpoch = 0;
+    let myScheduleRequestSerial = 0;
+    let homeScheduleRequestSerial = 0;
 
     
     /************************************************************
@@ -5183,9 +5188,9 @@ function applyPointGuide(textMap) {
   applyPointGuide(homeTextMap);
 }
 
-    async function loadHomeText() {
+    async function loadHomeText(forceRefresh = false) {
   try {
-    const payload = await fetchStudentContent(true);
+    const payload = await fetchStudentContent(forceRefresh);
     applyStudentContentPayload(payload);
     localStorage.setItem(STUDENT_CONTENT_CACHE_KEY, JSON.stringify(payload));
     return payload;
@@ -5324,6 +5329,7 @@ function applyPointGuide(textMap) {
         return result;
       }
 
+      resetUserScopedState();
       clearUserSession();
       currentUser = null;
       appContentPromise = null;
@@ -5428,17 +5434,52 @@ function applyPointGuide(textMap) {
     }
 
 
+    function resetUserScopedState() {
+      studentSessionEpoch += 1;
+      myScheduleRequestSerial += 1;
+      homeScheduleRequestSerial += 1;
+
+      myScheduleLoadedOnce = false;
+      myScheduleCurrentRange = 'week';
+      myScheduleLastPayload = null;
+      vocabLoadedOnce = false;
+      retestLoadedOnce = false;
+      pointLoadedOnce = false;
+      examClassesLoadedOnce = false;
+
+      favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
+      currentFavoriteFolder = DEFAULT_FOLDER_NAME;
+      vocabData = [];
+      currentVocabWords = [];
+      wrongWords = [];
+      serverWrongWords = [];
+      currentPointTest = null;
+      studentContentPromise = null;
+      studentContentPayload = null;
+
+      const scheduleTarget = document.getElementById('exam-table');
+      const scheduleSummary = document.getElementById('schedule-summary-view');
+      const homeSchedule = document.getElementById('home-learning-content');
+      if (scheduleTarget) scheduleTarget.innerHTML = '';
+      if (scheduleSummary) scheduleSummary.innerHTML = '';
+      if (homeSchedule) homeSchedule.innerHTML = '<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>';
+    }
+
+
     /************************************************************
      *  3. 로그인 / 사용자 관리
      ************************************************************/
     function restoreLogin() {
+      let savedUser = null;
       try {
-        currentUser = getSavedUser();
+        savedUser = getSavedUser();
       } catch (err) {
-        currentUser = null;
+        savedUser = null;
       }
 
-      if (currentUser && currentUser.token) {
+      if (savedUser && savedUser.token) {
+        resetUserScopedState();
+        currentUser = savedUser;
         afterLogin();
       }
     }
@@ -5463,6 +5504,7 @@ function applyPointGuide(textMap) {
           return;
         }
 
+        resetUserScopedState();
         currentUser = {
           id: result.id,
           name: result.name,
@@ -5482,21 +5524,35 @@ function applyPointGuide(textMap) {
   document.getElementById("login-screen").style.display = "none";
   updateUserLabel();
 
+  const epoch = studentSessionEpoch;
   appContentPromise = null;
   studentContentPromise = null;
-  Promise.resolve(loadHomeText()).then(async () => {
-    await loadNotice();
-    setTimeout(loadMainPopupFromHomeText, 120);
-  }).catch(() => loadNotice());
-  Promise.resolve(loadFavoriteFolders()).then(renderFolderControls);
-  refreshMyPointSummary();
-  loadHomeLearningPreview(false);
-  restorePointTestDraft();
 
+  // 필수 일정 요청을 먼저 시작하고, 나머지 개인 API는 짧게 분산한다.
+  loadHomeLearningPreview(false);
+  Promise.resolve(loadHomeText(false)).then(async () => {
+    if (epoch !== studentSessionEpoch) return;
+    await loadNotice();
+    if (epoch === studentSessionEpoch) setTimeout(loadMainPopupFromHomeText, 120);
+  }).catch(() => { if (epoch === studentSessionEpoch) loadNotice(); });
+
+  setTimeout(() => {
+    if (epoch !== studentSessionEpoch || !currentUser || !currentUser.token) return;
+    Promise.resolve(loadFavoriteFolders()).then(() => {
+      if (epoch === studentSessionEpoch) renderFolderControls();
+    });
+  }, 250);
+
+  setTimeout(() => {
+    if (epoch === studentSessionEpoch && currentUser && currentUser.token) refreshMyPointSummary();
+  }, 500);
+
+  restorePointTestDraft();
   if (document.getElementById("favorites").classList.contains("active")) showFavorites();
 }
 
     async function logout() {
+      resetUserScopedState();
       try { if (currentUser && currentUser.token) await apiPost({ action: "logout" }); } catch (ignore) {}
       clearPointTestDraft();
       clearUserSession();
@@ -5970,6 +6026,11 @@ function scheduleRangeLabel(range) {
   return "이번 주";
 }
 
+function scheduleTransientError(error) {
+  const message = String(error && error.message ? error.message : error || '');
+  return error?.name === 'AbortError' || /Failed to fetch|NetworkError|Load failed|서버 응답 오류: 5\d\d/i.test(message);
+}
+
 async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
   const normalized = normalizeScheduleRange(range);
   const params = {
@@ -5978,10 +6039,24 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
     days: String(scheduleRangeDays(normalized)),
     forceRefresh: forceRefresh ? "Y" : ""
   };
-  const result = await apiPost(params);
-  if (!result.success) throw new Error(result.message || "내 학습일정을 불러오지 못했습니다.");
-  result.range = normalizeScheduleRange(result.range || normalized);
-  return result;
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const result = await apiPost(params, API_LONG_TIMEOUT_MS);
+      if (!result || !result.success) throw new Error(result?.message || "내 학습일정을 불러오지 못했습니다.");
+      result.range = normalizeScheduleRange(result.range || normalized);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0 && scheduleTransientError(error)) {
+        await new Promise(resolve => setTimeout(resolve, 700));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError || new Error("내 학습일정을 불러오지 못했습니다.");
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
@@ -6083,10 +6158,19 @@ function renderHomeLearningPreview(payload) {
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
+  const epoch = studentSessionEpoch;
+  const requestSerial = ++homeScheduleRequestSerial;
   const target = document.getElementById("home-learning-content");
   if (target) target.innerHTML = `<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>`;
-  try { const payload = await fetchMyLearningSchedule("upcoming", forceRefresh); renderHomeLearningPreview(payload); }
-  catch (err) { console.error(err); if (target) target.innerHTML = `<div class="card empty-card">학습일정을 불러오지 못했습니다.<br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`; }
+  try {
+    const payload = await fetchMyLearningSchedule("upcoming", forceRefresh);
+    if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
+    renderHomeLearningPreview(payload);
+  } catch (err) {
+    console.error(err);
+    if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
+    if (target) target.innerHTML = `<div class="card empty-card">학습일정을 불러오지 못했습니다.<br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
+  }
 }
 function setScheduleRangeActive(range) {
   const normalized = normalizeScheduleRange(range);
@@ -6109,6 +6193,8 @@ function setScheduleButtonsDisabled(disabled) {
 
 async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
   const normalized = normalizeScheduleRange(range);
+  const epoch = studentSessionEpoch;
+  const requestSerial = ++myScheduleRequestSerial;
   myScheduleCurrentRange = normalized;
   setScheduleRangeActive(normalized);
 
@@ -6121,14 +6207,17 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
 
   try {
     const payload = await fetchMyLearningSchedule(normalized, forceRefresh);
+    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     myScheduleLastPayload = payload;
     renderMySchedule(payload);
     renderHomeLearningPreview(payload);
     myScheduleLoadedOnce = true;
   } catch (err) {
     console.error(err);
+    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
   } finally {
+    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) delete target.dataset.loading;
     setScheduleButtonsDisabled(false);
     setScheduleRangeActive(normalized);
@@ -8032,6 +8121,7 @@ function renderPointResult(result) {
         const savedUser = getSavedUser();
 
         if (savedUser && savedUser.token) {
+          resetUserScopedState();
           currentUser = savedUser;
           afterLogin();
         }
