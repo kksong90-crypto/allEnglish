@@ -1,4 +1,4 @@
-const APP={version:'7.5.0',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'7.5.1',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2200)}
 function syncState(text,kind=''){const el=$('sync-state');el.textContent=text;el.className='pill '+kind}
