@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.2.2-SCHEDULE-STABILITY-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />
 
   <title>All바른 English</title>
   <meta name="allbarun-student-api-version" content="6.2.0-COREDB-LEARNING-PLAN" />
@@ -4525,8 +4525,8 @@ body.dark .retest-admin-memo {
 
     <div class="control-card schedule-control-card">
       <div class="schedule-hero-text">
-        <b>반 선택 없이, 로그인한 학생의 현재 반과 시험그룹 기준으로 자동 표시됩니다.</b><br>
-        단어 범위뿐 아니라 Quiz, 듣기 숙제, 일반 숙제, 수업 TEST, 수업 후 결과까지 함께 보여줍니다.
+        <b>오늘과 앞으로 준비해야 할 학습만 보여줍니다.</b><br>
+        다음 수업의 단어 범위, Quiz, 듣기 숙제, 일반 숙제, 수업 TEST와 안내를 미리 확인하세요. 지난 수업의 출결·점수·결과는 표시하지 않습니다.
       </div>
       <div class="button-row schedule-range-buttons">
         <button id="schedule-range-today" class="vocab-btn secondary" onclick="loadMySchedule('today', false)">오늘</button>
@@ -6033,10 +6033,14 @@ function scheduleTransientError(error) {
 
 async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
   const normalized = normalizeScheduleRange(range);
+  const today = getTodayString();
   const params = {
     action: "getMyLearningSchedule",
     range: normalized,
     days: String(scheduleRangeDays(normalized)),
+    fromDate: today,
+    futureOnly: "Y",
+    includeResults: "N",
     forceRefresh: forceRefresh ? "Y" : ""
   };
 
@@ -6046,7 +6050,7 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
       const result = await apiPost(params, API_LONG_TIMEOUT_MS);
       if (!result || !result.success) throw new Error(result?.message || "내 학습일정을 불러오지 못했습니다.");
       result.range = normalizeScheduleRange(result.range || normalized);
-      return result;
+      return sanitizeFuturePreparationSchedule(result, today);
     } catch (error) {
       lastError = error;
       if (attempt === 0 && scheduleTransientError(error)) {
@@ -6060,6 +6064,20 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
+function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
+  const cleanDay = day => {
+    if (!day || String(day.date || "").slice(0, 10) < today) return null;
+    const copy = { ...day };
+    delete copy.result;
+    delete copy.lessonResult;
+    delete copy.attendance;
+    return copy;
+  };
+  const days = (Array.isArray(payload?.days) ? payload.days : []).map(cleanDay).filter(Boolean);
+  const visibleDays = (Array.isArray(payload?.visibleDays) ? payload.visibleDays : []).map(cleanDay).filter(Boolean);
+  const nextPlan = cleanDay(payload?.nextPlan) || visibleDays[0] || days.find(day => day.hasPlan || day.closed) || null;
+  return { ...payload, startDate: payload?.startDate && payload.startDate > today ? payload.startDate : today, days, visibleDays, nextPlan };
+}
 function normalizeListeningTypeCode(value) {
   const type = String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
   if (["LISTENING_DICTATION", "DICTATION", "딕테이션"].includes(type)) return "LISTENING_DICTATION";
@@ -6084,23 +6102,11 @@ function formatListeningScheduleText(listening) {
   if (type === "LISTENING_SOLVE") return `🎧 풀기 · ${scope}`;
   return `🎧 Listening · ${scope}`;
 }
-function scheduleResultHtml(result) {
-  if (!result) return "";
-  const lines = [];
-  if (result.attendance) lines.push(`출결: ${escapeHtml(result.attendance)}`);
-  if (result.vocabScore) lines.push(`단어: ${escapeHtml(result.vocabScore)}`);
-  if (result.recordingMissing) lines.push(`녹음 미제출`);
-  if (result.quizResult) lines.push(`Quiz: ${escapeHtml(result.quizResult)}`);
-  if (result.listeningScore) lines.push(`Listening: ${escapeHtml(result.listeningScore)}`);
-  if (result.lessonTestResult) lines.push(`TEST: ${escapeHtml(result.lessonTestResult)}`);
-  if (result.memo) lines.push(`메모: ${escapeHtml(result.memo)}`);
-  return lines.length ? `<div class="schedule-result-box"><b>수업 결과</b><br>${lines.join("<br>")}</div>` : "";
-}
 function renderScheduleDay(day) {
   const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
   if (day.closed) return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body"><div class="schedule-item"><div class="schedule-item-label">🏖️ 일정</div><div class="schedule-item-value">${formatMultilineHtml(day.closure?.memo || "학원 일정으로 수업이 없습니다.")}</div></div></div></div>`;
   const listeningDisplay = formatListeningScheduleText(day.listening);
-  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("Listening", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice), scheduleResultHtml(day.result)].filter(Boolean).join("");
+  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("Listening", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
 }
 function renderMySchedule(payload) {
@@ -6109,13 +6115,13 @@ function renderMySchedule(payload) {
   if (!target) return;
 
   const range = normalizeScheduleRange(payload?.range || myScheduleCurrentRange || "week");
-  const days = Array.isArray(payload?.days) ? payload.days : [];
-  const serverVisibleDays = Array.isArray(payload?.visibleDays) ? payload.visibleDays : [];
+  const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
+  const days = Array.isArray(futurePayload.days) ? futurePayload.days : [];
+  const serverVisibleDays = Array.isArray(futurePayload.visibleDays) ? futurePayload.visibleDays : [];
 
   let visibleDays = [];
   if (range === "today") {
-    visibleDays = days.filter(day => day.isToday || day.date === payload?.today);
-    if (!visibleDays.length && days.length) visibleDays = [days[0]];
+    visibleDays = days.filter(day => day.isToday || day.date === futurePayload?.today || day.date === getTodayString());
   } else {
     // v6.2.4: 이번 주/3주 보기에서는 빈 날짜도 보여야 버튼이 실제로 확장된 것이 보입니다.
     // 일정이 없는 날은 “표시할 학습일정이 없습니다” 카드로 보여 줍니다.
@@ -6123,15 +6129,11 @@ function renderMySchedule(payload) {
   }
 
   const className = payload?.student?.className || currentUser?.className || "";
-  const expectedDays = scheduleRangeDays(range);
-  const isShortResult = range !== "today" && days.length > 0 && days.length < expectedDays;
-
   if (summary) {
     summary.innerHTML = `
       <div class="schedule-summary-card">
         <b>${escapeHtml(payload?.student?.name || currentUser?.name || "학생")}</b>${className ? ` · ${escapeHtml(className)}` : ""}<br>
-        <span class="muted">${escapeHtml(scheduleRangeLabel(range))} · ${escapeHtml(payload?.startDate || "")} ~ ${escapeHtml(payload?.endDate || "")} 기준 학습일정입니다.</span>
-        ${isShortResult ? `<br><span class="result-wrong">서버가 ${days.length}일치만 반환했습니다. Student API 최신 배포 상태를 확인하세요.</span>` : ""}
+        <span class="muted">${escapeHtml(scheduleRangeLabel(range))} · ${escapeHtml(futurePayload?.startDate || getTodayString())} ~ ${escapeHtml(futurePayload?.endDate || "")} 준비 일정입니다. 지난 수업 결과는 표시하지 않습니다.</span>
       </div>
     `;
   }
@@ -6143,7 +6145,8 @@ function renderMySchedule(payload) {
 function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
   if (!target) return;
-  const day = payload?.nextPlan || (payload?.visibleDays || [])[0] || null;
+  const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
+  const day = futurePayload.nextPlan || futurePayload.visibleDays[0] || futurePayload.days.find(item => item.hasPlan || item.closed) || null;
   if (!day) { target.innerHTML = `<div class="home-notice-card home-schedule-card">다가오는 학습일정이 없습니다.</div>`; return; }
   const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
   const lines = [];
