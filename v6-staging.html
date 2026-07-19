@@ -4311,7 +4311,7 @@ body.dark .retest-admin-memo {
 
 
 /************************************************************
- * v6.2.0 내 학습일정 · 3주 학습계획 One-Shot
+ * v6.2.0 내 학습일정 · 2주 학습계획 One-Shot
  ************************************************************/
 .home-learning-panel{margin-top:1em;padding:1.05em;border-radius:22px;background:rgba(255,255,255,.94);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow)}
 .home-learning-content{display:grid;gap:.72em}.schedule-control-card .schedule-hero-text{padding:.9em;border-radius:16px;background:#f4fbf8;border:1px solid var(--brand-line);color:var(--brand-text);line-height:1.55;margin-bottom:.85em}.schedule-range-buttons button.active-range{background:var(--brand-dark,#24534a)!important}.schedule-summary-card{padding:1em;border-radius:20px;background:linear-gradient(135deg,#fff,#f4fbf8);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow-soft);margin:.9em 0}.schedule-card-list{display:grid;gap:.9em}.schedule-day-card{border:1px solid var(--brand-line);border-radius:22px;background:#fff;box-shadow:var(--brand-shadow-soft);overflow:hidden}.schedule-day-card.today{border-color:#8fc7b8;box-shadow:0 10px 24px rgba(53,111,99,.15)}.schedule-day-card.closed{background:#f8f8f8}.schedule-day-head{display:flex;justify-content:space-between;gap:.7em;align-items:flex-start;padding:1em;background:#f4fbf8;border-bottom:1px solid var(--brand-line)}.schedule-day-title{font-size:1.15em;font-weight:950;color:var(--brand-dark)}.schedule-day-meta{margin-top:.18em;color:var(--brand-muted);font-weight:800;font-size:.88em}.schedule-day-badges{display:flex;gap:.35em;flex-wrap:wrap;justify-content:flex-end}.schedule-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:.25em .65em;border-radius:999px;background:#eaf5f1;color:var(--brand-dark);border:1px solid #bdd2cc;font-size:.82em;font-weight:950;white-space:nowrap}.schedule-pill.today{background:#fff4d7;border-color:#f3d17d;color:#7c5200}.schedule-pill.closed{background:#fdebea;border-color:#f2c3c0;color:#9a2c28}.schedule-day-body{padding:.9em 1em 1em;display:grid;gap:.62em}.schedule-item{display:grid;grid-template-columns:112px minmax(0,1fr);gap:.75em;align-items:start;padding:.72em .78em;border-radius:16px;background:#fbfdfc;border:1px solid #e4efeb}.schedule-item-label{color:var(--brand-dark);font-weight:950}.schedule-item-value{color:var(--brand-text);line-height:1.5;white-space:pre-line;word-break:keep-all}.schedule-result-box{margin-top:.2em;padding:.74em;border-radius:15px;background:#eef8f1;border:1px solid #c9e6d3;line-height:1.55}.schedule-empty{text-align:center;padding:1.2em;color:var(--brand-muted)}.home-schedule-card{margin:0}.home-schedule-date{color:var(--brand-muted);font-size:.9em;font-weight:900;margin-bottom:.3em}.home-schedule-title{color:var(--brand-dark);font-size:1.12em;font-weight:950;margin-bottom:.45em}.home-schedule-lines{display:grid;gap:.3em;line-height:1.45}body.dark .home-learning-panel,body.dark .schedule-summary-card,body.dark .schedule-day-card,body.dark .schedule-item,body.dark .schedule-control-card .schedule-hero-text,body.dark .home-schedule-card{background:#1f2a27!important;color:#eef8f5!important;border-color:#35514a!important}body.dark .schedule-day-head{background:#182522!important;border-color:#35514a!important}body.dark .schedule-day-title,body.dark .schedule-item-label,body.dark .schedule-item-value,body.dark .home-schedule-title{color:#f6fffc!important}body.dark .schedule-day-meta,body.dark .home-schedule-date{color:#cfe1db!important}body.dark .schedule-result-box{background:#183423!important;border-color:#3f7a5e!important;color:#e6fff0!important}@media(max-width:760px){.schedule-item{grid-template-columns:1fr;gap:.22em}.schedule-day-head{flex-direction:column}.schedule-day-badges{justify-content:flex-start}}
@@ -4531,7 +4531,7 @@ body.dark .retest-admin-memo {
       <div class="button-row schedule-range-buttons">
         <button id="schedule-range-today" class="vocab-btn secondary" onclick="loadMySchedule('today', true)">오늘</button>
         <button id="schedule-range-week" class="vocab-btn" onclick="loadMySchedule('week', true)">이번 주</button>
-        <button id="schedule-range-three" class="vocab-btn secondary" onclick="loadMySchedule('three', true)">3주 보기</button>
+        <button id="schedule-range-three" class="vocab-btn secondary" onclick="loadMySchedule('three', true)">2주 보기</button>
       </div>
       <div class="button-row">
         <button class="vocab-btn secondary" onclick="refreshExamInfo()">학습일정 새로고침</button>
@@ -4968,6 +4968,12 @@ async function fetchSheet(sheetName) {
         const orderB = Number(b[4]) || 999999;
         return orderA - orderB;
       });
+    }
+
+    // Sheets may return the literal word "false" as boolean false. Treat
+    // vocabulary cells as text so the word is never dropped from lists/tests.
+    function hasVocabText(value) {
+      return value !== null && value !== undefined && String(value).trim() !== "";
     }
 
     function makeAnswerInput(index) {
@@ -5950,14 +5956,14 @@ let myScheduleLastPayload = null;
 function normalizeScheduleRange(range) {
   const text = String(range || "week").toLowerCase();
   if (["today", "week", "three", "upcoming"].includes(text)) return text;
-  if (["3week", "3weeks", "21"].includes(text)) return "three";
+  if (["2week", "2weeks", "14", "3week", "3weeks", "21"].includes(text)) return "three";
   return "week";
 }
 
 function scheduleRangeDays(range) {
   const normalized = normalizeScheduleRange(range);
   if (normalized === "today") return 1;
-  if (normalized === "three") return 21;
+  if (normalized === "three") return 14;
   if (normalized === "upcoming") return 7;
   return 7;
 }
@@ -5965,7 +5971,7 @@ function scheduleRangeDays(range) {
 function scheduleRangeLabel(range) {
   const normalized = normalizeScheduleRange(range);
   if (normalized === "today") return "오늘";
-  if (normalized === "three") return "3주 보기";
+  if (normalized === "three") return "2주 보기";
   if (normalized === "upcoming") return "다가오는 일정";
   return "이번 주";
 }
@@ -6005,8 +6011,9 @@ function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
 }
 function renderScheduleDay(day) {
   const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
-  if (day.closed) return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body"><div class="schedule-item"><div class="schedule-item-label">🏖️ 일정</div><div class="schedule-item-value">${formatMultilineHtml(day.closure?.memo || "학원 일정으로 수업이 없습니다.")}</div></div></div></div>`;
-  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", day.listening?.homework), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
+  const listeningDisplay = typeof formatListeningScheduleText === "function" ? formatListeningScheduleText(day.listening) : day.listening?.homework;
+  if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
+  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
 }
 function renderMySchedule(payload) {
@@ -6023,7 +6030,7 @@ function renderMySchedule(payload) {
   if (range === "today") {
     visibleDays = days.filter(day => day.isToday || day.date === futurePayload?.today || day.date === getTodayString());
   } else {
-    // v6.2.4: 이번 주/3주 보기에서는 빈 날짜도 보여야 버튼이 실제로 확장된 것이 보입니다.
+    // v6.2.4: 이번 주/2주 보기에서는 빈 날짜도 보여야 버튼이 실제로 확장된 것이 보입니다.
     // 일정이 없는 날은 “표시할 학습일정이 없습니다” 카드로 보여 줍니다.
     visibleDays = days.length ? days : serverVisibleDays;
   }
@@ -6729,8 +6736,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         vocabData.slice(1).filter(row =>
           String(row[0]) === String(selectedBook) &&
           String(row[1]) === String(selectedDay) &&
-          row[2] &&
-          row[3]
+          hasVocabText(row[2]) &&
+          hasVocabText(row[3])
         )
       );
     }
@@ -7017,7 +7024,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         return;
       }
 
-      let rows = vocabData.slice(1).filter(row => row[2] && row[3]);
+      let rows = vocabData.slice(1).filter(row => hasVocabText(row[2]) && hasVocabText(row[3]));
 
       if (scope === "current-day") {
         rows = rows.filter(row => String(row[0]) === String(selectedBook) && String(row[1]) === String(selectedDay));
@@ -7236,7 +7243,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       wrongWords = [];
 
       currentVocabWords.forEach((row, index) => {
-        const correctAnswer = row[2];
+        // Student API vocabulary rows are
+        // [book, day, word, meaning, sort, book_id, allowed_answers].
+        // The canonical word is always accepted; optional aliases extend it.
+        const correctAnswer = [row[2], row[6]].filter(hasVocabText).map(String).join("|");
         const meaning = row[3];
         const input = document.getElementById(`answer-${index}`);
         const userAnswer = input ? input.value : "";
