@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.4.0-SELF-SCORE-REPORT" />
 
   <title>All바른 English</title>
-  <meta name="allbarun-student-api-version" content="6.2.0-COREDB-LEARNING-PLAN" />
+  <meta name="allbarun-student-api-version" content="6.3.0-SCORE-REPORT-SELF-ONLY" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4431,6 +4431,7 @@ body.dark .retest-admin-memo {
         <button onclick="goTabFromFullMenu('home')"><span>🏠</span><b>홈</b></button>
         <button onclick="goTabFromFullMenu('notice')"><span>📢</span><b>공지사항</b></button>
         <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>학습일정</b></button>
+        <button onclick="goTabFromFullMenu('report')"><span>📊</span><b>내 성적</b></button>
         <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
         <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
@@ -4468,6 +4469,7 @@ body.dark .retest-admin-memo {
     <button data-tab="home" onclick="showTab('home')" class="active">홈</button>
     <button data-tab="notice" onclick="showTab('notice')">공지사항</button>
     <button data-tab="exam" onclick="showTab('exam')">학습일정</button>
+    <button data-tab="report" onclick="showTab('report')">내 성적</button>
     <button data-tab="retest" onclick="showTab('retest')">재시험</button>
     <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
@@ -4540,6 +4542,21 @@ body.dark .retest-admin-memo {
 
     <div id="schedule-summary-view"></div>
     <div id="exam-table"></div>
+  </section>
+
+  <!-- 내 학교시험 성적 리포트 -->
+  <section id="report">
+    <div class="section-title">📊 내 성적 리포트</div>
+    <div class="control-card">
+      <b>로그인한 내 학생ID의 학교시험 성적만 표시합니다.</b>
+      <p class="school-report-record-meta">다른 학생ID를 입력하거나 조회할 수 없으며, 운영센터의 CoreDB 확정 성적을 기준으로 계산합니다.</p>
+      <div class="button-row">
+        <button class="vocab-btn secondary" onclick="loadMyScoreReport(true)">성적 새로고침</button>
+      </div>
+    </div>
+    <div id="school-report-view" aria-live="polite">
+      <div class="card empty-card">내 성적 리포트를 불러올 준비가 되었습니다.</div>
+    </div>
   </section>
 
   <!-- 재시험 -->
@@ -4831,6 +4848,8 @@ async function fetchSheet(sheetName) {
     let vocabLoadedOnce = false;
     let retestLoadedOnce = false;
     let pointLoadedOnce = false;
+    let myScoreReportLoadedOnce = false;
+    let myScoreReportRequestSerial = 0;
 
     let examClassesLoadedOnce = false;
     let examListenersAttached = false;
@@ -5451,6 +5470,8 @@ function applyPointGuide(textMap) {
       vocabLoadedOnce = false;
       retestLoadedOnce = false;
       pointLoadedOnce = false;
+      myScoreReportLoadedOnce = false;
+      myScoreReportRequestSerial += 1;
       examClassesLoadedOnce = false;
 
       favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
@@ -5469,6 +5490,8 @@ function applyPointGuide(textMap) {
       if (scheduleTarget) scheduleTarget.innerHTML = '';
       if (scheduleSummary) scheduleSummary.innerHTML = '';
       if (homeSchedule) homeSchedule.innerHTML = '<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>';
+      const reportTarget = document.getElementById('school-report-view');
+      if (reportTarget) reportTarget.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러올 준비가 되었습니다.</div>';
     }
 
 
@@ -5753,6 +5776,75 @@ async function loadPointRankingOnce(force = false) {
     pointRankingLoaded = false;
   }
 }
+
+function schoolReportNumber(value, suffix = '') {
+  if (value === '' || value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return `${rounded}${suffix}`;
+}
+
+function schoolReportSigned(value, suffix = '') {
+  if (value === '' || value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return `${rounded > 0 ? '+' : ''}${rounded}${suffix}`;
+}
+
+function schoolReportTrendSvg(rows) {
+  rows = Array.isArray(rows) ? rows : [];
+  if (!rows.length) return '<div class="card empty-card">그래프로 표시할 입력 성적이 없습니다.</div>';
+  const width = 720, height = 270, left = 44, right = 18, top = 20, bottom = 58;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const x = index => rows.length === 1 ? left + plotWidth / 2 : left + (plotWidth * index / (rows.length - 1));
+  const y = value => top + plotHeight - (Math.max(0, Math.min(100, Number(value) || 0)) / 100 * plotHeight);
+  const scorePoints = rows.map((row, index) => `${x(index)},${y(row.score)}`).join(' ');
+  const averageRows = rows.map((row, index) => ({ row, index })).filter(item => item.row.schoolAverage !== '' && item.row.schoolAverage !== null && item.row.schoolAverage !== undefined);
+  const averagePoints = averageRows.map(item => `${x(item.index)},${y(item.row.schoolAverage)}`).join(' ');
+  const grid = [0,25,50,75,100].map(value => `<line class="school-report-chart-grid" x1="${left}" y1="${y(value)}" x2="${width-right}" y2="${y(value)}"></line><text class="school-report-chart-label" x="${left-8}" y="${y(value)+4}" text-anchor="end">${value}</text>`).join('');
+  const labels = rows.map((row, index) => `<text class="school-report-chart-label" x="${x(index)}" y="${height-30}" text-anchor="middle">${escapeHtml(String(row.label || '').slice(0,10))}</text>`).join('');
+  const scoreDots = rows.map((row, index) => `<circle class="school-report-dot-score" cx="${x(index)}" cy="${y(row.score)}" r="6"></circle><text class="school-report-chart-value-label" x="${x(index)}" y="${y(row.score)-11}" text-anchor="middle">${schoolReportNumber(row.score)}</text>`).join('');
+  const averageDots = averageRows.map(item => `<circle class="school-report-dot-average" cx="${x(item.index)}" cy="${y(item.row.schoolAverage)}" r="5"></circle>`).join('');
+  return `<div class="school-report-chart-card"><div class="school-report-chart-title">성적 변화</div><div class="school-report-chart-subtitle">초록색은 내 점수, 노란 점선은 학교평균입니다.</div><svg class="school-report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="학교시험 성적 변화 그래프">${grid}<line class="school-report-chart-axis" x1="${left}" y1="${top+plotHeight}" x2="${width-right}" y2="${top+plotHeight}"></line>${averagePoints ? `<polyline class="school-report-line-average" points="${averagePoints}"></polyline>` : ''}<polyline class="school-report-line-score" points="${scorePoints}"></polyline>${averageDots}${scoreDots}${labels}</svg><div class="school-report-legend"><span class="school-report-legend-item"><span class="school-report-legend-dot score"></span>내 점수</span><span class="school-report-legend-item"><span class="school-report-legend-dot average"></span>학교평균</span></div></div>`;
+}
+
+function renderMyScoreReport(data) {
+  const target = document.getElementById('school-report-view');
+  if (!target) return;
+  const student = data.student || {};
+  const summary = data.summary || {};
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  const comment = summary.actualCount ?
+    `최근 점수는 ${schoolReportNumber(summary.latestScore, '점')}이고, 첫 시험 대비 ${schoolReportSigned(summary.change, '점')}입니다. 학교평균과 비교 가능한 시험의 평균 차이는 ${schoolReportSigned(summary.averageGap, '점')}입니다.` :
+    '아직 입력이 완료된 학교시험 성적이 없습니다. 운영센터에 성적이 확정되면 여기에 표시됩니다.';
+  target.innerHTML = `
+    <div class="school-report-comment"><b>${escapeHtml(student.name || currentUser?.name || '학생')}</b> · ${escapeHtml(student.studentId || currentUser?.id || '')}<br>${escapeHtml(comment)}</div>
+    <div class="school-report-summary">
+      <div class="status-item"><span>최근 점수</span><b>${schoolReportNumber(summary.latestScore, '점')}</b></div>
+      <div class="status-item"><span>평균 점수</span><b>${schoolReportNumber(summary.averageScore, '점')}</b></div>
+      <div class="status-item"><span>첫 시험 대비</span><b>${schoolReportSigned(summary.change, '점')}</b></div>
+    </div>
+    <div class="school-report-visual-grid">${schoolReportTrendSvg(data.chartRows || [])}<div class="school-report-chart-card"><div class="school-report-chart-title">현재 요약</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">학교평균 대비</span><span class="school-report-score-value">${schoolReportSigned(summary.averageGap, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">최근 등급</span><span class="school-report-score-value">${escapeHtml(summary.latestGrade || '-')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">동일시험 순위</span><span class="school-report-score-value">${summary.latestPeerRank ? `${summary.latestPeerRank}/${summary.latestPeerCount}` : '-'}</span></div><div class="school-report-score-box"><span class="school-report-score-label">반영 시험</span><span class="school-report-score-value">${Number(summary.actualCount || 0)}회</span></div></div></div></div>
+    <div class="school-report-record-list">${rows.map(row => `<article class="school-report-record"><div class="school-report-record-title">${escapeHtml(row.cycleName || `${row.year || ''} ${row.semester || ''}학기 ${row.examType || '학교시험'}`)}</div><div class="school-report-record-meta">${escapeHtml([row.examDate,row.school,row.subject,row.scopeSummary].filter(Boolean).join(' · '))}</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">내 점수</span><span class="school-report-score-value">${row.absent ? '결시' : schoolReportNumber(row.rawScore, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학교평균</span><span class="school-report-score-value">${schoolReportNumber(row.schoolAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">평균 대비</span><span class="school-report-score-value">${schoolReportSigned(row.deltaFromAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">등급·석차</span><span class="school-report-score-value">${escapeHtml([row.gradeLevel,row.rank].filter(value => value !== '' && value !== null && value !== undefined).join(' · ') || '-')}</span></div></div>${row.memo ? `<div class="school-report-comment">${escapeHtml(row.memo)}</div>` : ''}</article>`).join('') || '<div class="card empty-card">표시할 학교시험 성적이 없습니다.</div>'}</div>
+    <div class="school-report-record-meta">데이터 기준: ${escapeHtml(data.sourceOfTruth || 'CoreDB')} · 다른 학생 정보는 포함하지 않습니다.${summary.updatedAt ? ` · 최근 반영 ${escapeHtml(summary.updatedAt)}` : ''}</div>`;
+}
+
+async function loadMyScoreReport(force = false) {
+  if (myScoreReportLoadedOnce && !force) return;
+  if (!currentUser || !currentUser.token) return;
+  const requestSerial = ++myScoreReportRequestSerial;
+  const epoch = studentSessionEpoch;
+  const target = document.getElementById('school-report-view');
+  if (target) target.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러오는 중입니다.</div>';
+  try {
+    const result = await apiGet({ action:'getMyScoreReport', forceRefresh:force ? 'true' : 'false' });
+    if (requestSerial !== myScoreReportRequestSerial || epoch !== studentSessionEpoch) return;
+    if (!result.success) throw new Error(result.message || '성적 리포트를 불러오지 못했습니다.');
+    renderMyScoreReport(result);
+    myScoreReportLoadedOnce = true;
+  } catch (error) {
+    myScoreReportLoadedOnce = false;
+    if (target) target.innerHTML = `<div class="card empty-card">${escapeHtml(error.message || '성적 리포트 연결에 실패했습니다.')}</div>`;
+  }
+}
     
     function showTab(tabId, options = {}) {
       const section = document.getElementById(tabId);
@@ -5783,6 +5875,10 @@ async function loadPointRankingOnce(force = false) {
       if (tabId === "exam") {
           loadExamTabOnce();
         }
+
+      if (tabId === "report") {
+        loadMyScoreReport(false);
+      }
       
       if (tabId === "favorites") {
   renderFolderControls();
