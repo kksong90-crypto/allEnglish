@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-STAGING" />
+  <meta name="allbarun-student-version" content="6.5.0-LEARNING-CONTINUITY-STAGING" />
 
   <title>All바른 English v6.0.4 STAGING</title>
-  <meta name="allbarun-student-api-version" content="6.0.3-NOTICE-DEDUP-STAGING" />
+  <meta name="allbarun-student-api-version" content="6.4.0-LEARNING-CONTINUITY" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -6006,15 +6006,59 @@ function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
   };
   const days = (Array.isArray(payload?.days) ? payload.days : []).map(cleanDay).filter(Boolean);
   const visibleDays = (Array.isArray(payload?.visibleDays) ? payload.visibleDays : []).map(cleanDay).filter(Boolean);
-  const nextPlan = cleanDay(payload?.nextPlan) || visibleDays[0] || days.find(day => day.hasPlan || day.closed) || null;
-  return { ...payload, startDate: payload?.startDate && payload.startDate > today ? payload.startDate : today, days, visibleDays, nextPlan };
+  const serverNext = cleanDay(payload?.nextClassPlan || payload?.nextPlan);
+  const isClassDay = day => day && !day.closed && day.scheduled !== false;
+  const nextClassPlan = (isClassDay(serverNext) ? serverNext : null)
+    || days.find(day => day.scheduled === true && !day.closed)
+    || visibleDays.find(isClassDay)
+    || days.find(isClassDay)
+    || null;
+  const nextDate = String(nextClassPlan?.date || "");
+  days.forEach(day => { day.isNextClass = Boolean(nextDate && day.date === nextDate); });
+  visibleDays.forEach(day => { day.isNextClass = Boolean(nextDate && day.date === nextDate); });
+  if (nextClassPlan) nextClassPlan.isNextClass = true;
+  return {
+    ...payload,
+    startDate: payload?.startDate && payload.startDate > today ? payload.startDate : today,
+    days,
+    visibleDays,
+    nextPlan: nextClassPlan,
+    nextClassPlan
+  };
+}
+function normalizeListeningTypeCode(value) {
+  const type = String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  if (["LISTENING_DICTATION", "DICTATION", "딕테이션"].includes(type)) return "LISTENING_DICTATION";
+  if (["LISTENING_SOLVE", "SOLVE", "회차_풀기", "풀기"].includes(type)) return "LISTENING_SOLVE";
+  return type;
+}
+function normalizeListeningScopeText(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/회(?:차)?$/.test(text)) return text.replace(/회차$/, "회");
+  if (/^\d+(?:\s*[~\-–—]\s*\d+)?$/.test(text)) return `${text}회`;
+  return text;
+}
+function formatListeningScheduleText(listening) {
+  const payload = listening || {};
+  const serverDisplay = String(payload.display || "").trim();
+  if (serverDisplay) return serverDisplay;
+  const scope = normalizeListeningScopeText(payload.homework || payload.scope || "");
+  if (!scope) return "";
+  const type = normalizeListeningTypeCode(payload.type || payload.listeningType || "");
+  if (type === "LISTENING_DICTATION") return `✍️ 딕테이션 · ${scope}`;
+  if (type === "LISTENING_SOLVE") return `🎧 풀기 · ${scope}`;
+  return `🎧 Listening · ${scope}`;
 }
 function renderScheduleDay(day) {
-  const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
-  const listeningDisplay = typeof formatListeningScheduleText === "function" ? formatListeningScheduleText(day.listening) : day.listening?.homework;
+  const vocabText = (day.vocab || []).map(item => {
+    const group = String(item.groupName || "").trim();
+    return `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}${group ? ` · ${group}` : ""}\n${item.displayText || ""}`;
+  }).join("\n\n");
+  const listeningDisplay = formatListeningScheduleText(day.listening);
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
   const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
-  return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
+  return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.isNextClass ? `<span class="schedule-pill">다음 수업</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">등록 대기</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
 function renderMySchedule(payload) {
   const target = document.getElementById("exam-table");
@@ -6053,17 +6097,18 @@ function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
   if (!target) return;
   const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
-  const day = futurePayload.nextPlan || futurePayload.visibleDays[0] || futurePayload.days.find(item => item.hasPlan || item.closed) || null;
+  const day = futurePayload.nextClassPlan || futurePayload.nextPlan || null;
   if (!day) { target.innerHTML = `<div class="home-notice-card home-schedule-card">다가오는 학습일정이 없습니다.</div>`; return; }
   const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
   const lines = [];
   if (day.closed) lines.push(`🏖️ ${escapeHtml(day.closure?.type || "휴원")}`);
   if (vocabText) lines.push(`📘 ${escapeHtml(vocabText)}`);
   if (day.quiz?.scope) lines.push(`🧩 ${escapeHtml(day.quiz.scope)}`);
-  if (day.listening?.homework) lines.push(`🎧 ${escapeHtml(day.listening.homework)}`);
+  const listeningDisplay = formatListeningScheduleText(day.listening);
+  if (listeningDisplay) lines.push(escapeHtml(listeningDisplay));
   if (day.homework?.text) lines.push(`📚 ${escapeHtml(day.homework.text)}`);
   if (day.lessonTest?.scope) lines.push(`📝 ${escapeHtml(day.lessonTest.scope)}`);
-  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">표시할 준비사항이 없습니다.</div>`}</div></div>`;
+  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
