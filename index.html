@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.5.0-LEARNING-CONTINUITY" />
+  <meta name="allbarun-student-version" content="6.5.1-NEXT-LESSON-SAFETY" />
 
   <title>All바른 English</title>
-  <meta name="allbarun-student-api-version" content="6.4.0-LEARNING-CONTINUITY" />
+  <meta name="allbarun-student-api-version" content="6.4.1-NEXT-LESSON-SAFETY" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -5789,6 +5789,14 @@ function schoolReportSigned(value, suffix = '') {
   return `${rounded > 0 ? '+' : ''}${rounded}${suffix}`;
 }
 
+function schoolReportRankText(row) {
+  const grade = String(row?.gradeLevel || '').trim();
+  const rank = row?.rank === '' || row?.rank === null || row?.rank === undefined ? '' : Number(row.rank);
+  const participants = row?.participantCount === '' || row?.participantCount === null || row?.participantCount === undefined ? '' : Number(row.participantCount);
+  const rankText = Number.isFinite(rank) ? `${rank}${Number.isFinite(participants) ? `/${participants}` : ''}` : '';
+  return [grade, rankText].filter(Boolean).join(' · ') || '-';
+}
+
 function schoolReportTrendSvg(rows) {
   rows = Array.isArray(rows) ? rows : [];
   if (!rows.length) return '<div class="card empty-card">그래프로 표시할 입력 성적이 없습니다.</div>';
@@ -5822,8 +5830,8 @@ function renderMyScoreReport(data) {
       <div class="status-item"><span>평균 점수</span><b>${schoolReportNumber(summary.averageScore, '점')}</b></div>
       <div class="status-item"><span>첫 시험 대비</span><b>${schoolReportSigned(summary.change, '점')}</b></div>
     </div>
-    <div class="school-report-visual-grid">${schoolReportTrendSvg(data.chartRows || [])}<div class="school-report-chart-card"><div class="school-report-chart-title">현재 요약</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">학교평균 대비</span><span class="school-report-score-value">${schoolReportSigned(summary.averageGap, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">최근 등급</span><span class="school-report-score-value">${escapeHtml(summary.latestGrade || '-')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">동일시험 순위</span><span class="school-report-score-value">${summary.latestPeerRank ? `${summary.latestPeerRank}/${summary.latestPeerCount}` : '-'}</span></div><div class="school-report-score-box"><span class="school-report-score-label">반영 시험</span><span class="school-report-score-value">${Number(summary.actualCount || 0)}회</span></div></div></div></div>
-    <div class="school-report-record-list">${rows.map(row => `<article class="school-report-record"><div class="school-report-record-title">${escapeHtml(row.cycleName || `${row.year || ''} ${row.semester || ''}학기 ${row.examType || '학교시험'}`)}</div><div class="school-report-record-meta">${escapeHtml([row.examDate,row.school,row.subject,row.scopeSummary].filter(Boolean).join(' · '))}</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">내 점수</span><span class="school-report-score-value">${row.absent ? '결시' : schoolReportNumber(row.rawScore, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학교평균</span><span class="school-report-score-value">${schoolReportNumber(row.schoolAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">평균 대비</span><span class="school-report-score-value">${schoolReportSigned(row.deltaFromAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">등급·석차</span><span class="school-report-score-value">${escapeHtml([row.gradeLevel,row.rank].filter(value => value !== '' && value !== null && value !== undefined).join(' · ') || '-')}</span></div></div>${row.memo ? `<div class="school-report-comment">${escapeHtml(row.memo)}</div>` : ''}</article>`).join('') || '<div class="card empty-card">표시할 학교시험 성적이 없습니다.</div>'}</div>
+    <div class="school-report-visual-grid">${schoolReportTrendSvg(data.chartRows || [])}<div class="school-report-chart-card"><div class="school-report-chart-title">현재 요약</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">학교평균 대비</span><span class="school-report-score-value">${schoolReportSigned(summary.averageGap, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">최근 등급</span><span class="school-report-score-value">${escapeHtml(summary.latestGrade || '-')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학원 입력학생 순위</span><span class="school-report-score-value">${summary.latestPeerRank ? `${summary.latestPeerRank}/${summary.latestPeerCount}` : '-'}</span></div><div class="school-report-score-box"><span class="school-report-score-label">반영 시험</span><span class="school-report-score-value">${Number(summary.actualCount || 0)}회</span></div></div></div></div>
+    <div class="school-report-record-list">${rows.map(row => `<article class="school-report-record"><div class="school-report-record-title">${escapeHtml(row.examLabel || row.cycleName || [row.school,row.grade,row.semester,row.examType || '학교시험'].filter(Boolean).join(' '))}</div><div class="school-report-record-meta">${escapeHtml([row.examDate,row.subject,row.scopeSummary].filter(Boolean).join(' · '))}</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">내 점수</span><span class="school-report-score-value">${row.absent ? '결시' : schoolReportNumber(row.rawScore, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학교평균</span><span class="school-report-score-value">${schoolReportNumber(row.schoolAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">평균 대비</span><span class="school-report-score-value">${schoolReportSigned(row.deltaFromAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">등급 · 학교석차</span><span class="school-report-score-value">${escapeHtml(schoolReportRankText(row))}</span></div></div>${row.memo ? `<div class="school-report-comment">${escapeHtml(row.memo)}</div>` : ''}</article>`).join('') || '<div class="card empty-card">표시할 학교시험 성적이 없습니다.</div>'}</div>
     <div class="school-report-record-meta">데이터 기준: ${escapeHtml(data.sourceOfTruth || 'CoreDB')} · 다른 학생 정보는 포함하지 않습니다.${summary.updatedAt ? ` · 최근 반영 ${escapeHtml(summary.updatedAt)}` : ''}</div>`;
 }
 
@@ -5835,12 +5843,13 @@ async function loadMyScoreReport(force = false) {
   const target = document.getElementById('school-report-view');
   if (target) target.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러오는 중입니다.</div>';
   try {
-    const result = await apiGet({ action:'getMyScoreReport', forceRefresh:force ? 'true' : 'false' });
+    const result = await apiPost({ action:'getMyScoreReport', forceRefresh:force ? 'true' : 'false' }, API_LONG_TIMEOUT_MS);
     if (requestSerial !== myScoreReportRequestSerial || epoch !== studentSessionEpoch) return;
     if (!result.success) throw new Error(result.message || '성적 리포트를 불러오지 못했습니다.');
     renderMyScoreReport(result);
     myScoreReportLoadedOnce = true;
   } catch (error) {
+    if (requestSerial !== myScoreReportRequestSerial || epoch !== studentSessionEpoch) return;
     myScoreReportLoadedOnce = false;
     if (target) target.innerHTML = `<div class="card empty-card">${escapeHtml(error.message || '성적 리포트 연결에 실패했습니다.')}</div>`;
   }
@@ -6166,6 +6175,18 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
+function nextPreparationEmptyText(day, type) {
+  const status = String(day?.preparationStatus?.[type] || '').toUpperCase();
+  if (status === 'EXEMPT') return '면제';
+  if (status === 'SKIPPED' || status === 'CLOSED') return '학원 휴원으로 면제';
+  if (type === 'vocab' || type === 'listening') return '범위 등록 대기';
+  return '등록된 내용 없음';
+}
+function nextPreparationItem(day, type, label, value) {
+  if (scheduleHasValue(value)) return scheduleItem(label, value);
+  if (!day?.isNextClass) return '';
+  return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value muted">${escapeHtml(nextPreparationEmptyText(day, type))}</div></div>`;
+}
 function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
   const cleanDay = day => {
     if (!day || String(day.date || "").slice(0, 10) < today) return null;
@@ -6228,7 +6249,7 @@ function renderScheduleDay(day) {
   }).join("\n\n");
   const listeningDisplay = formatListeningScheduleText(day.listening);
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
-  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
+  const body = [nextPreparationItem(day,"vocab","📘 단어",vocabText), nextPreparationItem(day,"quiz","🧩 Quiz",day.quiz?.scope), nextPreparationItem(day,"listening","🎧 듣기 숙제",listeningDisplay), nextPreparationItem(day,"homework","📚 숙제",day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.isNextClass ? `<span class="schedule-pill">다음 수업</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">등록 대기</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
 function renderMySchedule(payload) {
@@ -6273,11 +6294,13 @@ function renderHomeLearningPreview(payload) {
   const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
   const lines = [];
   if (day.closed) lines.push(`🏖️ ${escapeHtml(day.closure?.type || "휴원")}`);
-  if (vocabText) lines.push(`📘 ${escapeHtml(vocabText)}`);
-  if (day.quiz?.scope) lines.push(`🧩 ${escapeHtml(day.quiz.scope)}`);
   const listeningDisplay = formatListeningScheduleText(day.listening);
-  if (listeningDisplay) lines.push(escapeHtml(listeningDisplay));
-  if (day.homework?.text) lines.push(`📚 ${escapeHtml(day.homework.text)}`);
+  if (!day.closed) {
+    lines.push(`📘 단어 · ${escapeHtml(vocabText || nextPreparationEmptyText(day, 'vocab'))}`);
+    lines.push(`🎧 듣기 · ${escapeHtml(listeningDisplay || nextPreparationEmptyText(day, 'listening'))}`);
+    lines.push(`🧩 Quiz · ${escapeHtml(day.quiz?.scope || nextPreparationEmptyText(day, 'quiz'))}`);
+    lines.push(`📚 숙제 · ${escapeHtml(day.homework?.text || nextPreparationEmptyText(day, 'homework'))}`);
+  }
   if (day.lessonTest?.scope) lines.push(`📝 ${escapeHtml(day.lessonTest.scope)}`);
   target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
