@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#173e35">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="allbarun-recording-version" content="8.1.0-PLANNED-ABSENCE-GUARD">
+  <meta name="allbarun-recording-version" content="8.2.0-VACATION-ABSENCE-SAFETY">
   <title>All바른 녹음체크</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
@@ -30,8 +30,8 @@
 
 <main>
   <div id="safety-banner" class="safety-banner">
-    <b>CoreDB 확정 저장 방식</b>
-    <span>서버 저장이 성공한 학생만 체크 상태가 확정됩니다.</span>
+    <b>방학·예정결석 이중 보호</b>
+    <span>면제 대상은 화면과 서버에서 모두 잠기며, 서버 저장이 성공한 학생만 체크가 확정됩니다.</span>
   </div>
 
   <nav id="date-strip" class="date-strip" aria-label="녹음 대상 날짜"></nav>
@@ -48,11 +48,11 @@
     <div class="metric"><span>대상</span><b id="m-total">-</b></div>
     <div class="metric"><span>제출</span><b id="m-received">-</b></div>
     <div class="metric"><span id="m-pending-label">남음</span><b id="m-pending">-</b></div>
-    <div class="metric"><span>예정결석</span><b id="m-absence">-</b></div>
+    <div class="metric"><span>예정결석·면제</span><b id="m-absence">-</b></div>
   </div>
 
   <div class="filterbar" aria-label="명단 표시 필터">
-    <label><input id="filter-hide-absence" type="checkbox" checked onchange="toggleRecordingFilter('hidePlannedAbsence',this.checked)"> 예정결석 숨기기</label>
+    <label><input id="filter-hide-absence" type="checkbox" checked onchange="toggleRecordingFilter('hideExemptions',this.checked)"> 예정결석·면제 숨기기</label>
     <label><input id="filter-pending-only" type="checkbox" onchange="toggleRecordingFilter('pendingOnly',this.checked)"> 미확인·미제출만</label>
   </div>
 
@@ -61,7 +61,7 @@
 
   <footer>
     <span id="authoritative-read">서버 확인 전</span>
-    <span>v8.1.0</span>
+    <span>v8.2.0</span>
   </footer>
 </main>
 
