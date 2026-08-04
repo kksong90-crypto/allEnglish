@@ -42,10 +42,10 @@ vm.runInContext(app,context,{filename:appPath});
 const hooks=context.__ALLBARUN_RECORDING_TEST__;
 
 check('version markers are synchronized',()=>{
-  assert.match(app,/version:'8\.2\.0'/);
-  assert.match(index,/8\.2\.0-VACATION-ABSENCE-SAFETY/);
-  assert.match(index,/>v8\.2\.0</);
-  assert.match(sw,/allbarun-recording-v820-vacation-absence-safety/);
+  assert.match(app,/version:'8\.2\.2'/);
+  assert.match(index,/8\.2\.2-NO-SCHEMA-SPEED/);
+  assert.match(index,/>v8\.2\.2</);
+  assert.match(sw,/allbarun-recording-v822-no-schema-speed/);
 });
 check('planned absence is an exemption, never pending',()=>{
   const row={studentId:'S1',name:'학생1',status:'MISSING',plannedAbsence:true,eligible:false};
@@ -131,7 +131,7 @@ check('only student write controls are disabled offline',()=>{
 });
 check('README records the matching server contract and no schema change',()=>{
   const readme=fs.readFileSync(path.join(root,'recording','README_GITHUB.md'),'utf8');
-  assert.match(readme,/8\.2\.0-VACATION-ABSENCE-SAFETY/);
+  assert.match(readme,/8\.2\.2-NO-SCHEMA-SPEED/);
   assert.match(readme,/스키마를 추가하거나 변경하지 않습니다/);
 });
 

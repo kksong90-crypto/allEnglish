@@ -1,13 +1,15 @@
 'use strict';
 
 const APP={
-  version:'8.2.0',
+  version:'8.2.2',
   apiKey:'allbarun.rec.apiUrl',
   tokenKey:'allbarun.rec.token',
+  cachePrefix:'allbarun.rec.v822.data.',
   targetDate:'',
   data:null,
   loading:false,
   saving:new Set(),
+  saveTail:Promise.resolve(),
   lastLoaded:0,
   filters:{hideExemptions:true,pendingOnly:false}
 };
@@ -20,6 +22,9 @@ function toast(message){const node=$('toast');node.textContent=message;node.clas
 function setSync(text,kind=''){const node=$('sync-state');node.textContent=text;node.className='pill '+kind}
 function apiUrl(){return localStorage.getItem(APP.apiKey)||''}
 function token(){return localStorage.getItem(APP.tokenKey)||''}
+function snapshotKey(date){return APP.cachePrefix+(date||'default')}
+function readSnapshot(date){try{const saved=JSON.parse(localStorage.getItem(snapshotKey(date))||'null');return saved&&Date.now()-Number(saved.savedAt||0)<12*3600000?saved.data:null}catch(_){return null}}
+function writeSnapshot(data){if(!data?.targetDate)return;try{const saved=JSON.stringify({savedAt:Date.now(),data});localStorage.setItem(snapshotKey(data.targetDate),saved);localStorage.setItem(snapshotKey('default'),saved)}catch(_){}}
 async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('오프라인에서는 저장할 수 없습니다.');const body={action,payload,token:override.token===undefined?token():override.token,pin:override.pin||''};const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success)throw new Error(json.error?.message||'요청에 실패했습니다.');return json.data}catch(error){if(error?.name==='AbortError')throw new Error('서버 응답이 25초 이상 지연되었습니다. 화면 상태를 확정하지 않았습니다.');throw error}finally{clearTimeout(timer)}}
 
 function isRecordingExempt(student){
@@ -68,11 +73,12 @@ function openConnectionSettings(){closeSettings();$('api-url').value=apiUrl();$(
 function openSettings(){$('settings-modal').classList.add('show')}
 function closeSettings(){$('settings-modal').classList.remove('show')}
 
-async function loadData(force=false,targetDate=APP.targetDate){if(!ensureConnected()||APP.loading)return;APP.loading=true;setSync('서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate,force});APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();render(data);setSync('저장 준비','')}catch(error){renderError(error);setSync('오류','error')}finally{APP.loading=false;updateNetwork()}}
+async function loadData(force=false,targetDate=APP.targetDate){if(!ensureConnected()||APP.loading)return;const requested=targetDate||'';APP.loading=true;let showingSnapshot=false;if(!force){const snapshot=readSnapshot(requested||'default');if(snapshot&&(!requested||snapshot.targetDate===requested)){APP.data=snapshot;APP.targetDate=snapshot.targetDate;render(snapshot);showingSnapshot=true;setSync('저장 화면 · 최신 확인 중','saving')}}if(!showingSnapshot)setSync('서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate:requested,force});APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();writeSnapshot(data);render(data);setSync('저장 준비','')}catch(error){if(showingSnapshot||APP.data)renderSnapshotError(error);else renderError(error);setSync('오류','error')}finally{APP.loading=false;updateNetwork()}}
 function renderError(error){const banner=$('notice-banner');banner.className='notice-banner error';$('notice-title').textContent='불러오기 실패';$('notice-detail').textContent=error.message;$('classes').innerHTML='';$('empty').hidden=false;$('empty').textContent='서버 데이터를 확인하지 못했습니다. 설정에서 연결 상태를 확인하세요.'}
+function renderSnapshotError(error){const banner=$('notice-banner');banner.className='notice-banner error';$('notice-title').textContent='저장된 화면 표시 중';$('notice-detail').textContent='최신 확인 실패 · '+error.message;$('now-label').textContent=`${APP.data?.targetLabel||APP.targetDate} · 마지막 저장 화면`}
 function render(data){renderDates(data.candidates||[]);renderSummary(data);renderClasses(data);$('now-label').textContent=`${data.targetLabel} · 서버 ${data.lastAuthoritativeReadAt}`;$('authoritative-read').textContent=`CoreDB 최종 확인 ${data.lastAuthoritativeReadAt} · ${data.sourceOfTruth}`}
 function renderDates(items){$('date-strip').innerHTML=items.map(item=>{const detail=numberOr(item.studentCount)>0?`${numberOr(item.studentCount)}명`:numberOr(item.closureCount)>0?'휴원·면제':numberOr(item.exemptCount)>0?`면제 ${numberOr(item.exemptCount)}명`:'대상 없음';return `<button type="button" class="date-chip ${item.date===APP.targetDate?'active':''}" onclick="selectDate(${jsArg(item.date)})">${esc(item.shortLabel)}<span class="tiny">${esc(detail)}</span></button>`}).join('')}
-async function selectDate(date){if(APP.loading||date===APP.targetDate)return;APP.targetDate=date;await loadData(false,date)}
+async function selectDate(date){if(APP.loading||date===APP.targetDate)return;if(APP.saving.size){toast('저장이 끝난 뒤 날짜를 바꿔 주세요.');return}APP.targetDate=date;await loadData(false,date)}
 
 function renderSummary(data){
   const target=numberOr(data.totalStudents),received=numberOr(data.totalReceived),exemptions=totalExemptionCount(data);
@@ -121,7 +127,7 @@ function renderClasses(data){
     else empty.textContent='선택 날짜에는 표시할 녹음 대상이 없습니다.';
   }
 }
-function renderClass(cls,students=filteredStudents(cls)){const eligible=students.filter(st=>!isRecordingExempt(st)),received=eligible.filter(st=>st.status==='RECEIVED').length,exemptions=students.length-eligible.length,openInfo=eligible.length&&!cls.canCheck?`<div class="open-info">확인 가능: ${esc(cls.openLabel)}</div>`:'';return `<section class="class-card"><div class="class-head"><div><h2>${esc(cls.className)}</h2><p>${esc(cls.vocabSummary||'단어범위 확인 필요')}</p>${openInfo}</div><div class="count"><b>${received}/${eligible.length}</b><span>제출${exemptions?` · 면제 ${exemptions}`:''}</span></div></div><div class="student-list">${students.map(st=>renderStudent(cls,st)).join('')}</div></section>`}
+function renderClass(cls,students=filteredStudents(cls)){const eligible=students.filter(st=>!isRecordingExempt(st)),received=eligible.filter(st=>st.status==='RECEIVED').length,exemptions=students.length-eligible.length,openInfo=eligible.length&&!cls.canCheck?`<div class="open-info">확인 가능: ${esc(cls.openLabel)}</div>`:'';return `<section class="class-card" data-class-id="${esc(cls.classId)}"><div class="class-head"><div><h2>${esc(cls.className)}</h2><p>${esc(cls.vocabSummary||'단어범위 확인 필요')}</p>${openInfo}</div><div class="count" data-class-count><b>${received}/${eligible.length}</b><span>제출${exemptions?` · 면제 ${exemptions}`:''}</span></div></div><div class="student-list">${students.map(st=>renderStudent(cls,st)).join('')}</div></section>`}
 function renderStudent(cls,student){
   const key=`${cls.classId}|${student.studentId}`,received=student.status==='RECEIVED',missing=student.status==='MISSING',exempted=isRecordingExempt(student),disabled=exempted||!student.canCheck||!navigator.onLine;
   const className=['student',received?'received':'',missing?'missing':'',exempted?'exempt':'',disabled&&!received?'locked':''].filter(Boolean).join(' ');
@@ -133,26 +139,25 @@ function renderStudent(cls,student){
 }
 function findStudent(classId,studentId){for(const cls of mergedClasses(APP.data)){if(String(cls.classId)===String(classId))return classDisplayStudents(cls).find(st=>String(st.studentId)===String(studentId))||null}return null}
 function recalcLocalClasses(){for(const cls of APP.data?.classes||[]){const eligible=(cls.students||[]).filter(st=>!isRecordingExempt(st));cls.receivedCount=eligible.filter(st=>st.status==='RECEIVED').length;cls.missingCount=eligible.filter(st=>st.status==='MISSING').length;cls.unknownCount=eligible.filter(st=>st.status==='UNKNOWN').length}}
-function applySummary(summary,notice){if(!APP.data||!summary)return;APP.data.totalStudents=summary.total;APP.data.totalReceived=summary.received;if(APP.data.deadlinePassed)APP.data.totalMissing=summary.missing;else APP.data.totalUnknown=summary.missing;APP.data.notice=notice||summary.notice;recalcLocalClasses();renderSummary(APP.data);renderClasses(APP.data)}
+function updateClassCounts(){for(const cls of mergedClasses(APP.data)){const card=[...document.querySelectorAll('[data-class-id]')].find(node=>node.dataset.classId===String(cls.classId));if(!card)continue;const students=filteredStudents(cls),eligible=students.filter(st=>!isRecordingExempt(st)),received=eligible.filter(st=>st.status==='RECEIVED').length,exemptions=students.length-eligible.length,count=card.querySelector('[data-class-count]');if(count)count.innerHTML=`<b>${received}/${eligible.length}</b><span>제출${exemptions?` · 면제 ${exemptions}`:''}</span>`}}
+function applySummary(summary,notice){if(!APP.data||!summary)return;APP.data.totalStudents=summary.total;APP.data.totalReceived=summary.received;if(APP.data.deadlinePassed)APP.data.totalMissing=summary.missing;else APP.data.totalUnknown=summary.missing;APP.data.notice=notice||summary.notice;recalcLocalClasses();renderSummary(APP.data);updateClassCounts();writeSnapshot(APP.data)}
 
-async function saveOne(input,classId,studentId){
+function saveOne(input,classId,studentId){
   const key=`${classId}|${studentId}`;
   if(APP.saving.has(key)){input.checked=!input.checked;return}
   const student=findStudent(classId,studentId),desired=input.checked;
   if(!student){input.checked=!desired;return}
   if(isRecordingExempt(student)){input.checked=Boolean(student.received);input.disabled=true;toast(`${student.name} 학생은 ${recordingExemptLabel(student)} 대상이라 저장하지 않았습니다.`);return}
   if(!student.canCheck||!navigator.onLine){input.checked=Boolean(student.received);toast(!navigator.onLine?'오프라인에서는 저장할 수 없습니다.':'아직 녹음 확인 시간이 아닙니다.');return}
-  const row=input.closest('.student'),state=row.querySelector('.state');APP.saving.add(key);input.disabled=true;row.classList.add('pending');state.textContent='서버 저장 중…';setSync('1명 저장 중','saving');
-  try{const result=await api('opsSaveOne',{targetDate:APP.targetDate,classId,studentId,received:desired});student.status=result.status;student.received=result.received;student.savedAt=result.received?result.savedAt:'';row.classList.toggle('received',result.received);row.classList.toggle('missing',false);state.textContent=result.received?`제출 · ${result.savedAt}`:'미확인';applySummary(result.summary,result.notice);setSync('저장 완료','');toast(`${student.name} 저장 완료`)}
-  catch(error){input.checked=!desired;row.classList.add('error');state.textContent='저장 실패 · 화면 상태 미확정';setSync('저장 실패','error');toast(error.message)}
-  finally{row.classList.remove('pending');APP.saving.delete(key);input.disabled=isRecordingExempt(student)||!student.canCheck||!navigator.onLine}
+  const row=input.closest('.student'),state=row.querySelector('.state'),targetDate=APP.targetDate;APP.saving.add(key);input.disabled=true;row.classList.remove('error');row.classList.add('pending');state.textContent='저장 대기 중…';setSync(`${APP.saving.size}명 순서대로 저장 중`,'saving');const task=()=>persistOne({input,row,state,key,targetDate,classId,studentId,student,desired});APP.saveTail=APP.saveTail.then(task,task)
 }
-async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const student=findStudent(classId,studentId);if(!student||isRecordingExempt(student)){toast(`${name} 학생은 녹음 확인 대상이 아닙니다.`);return}if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget;button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId});toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate)}catch(error){setSync('저장 실패','error');toast(error.message);button.disabled=false}}
-async function readServerAgain(){setSync('다시 읽는 중','saving');await loadData(true,APP.targetDate);toast('CoreDB 상태를 다시 확인했습니다.')}
+async function persistOne(item){const {input,row,state,key,targetDate,classId,studentId,student,desired}=item;state.textContent='서버 저장 중…';try{const result=await api('opsSaveOne',{targetDate,classId,studentId,received:desired});student.status=result.status;student.received=result.received;student.savedAt=result.received?result.savedAt:'';row.classList.toggle('received',result.received);row.classList.toggle('missing',false);state.textContent=result.received?`제출 · ${result.savedAt}`:'미확인';applySummary(result.summary,result.notice);toast(`${student.name} 저장 완료`)}catch(error){input.checked=!desired;row.classList.add('error');state.textContent='저장 실패 · 화면 상태 미확정';setSync('저장 실패','error');toast(error.message)}finally{row.classList.remove('pending');APP.saving.delete(key);input.disabled=isRecordingExempt(student)||!student.canCheck||!navigator.onLine;if(APP.saving.size)setSync(`${APP.saving.size}명 저장 대기`,'saving');else{if(!row.classList.contains('error'))setSync('저장 준비','');renderClasses(APP.data)}}}
+async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const student=findStudent(classId,studentId);if(!student||isRecordingExempt(student)){toast(`${name} 학생은 녹음 확인 대상이 아닙니다.`);return}if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget;button.disabled=true;setSync('예외 인정 저장 중','saving');try{await APP.saveTail;const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId});toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(false,APP.targetDate)}catch(error){setSync('저장 실패','error');toast(error.message);button.disabled=false}}
+async function readServerAgain(){await APP.saveTail;setSync('다시 읽는 중','saving');await loadData(true,APP.targetDate);toast('CoreDB 상태를 다시 확인했습니다.')}
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
 
 globalThis.__ALLBARUN_RECORDING_TEST__={isRecordingExempt,recordingExemptLabel,isPendingRecording,mergedClasses,filteredStudents,plannedAbsenceCount,totalExemptionCount,renderStudent,renderSummary};
-window.addEventListener('online',()=>{updateNetwork();loadData(true,APP.targetDate)});
+window.addEventListener('online',()=>{updateNetwork();loadData(false,APP.targetDate)});
 window.addEventListener('offline',updateNetwork);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-APP.lastLoaded>180000)loadData(false,APP.targetDate)});
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}

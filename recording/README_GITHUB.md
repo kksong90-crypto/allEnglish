@@ -1,4 +1,4 @@
-# v8.2.0 녹음체크 PWA
+# v8.2.2 녹음체크 PWA
 
 ## 이번 변경
 
@@ -7,11 +7,13 @@
 - 면제 학생은 화면과 서버 양쪽에서 저장을 차단합니다.
 - `미확인·미제출만` 필터에는 면제 학생이 섞이지 않습니다.
 - CoreDB의 `RecordingChecks`만 제출 여부의 원본으로 사용합니다.
+- 마지막 확정 화면을 먼저 표시하고 서버 최신 상태를 백그라운드에서 확인합니다.
+- 여러 학생을 빠르게 체크해도 Apps Script 저장 잠금을 경쟁하지 않도록 한 명씩 순서대로 저장합니다.
 
 ## 배포 전 조건
 
-이 프런트는 녹음 API `8.2.0-VACATION-ABSENCE-SAFETY` 응답의 `exemptClasses`, `closure`, `totalExemptions`를 사용합니다. 이전 API에서도 기본 제출 화면은 동작하지만 예정결석 명단과 휴원 상세를 표시하려면 서버 후보를 먼저 검증·배포해야 합니다.
+이 프런트는 녹음 API `8.2.2-NO-SCHEMA-SPEED` 응답의 `exemptClasses`, `closure`, `totalExemptions`를 사용합니다. 이전 API에서도 기본 제출 화면은 동작하지만 예정결석 명단과 휴원 상세를 표시하려면 서버 후보를 먼저 검증·배포해야 합니다.
 
-정적 파일을 배포할 때는 `/recording/` 폴더 전체를 함께 반영해야 하며, 서비스워커 캐시 키는 `allbarun-recording-v820-vacation-absence-safety`입니다.
+정적 파일을 배포할 때는 `/recording/` 폴더 전체를 함께 반영해야 하며, 서비스워커 캐시 키는 `allbarun-recording-v822-no-schema-speed`입니다.
 
 이번 변경은 CoreDB 스키마를 추가하거나 변경하지 않습니다.
