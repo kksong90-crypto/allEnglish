@@ -1,11 +1,12 @@
-/* Allbarun Student Sync Layer v6.3.1
+/* Allbarun Student Sync Layer v6.3.2
  * Refreshes stale server-backed data without logout/relogin.
  * Existing login, favorites and in-progress point tests are preserved.
+ * Staff preview and Guest sessions never overwrite the signed-in account profile.
  */
 (() => {
   'use strict';
 
-  const VERSION = '6.3.1-AUTO-SYNC';
+  const VERSION = '6.3.2-AUTO-SYNC-ROLE-SAFE';
   const RETURN_REFRESH_AFTER_MS = 45 * 1000;
   const TTL = {
     content: 60 * 1000,
@@ -22,6 +23,25 @@
 
   function loggedIn() {
     return !!(typeof currentUser !== 'undefined' && currentUser && currentUser.token);
+  }
+
+  function currentRole() {
+    return loggedIn() ? String(currentUser.role || '').trim().toLowerCase() : '';
+  }
+
+  function isStaff() {
+    return ['admin', 'teacher'].includes(currentRole());
+  }
+
+  function previewStudent() {
+    return window.__allbarunPreviewStudent || null;
+  }
+
+  function canRefreshStudentSchedule() {
+    const role = currentRole();
+    if (role === 'student') return true;
+    if (isStaff()) return !!(previewStudent() && previewStudent().studentId);
+    return false;
   }
 
   function pointTestInProgress() {
@@ -48,7 +68,10 @@
   }
 
   function syncProfileFromSchedule(payload) {
-    if (!payload || !payload.student || !loggedIn()) return false;
+    // Only a real STUDENT session may refresh its own cached name/class.
+    // ADMIN/TEACHER preview responses and GUEST-linked students must never
+    // mutate the signed-in account identity.
+    if (currentRole() !== 'student' || !payload || !payload.student || !loggedIn()) return false;
     const student = payload.student;
     let changed = false;
 
@@ -78,7 +101,7 @@
   }
 
   async function refreshSchedule(force = true) {
-    if (!loggedIn()) return;
+    if (!loggedIn() || !canRefreshStudentSchedule()) return;
     await safe('schedule', async () => {
       const payload = await fetchMyLearningSchedule('upcoming', force);
       syncProfileFromSchedule(payload);
@@ -133,13 +156,13 @@
       if (typeof retestLoadedOnce !== 'undefined') retestLoadedOnce = true;
     } else if (tab === 'vocab' && (force || due('vocab', TTL.vocab))) {
       await safe('vocab', () => refreshVocab());
-    } else if (tab === 'point' && (force || due('point', TTL.point))) {
+    } else if (tab === 'point' && currentRole() === 'student' && (force || due('point', TTL.point))) {
       await safe('point', () => loadPointHome());
       if (typeof pointLoadedOnce !== 'undefined') pointLoadedOnce = true;
-    } else if (tab === 'pointRank' && (force || due('ranking', TTL.ranking))) {
+    } else if (tab === 'pointRank' && currentRole() === 'student' && (force || due('ranking', TTL.ranking))) {
       await safe('ranking', () => loadPointRanking());
       if (typeof pointRankingLoaded !== 'undefined') pointRankingLoaded = true;
-    } else if (tab === 'exam' && (force || due('schedule', TTL.schedule))) {
+    } else if (tab === 'exam' && canRefreshStudentSchedule() && (force || due('schedule', TTL.schedule))) {
       await safe('schedule', async () => {
         await loadMySchedule(
           typeof myScheduleCurrentRange !== 'undefined' ? myScheduleCurrentRange : 'week',
@@ -157,7 +180,7 @@
     refreshPromise = (async () => {
       const jobs = [];
       if (force || due('content', TTL.content)) jobs.push(refreshContent(true));
-      if (force || due('schedule', TTL.schedule)) jobs.push(refreshSchedule(true));
+      if (canRefreshStudentSchedule() && (force || due('schedule', TTL.schedule))) jobs.push(refreshSchedule(true));
       await Promise.allSettled(jobs);
       await refreshActiveTab(force);
       if (notify && typeof showAppToast === 'function') showAppToast('최신 정보로 갱신했습니다.');
