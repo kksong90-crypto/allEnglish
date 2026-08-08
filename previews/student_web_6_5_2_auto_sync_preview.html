@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>학생웹 6.5.2 자동 동기화 미리보기</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #24332f;
+      background: #e6ece9;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      font-size: 18px;
+    }
+    .preview-note {
+      max-width: 1180px;
+      margin: 28px auto 12px;
+      padding: 0 24px;
+      color: #40524d;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .app-shell {
+      width: min(1180px, calc(100% - 48px));
+      min-height: 720px;
+      margin: 0 auto 32px;
+      overflow: hidden;
+      border: 1px solid #c8d5d0;
+      border-radius: 18px;
+      background: #f0f4f2;
+      box-shadow: 0 18px 48px rgba(34, 58, 51, .14);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 70px;
+      padding: 13px 22px;
+      color: white;
+      background: #3f6158;
+    }
+    .brand { font-size: 24px; font-weight: 900; letter-spacing: -.5px; }
+    .header-actions { display: flex; gap: 8px; }
+    .header-actions button {
+      width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.5);
+      border-radius: 10px; color: white; background: rgba(255,255,255,.08);
+      font-size: 20px; font-weight: 900;
+    }
+    .top-user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 13px 20px;
+      border-bottom: 1px solid #d5dfdb;
+      background: white;
+      font-weight: 800;
+    }
+    .user-sub { margin-top: 4px; color: #6a7a75; font-size: 14px; font-weight: 700; }
+    .top-user-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .top-user-buttons button {
+      padding: 9px 12px;
+      border: 1px solid #c7d5d0;
+      border-radius: 9px;
+      color: #3f6158;
+      background: white;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    #allbarun-refresh-button {
+      border-color: #3f6158;
+      color: white;
+      background: #3f6158;
+      box-shadow: 0 3px 9px rgba(63, 97, 88, .2);
+    }
+    nav {
+      display: flex;
+      gap: 6px;
+      overflow: hidden;
+      padding: 10px 14px;
+      border-bottom: 1px solid #d4dfdb;
+      background: #f8faf9;
+    }
+    nav button {
+      flex: 1 0 auto;
+      min-width: 94px;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 9px;
+      color: #52635e;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 900;
+    }
+    nav button.active { color: white; background: #3f6158; }
+    main { padding: 22px; }
+    .hello { margin: 0 0 16px; font-size: 28px; font-weight: 900; letter-spacing: -.8px; }
+    .grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; }
+    .card {
+      padding: 20px;
+      border: 1px solid #d0dcd7;
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 5px 15px rgba(44, 70, 62, .06);
+    }
+    .card-title { margin-bottom: 13px; color: #35564d; font-size: 20px; font-weight: 900; }
+    .date { margin-bottom: 12px; color: #6a7a75; font-size: 14px; font-weight: 800; }
+    .line { padding: 9px 0; border-top: 1px solid #edf1ef; font-weight: 800; }
+    .line:first-of-type { border-top: 0; }
+    .pill { display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 999px; color: #2f5b4f; background: #e5f0ec; font-size: 12px; }
+    .info { color: #596b65; font-size: 15px; line-height: 1.65; }
+    .toast {
+      width: max-content;
+      max-width: calc(100% - 36px);
+      margin: 22px auto 0;
+      padding: 11px 16px;
+      border-radius: 999px;
+      color: white;
+      background: #263b35;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: 0 7px 20px rgba(25, 41, 36, .22);
+    }
+    @media (max-width: 720px) {
+      body { font-size: 16px; }
+      .preview-note { margin-top: 12px; padding: 0 12px; }
+      .app-shell { width: 100%; min-height: 100vh; margin: 0; border: 0; border-radius: 0; }
+      .top-user-bar { align-items: flex-start; flex-direction: column; }
+      .top-user-buttons { width: 100%; }
+      .top-user-buttons button { flex: 1; }
+      nav { overflow-x: auto; }
+      nav button { flex: 0 0 auto; }
+      main { padding: 15px; }
+      .hello { font-size: 24px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-note">학생웹 v6.5.2 미리보기 · 실제 변경점은 상단의 ‘↻ 최신정보’ 버튼과 자동 갱신 동작입니다.</div>
+  <section class="app-shell">
+    <header>
+      <div class="brand">All바른 English</div>
+      <div class="header-actions"><button>↩</button><button>☰</button></div>
+    </header>
+    <div class="top-user-bar">
+      <div>
+        전진욱 학생 · 도림고2화
+        <div class="user-sub">학생 본인 계정 · 다른 학생 정보는 불러오지 않음</div>
+      </div>
+      <div class="top-user-buttons">
+        <button id="allbarun-refresh-button">↻ 최신정보</button>
+        <button>비밀번호 변경</button>
+        <button>로그아웃</button>
+      </div>
+    </div>
+    <nav>
+      <button class="active">홈</button><button>공지사항</button><button>학습일정</button><button>내 성적</button><button>재시험</button><button>단어연습</button>
+    </nav>
+    <main>
+      <h1 class="hello">전진욱 학생, 안녕하세요.</h1>
+      <div class="grid">
+        <article class="card">
+          <div class="card-title">다음 수업 준비 <span class="pill">자동 갱신</span></div>
+          <div class="date">8월 11일 화요일 · 도림고2화</div>
+          <div class="line">📘 단어 · 수능필수 Day 1</div>
+          <div class="line">🎧 듣기 · 22회</div>
+          <div class="line">🧩 Quiz · 독해 1~3번</div>
+          <div class="line">📚 숙제 · 수능특강 24~27쪽</div>
+        </article>
+        <aside class="card">
+          <div class="card-title">갱신 방식</div>
+          <div class="info">로그인 직후, 앱으로 다시 돌아왔을 때, 탭을 열 때 필요한 정보만 갱신합니다.<br><br>포인트 시험 중에는 화면을 건드리지 않으며, 수동 버튼을 연속으로 눌러도 중복 요청을 막습니다.</div>
+        </aside>
+      </div>
+      <div class="toast">최신 정보로 갱신했습니다.</div>
+    </main>
+  </section>
+</body>
+</html>
