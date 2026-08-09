@@ -41,6 +41,16 @@ check('official learning links require exact stable BookId', () => {
   assert.doesNotMatch(adapter, /includes\([^\n]*displayName|localeCompare\([^\n]*displayName/);
 });
 
+check('assigned BookId missing from the public catalog renders a safe connection warning', () => {
+  const body = adapter.match(/function connectionNeededCard[\s\S]*?\n  }\n\n  async function renderAssignedBooks[\s\S]*?\n  }/)?.[0] || '';
+  assert.match(body, /bookId && !book/);
+  assert.match(body, /단어장 연결 필요/);
+  assert.match(body, /공식 배정은 정상입니다/);
+  assert.match(body, /전체 단어장에서는 공개 자료를 계속 자유롭게 학습/);
+  assert.doesNotMatch(body, /state\.bookByLabel|get\([^\n]*groupName/);
+  assert.match(styles, /\.voca-book-card\.connection-needed/);
+});
+
 check('my-learning cards restrict the browser to the assigned numeric Day range', () => {
   const body = adapter.match(/async function openVocaBookById[\s\S]*?\n  }\n\n  async function openVocaScope/)?.[0] || '';
   assert.match(body, /hasAssignedRange/);
@@ -110,5 +120,5 @@ check('approved responsive styling exists', () => {
   assert.match(styles, /@media \(max-width: 760px\)/);
 });
 
-assert.equal(checks, 14);
+assert.equal(checks, 15);
 console.log(`student VOCA Station contract: ${checks}/${checks} passed`);

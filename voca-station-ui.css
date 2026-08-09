@@ -87,6 +87,7 @@
 .voca-book-badge.assigned { background: #fff0cf; color: #805500; }
 .voca-book-badge.exam { background: #e9e5f6; color: #53407c; }
 .voca-book-badge.wait { background: #f3f0e8; color: #73664e; }
+.voca-book-badge.connection { background: #ffe5a5; color: #704805; }
 
 .voca-book-grid {
   display: grid;
@@ -129,6 +130,27 @@
 }
 
 .voca-book-card .vocab-btn { width: 100%; }
+
+.voca-book-card.connection-needed {
+  border-color: #e8cd85;
+  background: #fff8e8;
+}
+
+.voca-book-card.connection-needed h3 { color: #60420d; }
+
+.voca-book-card.connection-needed p { color: #6d582d; }
+
+.voca-connection-help {
+  margin: 0 0 .8em;
+  padding: .72em .78em;
+  border: 1px solid #ead9ad;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #6d582d;
+  font-size: .82em;
+  font-weight: 800;
+  line-height: 1.5;
+}
 
 .voca-library-search-row {
   display: grid;
@@ -193,6 +215,11 @@ body.dark .voca-book-card h3,
 body.dark .voca-browser-head b { color: #f6fffc; }
 body.dark .voca-book-card p,
 body.dark .voca-visibility-note { color: #cfe1db; }
+body.dark .voca-book-card.connection-needed,
+body.dark .voca-connection-help { background: #342b1d; border-color: #725c2f; }
+body.dark .voca-book-card.connection-needed h3,
+body.dark .voca-book-card.connection-needed p,
+body.dark .voca-connection-help { color: #ffe7ae; }
 
 @media (max-width: 760px) {
   .voca-station-title-row { align-items: flex-start; }

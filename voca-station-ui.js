@@ -137,6 +137,35 @@
     filterVocaLibraryCards();
   }
 
+  function assignedPlanTitle(plan) {
+    const groupName = text(plan?.groupName);
+    const separator = groupName.indexOf('-');
+    if (separator >= 0 && separator < groupName.length - 1) return groupName.slice(separator + 1).trim();
+    return groupName || '공식 단어장';
+  }
+
+  function assignedPlanRange(plan) {
+    const explicit = text(plan?.regularText);
+    if (explicit) return explicit;
+    const startDay = Number(plan?.regularStartDay || 0);
+    const endDay = Number(plan?.regularEndDay || startDay);
+    if (!Number.isFinite(startDay) || startDay <= 0) return '범위 확인 중';
+    return endDay > startDay ? `Day ${startDay}~${endDay}` : `Day ${startDay}`;
+  }
+
+  function connectionNeededCard(plan, day) {
+    const title = assignedPlanTitle(plan);
+    const range = assignedPlanRange(plan);
+    const date = text(day?.date);
+    return `<article class="voca-book-card connection-needed">
+      <div class="voca-book-badges"><span class="voca-book-badge assigned">현재 배정</span><span class="voca-book-badge connection">단어장 연결 필요</span></div>
+      <h3>${html(title)}</h3>
+      <p>${html(range)}${date ? `\n수업일 ${html(date)}` : ''}\n공식 배정은 정상입니다. 학습용 게시본이 연결될 때까지 잘못된 다른 단어장을 대신 보여주지 않습니다.</p>
+      <div class="voca-connection-help">학생이 할 일은 없습니다. 전체 단어장에서는 공개 자료를 계속 자유롭게 학습할 수 있습니다.</div>
+      <button class="vocab-btn secondary" type="button" disabled>선생님이 단어장 연결을 확인 중입니다</button>
+    </article>`;
+  }
+
   async function renderAssignedBooks() {
     const mineTarget = document.getElementById('voca-mine-grid');
     const examTarget = document.getElementById('voca-exam-grid');
@@ -175,6 +204,13 @@
         if (!seenMine.has(key)) {
           seenMine.add(key);
           mine.push(card(book, { assigned: true, rangeText: text(plan.regularText) || sectionRangeText(book, plan.regularStartDay, plan.regularEndDay), date: text(day.date), startDay: plan.regularStartDay, endDay: plan.regularEndDay }));
+        }
+      }
+      if (!isExam && bookId && !book) {
+        const key = `connection|${bookId}|${Number(plan.regularStartDay || 0)}|${Number(plan.regularEndDay || 0)}`;
+        if (!seenMine.has(key)) {
+          seenMine.add(key);
+          mine.push(connectionNeededCard(plan, day));
         }
       }
       if (text(plan.schoolVocabText) && !isExam) {

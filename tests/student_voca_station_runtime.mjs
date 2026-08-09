@@ -82,6 +82,7 @@ const context = vm.createContext({
       success: true,
       days: [{ date: '2099-08-10', vocab: [
         { planType: 'REGULAR', vocabBookId: 'BOOK-PUBLIC', regularStartDay: 1, regularEndDay: 2, regularText: 'Day 1~2' },
+        { planType: 'REGULAR', vocabBookId: 'BOOK-MISSING', groupName: '가상중3-해커스보카 수능필수', regularStartDay: 48, regularEndDay: 49, regularText: 'Day 48~49' },
         { testPlanId: 'TP-SCHOOL-1', planType: 'SCHOOL_EXAM', vocabBookId: 'BOOK-PUBLIC', revisionId: 'REV-1', sectionIds: ['SEC-1'], schoolVocabText: '학교시험 단어' },
         { testPlanId: 'TP-SCHOOL-STALE', planType: 'SCHOOL_EXAM', vocabBookId: 'BOOK-PUBLIC', revisionId: 'REV-OLD', sectionIds: ['SEC-OLD'], schoolVocabText: '갱신 대상 범위' },
         { planType: 'REGULAR', vocabBookId: 'BOOK-PUBLIC', schoolVocabText: '연결 전 표시문구' }
@@ -99,6 +100,11 @@ assert.deepEqual(calls.slice(0, 2), ['getVocaCatalog', 'getMyLearningSchedule'])
 assert.match(ids.get('voca-all-grid').innerHTML, /수능완성/);
 assert.doesNotMatch(ids.get('voca-all-grid').innerHTML, /교사용 검수본/);
 assert.match(ids.get('voca-mine-grid').innerHTML, /현재 배정/);
+assert.match(ids.get('voca-mine-grid').innerHTML, /단어장 연결 필요/);
+assert.match(ids.get('voca-mine-grid').innerHTML, /해커스보카 수능필수/);
+assert.match(ids.get('voca-mine-grid').innerHTML, /Day 48~49/);
+assert.match(ids.get('voca-mine-grid').innerHTML, /전체 단어장에서는 공개 자료를 계속 자유롭게 학습/);
+assert.doesNotMatch(ids.get('voca-mine-grid').innerHTML, /BOOK-MISSING/);
 assert.match(ids.get('voca-exam-grid').innerHTML, /학교시험 단어/);
 assert.match(ids.get('voca-exam-grid').innerHTML, /연결 갱신 필요/);
 assert.match(ids.get('voca-exam-grid').innerHTML, /고정 단어장 연결 후 학습 가능/);
