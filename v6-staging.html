@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.5.2-AUTO-SYNC-ROLE-SAFE-STAGING" />
+  <meta name="allbarun-student-version" content="6.6.0-VOCA-STATION-ROLE-SAFE-STAGING" />
 
   <title>All바른 English v6.5.2 STAGING</title>
-  <meta name="allbarun-student-api-version" content="6.4.1-NEXT-LESSON-SAFETY" />
+  <meta name="allbarun-student-api-version" content="6.5.1-VOCA-GATEWAY-RETEST-SAFETY" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4317,6 +4317,7 @@ body.dark .retest-admin-memo {
 .home-learning-content{display:grid;gap:.72em}.schedule-control-card .schedule-hero-text{padding:.9em;border-radius:16px;background:#f4fbf8;border:1px solid var(--brand-line);color:var(--brand-text);line-height:1.55;margin-bottom:.85em}.schedule-range-buttons button.active-range{background:var(--brand-dark,#24534a)!important}.schedule-summary-card{padding:1em;border-radius:20px;background:linear-gradient(135deg,#fff,#f4fbf8);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow-soft);margin:.9em 0}.schedule-card-list{display:grid;gap:.9em}.schedule-day-card{border:1px solid var(--brand-line);border-radius:22px;background:#fff;box-shadow:var(--brand-shadow-soft);overflow:hidden}.schedule-day-card.today{border-color:#8fc7b8;box-shadow:0 10px 24px rgba(53,111,99,.15)}.schedule-day-card.closed{background:#f8f8f8}.schedule-day-head{display:flex;justify-content:space-between;gap:.7em;align-items:flex-start;padding:1em;background:#f4fbf8;border-bottom:1px solid var(--brand-line)}.schedule-day-title{font-size:1.15em;font-weight:950;color:var(--brand-dark)}.schedule-day-meta{margin-top:.18em;color:var(--brand-muted);font-weight:800;font-size:.88em}.schedule-day-badges{display:flex;gap:.35em;flex-wrap:wrap;justify-content:flex-end}.schedule-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:.25em .65em;border-radius:999px;background:#eaf5f1;color:var(--brand-dark);border:1px solid #bdd2cc;font-size:.82em;font-weight:950;white-space:nowrap}.schedule-pill.today{background:#fff4d7;border-color:#f3d17d;color:#7c5200}.schedule-pill.closed{background:#fdebea;border-color:#f2c3c0;color:#9a2c28}.schedule-day-body{padding:.9em 1em 1em;display:grid;gap:.62em}.schedule-item{display:grid;grid-template-columns:112px minmax(0,1fr);gap:.75em;align-items:start;padding:.72em .78em;border-radius:16px;background:#fbfdfc;border:1px solid #e4efeb}.schedule-item-label{color:var(--brand-dark);font-weight:950}.schedule-item-value{color:var(--brand-text);line-height:1.5;white-space:pre-line;word-break:keep-all}.schedule-result-box{margin-top:.2em;padding:.74em;border-radius:15px;background:#eef8f1;border:1px solid #c9e6d3;line-height:1.55}.schedule-empty{text-align:center;padding:1.2em;color:var(--brand-muted)}.home-schedule-card{margin:0}.home-schedule-date{color:var(--brand-muted);font-size:.9em;font-weight:900;margin-bottom:.3em}.home-schedule-title{color:var(--brand-dark);font-size:1.12em;font-weight:950;margin-bottom:.45em}.home-schedule-lines{display:grid;gap:.3em;line-height:1.45}body.dark .home-learning-panel,body.dark .schedule-summary-card,body.dark .schedule-day-card,body.dark .schedule-item,body.dark .schedule-control-card .schedule-hero-text,body.dark .home-schedule-card{background:#1f2a27!important;color:#eef8f5!important;border-color:#35514a!important}body.dark .schedule-day-head{background:#182522!important;border-color:#35514a!important}body.dark .schedule-day-title,body.dark .schedule-item-label,body.dark .schedule-item-value,body.dark .home-schedule-title{color:#f6fffc!important}body.dark .schedule-day-meta,body.dark .home-schedule-date{color:#cfe1db!important}body.dark .schedule-result-box{background:#183423!important;border-color:#3f7a5e!important;color:#e6fff0!important}@media(max-width:760px){.schedule-item{grid-template-columns:1fr;gap:.22em}.schedule-day-head{flex-direction:column}.schedule-day-badges{justify-content:flex-start}}
 
 </style>
+<link rel="stylesheet" href="./voca-station-ui.css?v=6.6.0" />
 
 </head>
 
@@ -4634,7 +4635,35 @@ body.dark .retest-admin-memo {
 
   <!-- 단어장 -->
   <section id="vocab">
-    <div class="section-title">📘 단어장</div>
+    <div class="section-title voca-station-title-row"><span>📘 단어장</span><span class="voca-station-freshness">● 단어 정보 최신</span></div>
+
+    <div class="voca-library-tabs" role="tablist" aria-label="단어장 보기">
+      <button id="voca-library-mine" class="active" type="button" onclick="showVocaLibrary('mine')">내 학습 단어</button>
+      <button id="voca-library-exam" type="button" onclick="showVocaLibrary('exam')">시험범위</button>
+      <button id="voca-library-all" type="button" onclick="showVocaLibrary('all')">전체 단어장</button>
+    </div>
+
+    <div id="voca-library-panel-mine" class="voca-library-panel active">
+      <div class="voca-scope-banner"><div><b>현재 배정과 다음 수업 범위</b>공식 단어계획은 여기에서 확인합니다. 다른 단어장을 학습해도 이 배정은 바뀌지 않습니다.</div><span>공식 학습</span></div>
+      <div id="voca-mine-grid" class="voca-book-grid"><div class="card">학습일정에서 단어 배정을 확인하는 중입니다...</div></div>
+    </div>
+
+    <div id="voca-library-panel-exam" class="voca-library-panel">
+      <div class="voca-scope-banner"><div><b>학교시험·모의고사 시험범위</b>선생님이 고정 단어장 ID로 연결한 범위만 안전하게 표시합니다.</div><span>시험별 정리</span></div>
+      <div id="voca-exam-grid" class="voca-book-grid"><div class="card">예정된 시험범위를 확인하는 중입니다...</div></div>
+    </div>
+
+    <div id="voca-library-panel-all" class="voca-library-panel">
+      <div class="voca-scope-banner"><div><b>자유롭게 찾아보는 전체 단어장</b>현재 단어그룹과 관계없이 학생 공개 단어장을 학습할 수 있습니다. 열람·연습만으로 공식 배정은 변경되지 않습니다.</div><span>공개 단어장만</span></div>
+      <div class="voca-library-search-row">
+        <input id="voca-library-search" type="search" placeholder="단어장 이름 검색" autocomplete="off" oninput="filterVocaLibraryCards()" />
+        <select id="voca-library-category" onchange="filterVocaLibraryCards()"><option value="">전체 분류</option><option value="중등">중등</option><option value="고등">고등·수능</option><option value="모의고사">모의고사</option><option value="학교시험">학교시험</option></select>
+      </div>
+      <div id="voca-all-grid" class="voca-book-grid"><div class="card">학생 공개 단어장을 불러오는 중입니다...</div></div>
+      <div class="voca-visibility-note"><b>표시하지 않는 항목:</b> 편집 중 단어장, 가져오기 오류 검수본, 교사용 비공개 자료. 선생님이 ‘학생 공개’로 바꾸면 이 목록에 나타납니다.</div>
+    </div>
+
+    <div id="voca-browser-panel" class="voca-browser-panel" hidden>
 
     <div class="control-card">
       <div class="control-grid">
@@ -4686,6 +4715,7 @@ body.dark .retest-admin-memo {
 
     <div id="vocab-progress"></div>
     <div id="vocab-view"></div>
+    </div>
   </section>
 
   <!-- 중요단어 -->
@@ -4711,12 +4741,13 @@ body.dark .retest-admin-memo {
       매주 반별로 지정된 포인트 단어 50개 중 무작위 30문제가 출제됩니다.<br>
       뜻을 보고 영어 스펠링을 정확히 입력하세요.<br>
       <b>제한시간 8분 안에 30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
-      단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
+      단, 포인트는 토요일~금요일 기준으로 학생당 주 1회만 받을 수 있습니다.
     </div>
 
     <div id="point-summary-view"></div>
 
     <div class="button-row">
+  <button class="vocab-btn secondary" onclick="startPointPractice()">시간제한 없이 연습</button>
   <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
   <button class="vocab-btn secondary" onclick="showTab('pointRank')">포인트 랭킹 보기</button>
 </div>
@@ -5151,7 +5182,7 @@ function getDefaultPointGuide() {
       "이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.\n" +
       "뜻을 보고 영어 스펠링을 입력하세요.\n" +
       "30문제를 모두 맞히면 포인트 1점이 지급됩니다.\n" +
-      "포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다."
+      "포인트는 토요일~금요일 기준으로 학생당 주 1회만 받을 수 있습니다."
   };
 }
 
@@ -7957,7 +7988,7 @@ async function startPointTest() {
   currentPointTest = null;
 
   try {
-    const result = await apiPost({ action: "getPointTestInfo" });
+    const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });
 
     if (!result.success) {
       target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
@@ -8151,7 +8182,10 @@ async function submitPointTest(forceSubmit = false) {
     target.insertAdjacentHTML("beforeend", "<div class='card'><b>제출 확인을 받지 못했습니다.</b><br>답안은 이 기기에 임시저장되어 있습니다. 인터넷 연결을 확인한 뒤 다시 제출하세요.<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>");
   } finally {
     pointSubmitting = false;
-    if (completed) currentPointTest = null;
+    if (completed) {
+      clearPointStartKey();
+      currentPointTest = null;
+    }
     else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
   }
 }
@@ -8445,7 +8479,8 @@ function escapeHtmlForPointRank(text) {
     .replaceAll("'", "&#039;");
 }
   </script>
-  <script src="./sync-layer.js?v=6.5.2"></script>
+  <script src="./voca-station-ui.js?v=6.6.0"></script>
+  <script src="./sync-layer.js?v=6.6.0"></script>
 
 </body>
 </html>

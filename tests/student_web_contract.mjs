@@ -14,7 +14,7 @@ for (const file of files) {
   const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(match => match[1]);
   check(scripts.length > 0, `${file}: inline script missing`);
   scripts.forEach((script, index) => new Function(script));
-  check(/6\.4\.1-NEXT-LESSON-SAFETY/.test(html), `${file}: API version marker mismatch`);
+  check(/6\.5\.1-VOCA-GATEWAY-RETEST-SAFETY/.test(html), `${file}: API version marker mismatch`);
   check(/data-tab="report"/.test(html) && /id="school-report-view"/.test(html), `${file}: self score report screen missing`);
   check(/apiPost\(\{ action:'getMyScoreReport'/.test(html), `${file}: score report must use authenticated POST`);
   check(!/apiGet\(\{ action:'getMyScoreReport'/.test(html), `${file}: score token must not be sent in a GET URL`);
