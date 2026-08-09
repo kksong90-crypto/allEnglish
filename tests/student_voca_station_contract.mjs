@@ -28,6 +28,13 @@ check('catalog is public-only and section content is on demand', () => {
   assert.doesNotMatch(adapter, /getVocabData/);
 });
 
+check('opening a public book defaults to its first section even when a nonnumeric section exists', () => {
+  const body = adapter.match(/async function openVocaBookById[\s\S]*?\n  }/)?.[0] || '';
+  assert.match(body, /hasAssignedRange\s*\?\s*sections\.find/);
+  assert.match(body, /:\s*null\)\s*\|\|\s*sections\[0\]/);
+  assert.doesNotMatch(body, /Number\(section\.sectionNo\)\s*===\s*Number\(startDay\)/);
+});
+
 check('official learning links require exact stable BookId', () => {
   assert.match(adapter, /state\.bookById\.get\(bookId\)/);
   assert.match(adapter, /openVocaBookById/);
@@ -103,5 +110,5 @@ check('approved responsive styling exists', () => {
   assert.match(styles, /@media \(max-width: 760px\)/);
 });
 
-assert.equal(checks, 13);
+assert.equal(checks, 14);
 console.log(`student VOCA Station contract: ${checks}/${checks} passed`);

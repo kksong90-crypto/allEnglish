@@ -350,7 +350,9 @@
     bookSelect.value = label;
     await loadVocabDays();
     const sections = [...(state.sectionByBookLabel.get(label)?.entries() || [])];
-    const desired = sections.find(([, section]) => Number(section.sectionNo) === Number(startDay)) || sections[0];
+    const desired = (hasAssignedRange
+      ? sections.find(([, section]) => Number(section.sectionNo) === numericStart)
+      : null) || sections[0];
     if (desired && daySelect) {
       daySelect.value = desired[0];
       await loadVocaSectionAndShow();
