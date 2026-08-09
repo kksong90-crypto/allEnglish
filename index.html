@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.6.0-VOCA-STATION-ROLE-SAFE" />
 
   <title>All바른 English</title>
-  <meta name="allbarun-student-api-version" content="6.2.0-COREDB-LEARNING-PLAN" />
+  <meta name="allbarun-student-api-version" content="6.5.1-VOCA-GATEWAY-RETEST-SAFETY" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4317,6 +4317,7 @@ body.dark .retest-admin-memo {
 .home-learning-content{display:grid;gap:.72em}.schedule-control-card .schedule-hero-text{padding:.9em;border-radius:16px;background:#f4fbf8;border:1px solid var(--brand-line);color:var(--brand-text);line-height:1.55;margin-bottom:.85em}.schedule-range-buttons button.active-range{background:var(--brand-dark,#24534a)!important}.schedule-summary-card{padding:1em;border-radius:20px;background:linear-gradient(135deg,#fff,#f4fbf8);border:1px solid var(--brand-line);box-shadow:var(--brand-shadow-soft);margin:.9em 0}.schedule-card-list{display:grid;gap:.9em}.schedule-day-card{border:1px solid var(--brand-line);border-radius:22px;background:#fff;box-shadow:var(--brand-shadow-soft);overflow:hidden}.schedule-day-card.today{border-color:#8fc7b8;box-shadow:0 10px 24px rgba(53,111,99,.15)}.schedule-day-card.closed{background:#f8f8f8}.schedule-day-head{display:flex;justify-content:space-between;gap:.7em;align-items:flex-start;padding:1em;background:#f4fbf8;border-bottom:1px solid var(--brand-line)}.schedule-day-title{font-size:1.15em;font-weight:950;color:var(--brand-dark)}.schedule-day-meta{margin-top:.18em;color:var(--brand-muted);font-weight:800;font-size:.88em}.schedule-day-badges{display:flex;gap:.35em;flex-wrap:wrap;justify-content:flex-end}.schedule-pill{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:.25em .65em;border-radius:999px;background:#eaf5f1;color:var(--brand-dark);border:1px solid #bdd2cc;font-size:.82em;font-weight:950;white-space:nowrap}.schedule-pill.today{background:#fff4d7;border-color:#f3d17d;color:#7c5200}.schedule-pill.closed{background:#fdebea;border-color:#f2c3c0;color:#9a2c28}.schedule-day-body{padding:.9em 1em 1em;display:grid;gap:.62em}.schedule-item{display:grid;grid-template-columns:112px minmax(0,1fr);gap:.75em;align-items:start;padding:.72em .78em;border-radius:16px;background:#fbfdfc;border:1px solid #e4efeb}.schedule-item-label{color:var(--brand-dark);font-weight:950}.schedule-item-value{color:var(--brand-text);line-height:1.5;white-space:pre-line;word-break:keep-all}.schedule-result-box{margin-top:.2em;padding:.74em;border-radius:15px;background:#eef8f1;border:1px solid #c9e6d3;line-height:1.55}.schedule-empty{text-align:center;padding:1.2em;color:var(--brand-muted)}.home-schedule-card{margin:0}.home-schedule-date{color:var(--brand-muted);font-size:.9em;font-weight:900;margin-bottom:.3em}.home-schedule-title{color:var(--brand-dark);font-size:1.12em;font-weight:950;margin-bottom:.45em}.home-schedule-lines{display:grid;gap:.3em;line-height:1.45}body.dark .home-learning-panel,body.dark .schedule-summary-card,body.dark .schedule-day-card,body.dark .schedule-item,body.dark .schedule-control-card .schedule-hero-text,body.dark .home-schedule-card{background:#1f2a27!important;color:#eef8f5!important;border-color:#35514a!important}body.dark .schedule-day-head{background:#182522!important;border-color:#35514a!important}body.dark .schedule-day-title,body.dark .schedule-item-label,body.dark .schedule-item-value,body.dark .home-schedule-title{color:#f6fffc!important}body.dark .schedule-day-meta,body.dark .home-schedule-date{color:#cfe1db!important}body.dark .schedule-result-box{background:#183423!important;border-color:#3f7a5e!important;color:#e6fff0!important}@media(max-width:760px){.schedule-item{grid-template-columns:1fr;gap:.22em}.schedule-day-head{flex-direction:column}.schedule-day-badges{justify-content:flex-start}}
 
 </style>
+<link rel="stylesheet" href="./voca-station-ui.css?v=6.6.0" />
 
 </head>
 
@@ -4431,6 +4432,7 @@ body.dark .retest-admin-memo {
         <button onclick="goTabFromFullMenu('home')"><span>🏠</span><b>홈</b></button>
         <button onclick="goTabFromFullMenu('notice')"><span>📢</span><b>공지사항</b></button>
         <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>학습일정</b></button>
+        <button onclick="goTabFromFullMenu('report')"><span>📊</span><b>내 성적</b></button>
         <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
         <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
@@ -4468,6 +4470,7 @@ body.dark .retest-admin-memo {
     <button data-tab="home" onclick="showTab('home')" class="active">홈</button>
     <button data-tab="notice" onclick="showTab('notice')">공지사항</button>
     <button data-tab="exam" onclick="showTab('exam')">학습일정</button>
+    <button data-tab="report" onclick="showTab('report')">내 성적</button>
     <button data-tab="retest" onclick="showTab('retest')">재시험</button>
     <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
@@ -4540,6 +4543,21 @@ body.dark .retest-admin-memo {
 
     <div id="schedule-summary-view"></div>
     <div id="exam-table"></div>
+  </section>
+
+  <!-- 내 학교시험 성적 리포트 -->
+  <section id="report">
+    <div class="section-title">📊 내 성적 리포트</div>
+    <div class="control-card">
+      <b>로그인한 내 학생ID의 학교시험 성적만 표시합니다.</b>
+      <p class="school-report-record-meta">다른 학생ID를 입력하거나 조회할 수 없으며, 운영센터의 CoreDB 확정 성적을 기준으로 계산합니다.</p>
+      <div class="button-row">
+        <button class="vocab-btn secondary" onclick="loadMyScoreReport(true)">성적 새로고침</button>
+      </div>
+    </div>
+    <div id="school-report-view" aria-live="polite">
+      <div class="card empty-card">내 성적 리포트를 불러올 준비가 되었습니다.</div>
+    </div>
   </section>
 
   <!-- 재시험 -->
@@ -4617,7 +4635,35 @@ body.dark .retest-admin-memo {
 
   <!-- 단어장 -->
   <section id="vocab">
-    <div class="section-title">📘 단어장</div>
+    <div class="section-title voca-station-title-row"><span>📘 단어장</span><span class="voca-station-freshness">● 단어 정보 최신</span></div>
+
+    <div class="voca-library-tabs" role="tablist" aria-label="단어장 보기">
+      <button id="voca-library-mine" class="active" type="button" onclick="showVocaLibrary('mine')">내 학습 단어</button>
+      <button id="voca-library-exam" type="button" onclick="showVocaLibrary('exam')">시험범위</button>
+      <button id="voca-library-all" type="button" onclick="showVocaLibrary('all')">전체 단어장</button>
+    </div>
+
+    <div id="voca-library-panel-mine" class="voca-library-panel active">
+      <div class="voca-scope-banner"><div><b>현재 배정과 다음 수업 범위</b>공식 단어계획은 여기에서 확인합니다. 다른 단어장을 학습해도 이 배정은 바뀌지 않습니다.</div><span>공식 학습</span></div>
+      <div id="voca-mine-grid" class="voca-book-grid"><div class="card">학습일정에서 단어 배정을 확인하는 중입니다...</div></div>
+    </div>
+
+    <div id="voca-library-panel-exam" class="voca-library-panel">
+      <div class="voca-scope-banner"><div><b>학교시험·모의고사 시험범위</b>선생님이 고정 단어장 ID로 연결한 범위만 안전하게 표시합니다.</div><span>시험별 정리</span></div>
+      <div id="voca-exam-grid" class="voca-book-grid"><div class="card">예정된 시험범위를 확인하는 중입니다...</div></div>
+    </div>
+
+    <div id="voca-library-panel-all" class="voca-library-panel">
+      <div class="voca-scope-banner"><div><b>자유롭게 찾아보는 전체 단어장</b>현재 단어그룹과 관계없이 학생 공개 단어장을 학습할 수 있습니다. 열람·연습만으로 공식 배정은 변경되지 않습니다.</div><span>공개 단어장만</span></div>
+      <div class="voca-library-search-row">
+        <input id="voca-library-search" type="search" placeholder="단어장 이름 검색" autocomplete="off" oninput="filterVocaLibraryCards()" />
+        <select id="voca-library-category" onchange="filterVocaLibraryCards()"><option value="">전체 분류</option><option value="중등">중등</option><option value="고등">고등·수능</option><option value="모의고사">모의고사</option><option value="학교시험">학교시험</option></select>
+      </div>
+      <div id="voca-all-grid" class="voca-book-grid"><div class="card">학생 공개 단어장을 불러오는 중입니다...</div></div>
+      <div class="voca-visibility-note"><b>표시하지 않는 항목:</b> 편집 중 단어장, 가져오기 오류 검수본, 교사용 비공개 자료. 선생님이 ‘학생 공개’로 바꾸면 이 목록에 나타납니다.</div>
+    </div>
+
+    <div id="voca-browser-panel" class="voca-browser-panel" hidden>
 
     <div class="control-card">
       <div class="control-grid">
@@ -4669,6 +4715,7 @@ body.dark .retest-admin-memo {
 
     <div id="vocab-progress"></div>
     <div id="vocab-view"></div>
+    </div>
   </section>
 
   <!-- 중요단어 -->
@@ -4694,12 +4741,13 @@ body.dark .retest-admin-memo {
       매주 반별로 지정된 포인트 단어 50개 중 무작위 30문제가 출제됩니다.<br>
       뜻을 보고 영어 스펠링을 정확히 입력하세요.<br>
       <b>제한시간 8분 안에 30문제를 모두 맞히면 포인트 1점이 지급됩니다.</b><br>
-      단, 포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다.
+      단, 포인트는 토요일~금요일 기준으로 학생당 주 1회만 받을 수 있습니다.
     </div>
 
     <div id="point-summary-view"></div>
 
     <div class="button-row">
+  <button class="vocab-btn secondary" onclick="startPointPractice()">시간제한 없이 연습</button>
   <button class="vocab-btn" onclick="startPointTest()">포인트 시험 시작</button>
   <button class="vocab-btn secondary" onclick="showTab('pointRank')">포인트 랭킹 보기</button>
 </div>
@@ -4831,6 +4879,8 @@ async function fetchSheet(sheetName) {
     let vocabLoadedOnce = false;
     let retestLoadedOnce = false;
     let pointLoadedOnce = false;
+    let myScoreReportLoadedOnce = false;
+    let myScoreReportRequestSerial = 0;
 
     let examClassesLoadedOnce = false;
     let examListenersAttached = false;
@@ -5132,7 +5182,7 @@ function getDefaultPointGuide() {
       "이번 주에 지정된 반별 단어장에서 무작위 30문제가 출제됩니다.\n" +
       "뜻을 보고 영어 스펠링을 입력하세요.\n" +
       "30문제를 모두 맞히면 포인트 1점이 지급됩니다.\n" +
-      "포인트는 일요일~토요일 기준으로 학생당 주 1회만 받을 수 있습니다."
+      "포인트는 토요일~금요일 기준으로 학생당 주 1회만 받을 수 있습니다."
   };
 }
 
@@ -5451,6 +5501,8 @@ function applyPointGuide(textMap) {
       vocabLoadedOnce = false;
       retestLoadedOnce = false;
       pointLoadedOnce = false;
+      myScoreReportLoadedOnce = false;
+      myScoreReportRequestSerial += 1;
       examClassesLoadedOnce = false;
 
       favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
@@ -5469,6 +5521,8 @@ function applyPointGuide(textMap) {
       if (scheduleTarget) scheduleTarget.innerHTML = '';
       if (scheduleSummary) scheduleSummary.innerHTML = '';
       if (homeSchedule) homeSchedule.innerHTML = '<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>';
+      const reportTarget = document.getElementById('school-report-view');
+      if (reportTarget) reportTarget.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러올 준비가 되었습니다.</div>';
     }
 
 
@@ -5753,6 +5807,84 @@ async function loadPointRankingOnce(force = false) {
     pointRankingLoaded = false;
   }
 }
+
+function schoolReportNumber(value, suffix = '') {
+  if (value === '' || value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return `${rounded}${suffix}`;
+}
+
+function schoolReportSigned(value, suffix = '') {
+  if (value === '' || value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return `${rounded > 0 ? '+' : ''}${rounded}${suffix}`;
+}
+
+function schoolReportRankText(row) {
+  const grade = String(row?.gradeLevel || '').trim();
+  const rank = row?.rank === '' || row?.rank === null || row?.rank === undefined ? '' : Number(row.rank);
+  const participants = row?.participantCount === '' || row?.participantCount === null || row?.participantCount === undefined ? '' : Number(row.participantCount);
+  const rankText = Number.isFinite(rank) ? `${rank}${Number.isFinite(participants) ? `/${participants}` : ''}` : '';
+  return [grade, rankText].filter(Boolean).join(' · ') || '-';
+}
+
+function schoolReportTrendSvg(rows) {
+  rows = Array.isArray(rows) ? rows : [];
+  if (!rows.length) return '<div class="card empty-card">그래프로 표시할 입력 성적이 없습니다.</div>';
+  const width = 720, height = 270, left = 44, right = 18, top = 20, bottom = 58;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const x = index => rows.length === 1 ? left + plotWidth / 2 : left + (plotWidth * index / (rows.length - 1));
+  const y = value => top + plotHeight - (Math.max(0, Math.min(100, Number(value) || 0)) / 100 * plotHeight);
+  const scorePoints = rows.map((row, index) => `${x(index)},${y(row.score)}`).join(' ');
+  const averageRows = rows.map((row, index) => ({ row, index })).filter(item => item.row.schoolAverage !== '' && item.row.schoolAverage !== null && item.row.schoolAverage !== undefined);
+  const averagePoints = averageRows.map(item => `${x(item.index)},${y(item.row.schoolAverage)}`).join(' ');
+  const grid = [0,25,50,75,100].map(value => `<line class="school-report-chart-grid" x1="${left}" y1="${y(value)}" x2="${width-right}" y2="${y(value)}"></line><text class="school-report-chart-label" x="${left-8}" y="${y(value)+4}" text-anchor="end">${value}</text>`).join('');
+  const labels = rows.map((row, index) => `<text class="school-report-chart-label" x="${x(index)}" y="${height-30}" text-anchor="middle">${escapeHtml(String(row.label || '').slice(0,10))}</text>`).join('');
+  const scoreDots = rows.map((row, index) => `<circle class="school-report-dot-score" cx="${x(index)}" cy="${y(row.score)}" r="6"></circle><text class="school-report-chart-value-label" x="${x(index)}" y="${y(row.score)-11}" text-anchor="middle">${schoolReportNumber(row.score)}</text>`).join('');
+  const averageDots = averageRows.map(item => `<circle class="school-report-dot-average" cx="${x(item.index)}" cy="${y(item.row.schoolAverage)}" r="5"></circle>`).join('');
+  return `<div class="school-report-chart-card"><div class="school-report-chart-title">성적 변화</div><div class="school-report-chart-subtitle">초록색은 내 점수, 노란 점선은 학교평균입니다.</div><svg class="school-report-chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="학교시험 성적 변화 그래프">${grid}<line class="school-report-chart-axis" x1="${left}" y1="${top+plotHeight}" x2="${width-right}" y2="${top+plotHeight}"></line>${averagePoints ? `<polyline class="school-report-line-average" points="${averagePoints}"></polyline>` : ''}<polyline class="school-report-line-score" points="${scorePoints}"></polyline>${averageDots}${scoreDots}${labels}</svg><div class="school-report-legend"><span class="school-report-legend-item"><span class="school-report-legend-dot score"></span>내 점수</span><span class="school-report-legend-item"><span class="school-report-legend-dot average"></span>학교평균</span></div></div>`;
+}
+
+function renderMyScoreReport(data) {
+  const target = document.getElementById('school-report-view');
+  if (!target) return;
+  const student = data.student || {};
+  const summary = data.summary || {};
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  const comment = summary.actualCount ?
+    `최근 점수는 ${schoolReportNumber(summary.latestScore, '점')}이고, 첫 시험 대비 ${schoolReportSigned(summary.change, '점')}입니다. 학교평균과 비교 가능한 시험의 평균 차이는 ${schoolReportSigned(summary.averageGap, '점')}입니다.` :
+    '아직 입력이 완료된 학교시험 성적이 없습니다. 운영센터에 성적이 확정되면 여기에 표시됩니다.';
+  target.innerHTML = `
+    <div class="school-report-comment"><b>${escapeHtml(student.name || currentUser?.name || '학생')}</b> · ${escapeHtml(student.studentId || currentUser?.id || '')}<br>${escapeHtml(comment)}</div>
+    <div class="school-report-summary">
+      <div class="status-item"><span>최근 점수</span><b>${schoolReportNumber(summary.latestScore, '점')}</b></div>
+      <div class="status-item"><span>평균 점수</span><b>${schoolReportNumber(summary.averageScore, '점')}</b></div>
+      <div class="status-item"><span>첫 시험 대비</span><b>${schoolReportSigned(summary.change, '점')}</b></div>
+    </div>
+    <div class="school-report-visual-grid">${schoolReportTrendSvg(data.chartRows || [])}<div class="school-report-chart-card"><div class="school-report-chart-title">현재 요약</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">학교평균 대비</span><span class="school-report-score-value">${schoolReportSigned(summary.averageGap, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">최근 등급</span><span class="school-report-score-value">${escapeHtml(summary.latestGrade || '-')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학원 입력학생 순위</span><span class="school-report-score-value">${summary.latestPeerRank ? `${summary.latestPeerRank}/${summary.latestPeerCount}` : '-'}</span></div><div class="school-report-score-box"><span class="school-report-score-label">반영 시험</span><span class="school-report-score-value">${Number(summary.actualCount || 0)}회</span></div></div></div></div>
+    <div class="school-report-record-list">${rows.map(row => `<article class="school-report-record"><div class="school-report-record-title">${escapeHtml(row.examLabel || row.cycleName || [row.school,row.grade,row.semester,row.examType || '학교시험'].filter(Boolean).join(' '))}</div><div class="school-report-record-meta">${escapeHtml([row.examDate,row.subject,row.scopeSummary].filter(Boolean).join(' · '))}</div><div class="school-report-score-row"><div class="school-report-score-box"><span class="school-report-score-label">내 점수</span><span class="school-report-score-value">${row.absent ? '결시' : schoolReportNumber(row.rawScore, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">학교평균</span><span class="school-report-score-value">${schoolReportNumber(row.schoolAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">평균 대비</span><span class="school-report-score-value">${schoolReportSigned(row.deltaFromAverage, '점')}</span></div><div class="school-report-score-box"><span class="school-report-score-label">등급 · 학교석차</span><span class="school-report-score-value">${escapeHtml(schoolReportRankText(row))}</span></div></div>${row.memo ? `<div class="school-report-comment">${escapeHtml(row.memo)}</div>` : ''}</article>`).join('') || '<div class="card empty-card">표시할 학교시험 성적이 없습니다.</div>'}</div>
+    <div class="school-report-record-meta">데이터 기준: ${escapeHtml(data.sourceOfTruth || 'CoreDB')} · 다른 학생 정보는 포함하지 않습니다.${summary.updatedAt ? ` · 최근 반영 ${escapeHtml(summary.updatedAt)}` : ''}</div>`;
+}
+
+async function loadMyScoreReport(force = false) {
+  if (myScoreReportLoadedOnce && !force) return;
+  if (!currentUser || !currentUser.token) return;
+  const requestSerial = ++myScoreReportRequestSerial;
+  const epoch = studentSessionEpoch;
+  const target = document.getElementById('school-report-view');
+  if (target) target.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러오는 중입니다.</div>';
+  try {
+    const result = await apiPost({ action:'getMyScoreReport', forceRefresh:force ? 'true' : 'false' }, API_LONG_TIMEOUT_MS);
+    if (requestSerial !== myScoreReportRequestSerial || epoch !== studentSessionEpoch) return;
+    if (!result.success) throw new Error(result.message || '성적 리포트를 불러오지 못했습니다.');
+    renderMyScoreReport(result);
+    myScoreReportLoadedOnce = true;
+  } catch (error) {
+    if (requestSerial !== myScoreReportRequestSerial || epoch !== studentSessionEpoch) return;
+    myScoreReportLoadedOnce = false;
+    if (target) target.innerHTML = `<div class="card empty-card">${escapeHtml(error.message || '성적 리포트 연결에 실패했습니다.')}</div>`;
+  }
+}
     
     function showTab(tabId, options = {}) {
       const section = document.getElementById(tabId);
@@ -5783,6 +5915,10 @@ async function loadPointRankingOnce(force = false) {
       if (tabId === "exam") {
           loadExamTabOnce();
         }
+
+      if (tabId === "report") {
+        loadMyScoreReport(false);
+      }
       
       if (tabId === "favorites") {
   renderFolderControls();
@@ -6070,6 +6206,18 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
+function nextPreparationEmptyText(day, type) {
+  const status = String(day?.preparationStatus?.[type] || '').toUpperCase();
+  if (status === 'EXEMPT') return '면제';
+  if (status === 'SKIPPED' || status === 'CLOSED') return '학원 휴원으로 면제';
+  if (type === 'vocab' || type === 'listening') return '범위 등록 대기';
+  return '등록된 내용 없음';
+}
+function nextPreparationItem(day, type, label, value) {
+  if (scheduleHasValue(value)) return scheduleItem(label, value);
+  if (!day?.isNextClass) return '';
+  return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value muted">${escapeHtml(nextPreparationEmptyText(day, type))}</div></div>`;
+}
 function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
   const cleanDay = day => {
     if (!day || String(day.date || "").slice(0, 10) < today) return null;
@@ -6081,8 +6229,25 @@ function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
   };
   const days = (Array.isArray(payload?.days) ? payload.days : []).map(cleanDay).filter(Boolean);
   const visibleDays = (Array.isArray(payload?.visibleDays) ? payload.visibleDays : []).map(cleanDay).filter(Boolean);
-  const nextPlan = cleanDay(payload?.nextPlan) || visibleDays[0] || days.find(day => day.hasPlan || day.closed) || null;
-  return { ...payload, startDate: payload?.startDate && payload.startDate > today ? payload.startDate : today, days, visibleDays, nextPlan };
+  const serverNext = cleanDay(payload?.nextClassPlan || payload?.nextPlan);
+  const isClassDay = day => day && !day.closed && day.scheduled !== false;
+  const nextClassPlan = (isClassDay(serverNext) ? serverNext : null)
+    || days.find(day => day.scheduled === true && !day.closed)
+    || visibleDays.find(isClassDay)
+    || days.find(isClassDay)
+    || null;
+  const nextDate = String(nextClassPlan?.date || "");
+  days.forEach(day => { day.isNextClass = Boolean(nextDate && day.date === nextDate); });
+  visibleDays.forEach(day => { day.isNextClass = Boolean(nextDate && day.date === nextDate); });
+  if (nextClassPlan) nextClassPlan.isNextClass = true;
+  return {
+    ...payload,
+    startDate: payload?.startDate && payload.startDate > today ? payload.startDate : today,
+    days,
+    visibleDays,
+    nextPlan: nextClassPlan,
+    nextClassPlan
+  };
 }
 function normalizeListeningTypeCode(value) {
   const type = String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
@@ -6109,11 +6274,14 @@ function formatListeningScheduleText(listening) {
   return `🎧 Listening · ${scope}`;
 }
 function renderScheduleDay(day) {
-  const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
+  const vocabText = (day.vocab || []).map(item => {
+    const group = String(item.groupName || "").trim();
+    return `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}${group ? ` · ${group}` : ""}\n${item.displayText || ""}`;
+  }).join("\n\n");
   const listeningDisplay = formatListeningScheduleText(day.listening);
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
-  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
-  return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
+  const body = [nextPreparationItem(day,"vocab","📘 단어",vocabText), nextPreparationItem(day,"quiz","🧩 Quiz",day.quiz?.scope), nextPreparationItem(day,"listening","🎧 듣기 숙제",listeningDisplay), nextPreparationItem(day,"homework","📚 숙제",day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
+  return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.isNextClass ? `<span class="schedule-pill">다음 수업</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">등록 대기</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
 function renderMySchedule(payload) {
   const target = document.getElementById("exam-table");
@@ -6152,18 +6320,20 @@ function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
   if (!target) return;
   const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
-  const day = futurePayload.nextPlan || futurePayload.visibleDays[0] || futurePayload.days.find(item => item.hasPlan || item.closed) || null;
+  const day = futurePayload.nextClassPlan || futurePayload.nextPlan || null;
   if (!day) { target.innerHTML = `<div class="home-notice-card home-schedule-card">다가오는 학습일정이 없습니다.</div>`; return; }
   const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
   const lines = [];
   if (day.closed) lines.push(`🏖️ ${escapeHtml(day.closure?.type || "휴원")}`);
-  if (vocabText) lines.push(`📘 ${escapeHtml(vocabText)}`);
-  if (day.quiz?.scope) lines.push(`🧩 ${escapeHtml(day.quiz.scope)}`);
   const listeningDisplay = formatListeningScheduleText(day.listening);
-  if (listeningDisplay) lines.push(escapeHtml(listeningDisplay));
-  if (day.homework?.text) lines.push(`📚 ${escapeHtml(day.homework.text)}`);
+  if (!day.closed) {
+    lines.push(`📘 단어 · ${escapeHtml(vocabText || nextPreparationEmptyText(day, 'vocab'))}`);
+    lines.push(`🎧 듣기 · ${escapeHtml(listeningDisplay || nextPreparationEmptyText(day, 'listening'))}`);
+    lines.push(`🧩 Quiz · ${escapeHtml(day.quiz?.scope || nextPreparationEmptyText(day, 'quiz'))}`);
+    lines.push(`📚 숙제 · ${escapeHtml(day.homework?.text || nextPreparationEmptyText(day, 'homework'))}`);
+  }
   if (day.lessonTest?.scope) lines.push(`📝 ${escapeHtml(day.lessonTest.scope)}`);
-  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">표시할 준비사항이 없습니다.</div>`}</div></div>`;
+  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">다음 수업 준비사항이 아직 등록되지 않았습니다.</div>`}</div></div>`;
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
@@ -7831,7 +8001,7 @@ async function startPointTest() {
   currentPointTest = null;
 
   try {
-    const result = await apiPost({ action: "getPointTestInfo" });
+    const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });
 
     if (!result.success) {
       target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
@@ -8025,7 +8195,10 @@ async function submitPointTest(forceSubmit = false) {
     target.insertAdjacentHTML("beforeend", "<div class='card'><b>제출 확인을 받지 못했습니다.</b><br>답안은 이 기기에 임시저장되어 있습니다. 인터넷 연결을 확인한 뒤 다시 제출하세요.<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>");
   } finally {
     pointSubmitting = false;
-    if (completed) currentPointTest = null;
+    if (completed) {
+      clearPointStartKey();
+      currentPointTest = null;
+    }
     else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
   }
 }
@@ -8319,6 +8492,8 @@ function escapeHtmlForPointRank(text) {
     .replaceAll("'", "&#039;");
 }
   </script>
+  <script src="./voca-station-ui.js?v=6.6.0"></script>
+  <script src="./sync-layer.js?v=6.6.0"></script>
 
 </body>
 </html>

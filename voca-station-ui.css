@@ -1,0 +1,231 @@
+/* All바른 학생웹 6.6.0 · 승인된 VOCA Station 학생 노출 UX */
+.voca-station-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8em;
+}
+
+.voca-station-freshness {
+  color: #1b7f3a;
+  font-size: .66em;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.voca-library-tabs {
+  display: flex;
+  gap: .45em;
+  margin: .2em 0 1em;
+  padding: .32em;
+  overflow-x: auto;
+  border: 1px solid #c9d9d4;
+  border-radius: 16px;
+  background: #e5eeeb;
+}
+
+.voca-library-tabs button {
+  flex: 1;
+  min-width: 108px;
+  min-height: 45px;
+  padding: .65em .8em;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #4b665e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.voca-library-tabs button.active {
+  color: #31554c;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(35, 76, 65, .12);
+}
+
+.voca-library-panel { display: none; }
+.voca-library-panel.active { display: block; }
+
+.voca-scope-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9em;
+  margin-bottom: .85em;
+  padding: .86em 1em;
+  border: 1px solid #cce1da;
+  border-radius: 15px;
+  background: #f4faf7;
+  color: #476158;
+  font-size: .9em;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.voca-scope-banner b {
+  display: block;
+  margin-bottom: .12em;
+  color: #31554c;
+  font-size: 1.05em;
+  font-weight: 950;
+}
+
+.voca-scope-banner > span,
+.voca-book-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: .32em .68em;
+  border-radius: 999px;
+  background: #dff2e5;
+  color: #177637;
+  font-size: .78em;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.voca-book-badge.assigned { background: #fff0cf; color: #805500; }
+.voca-book-badge.exam { background: #e9e5f6; color: #53407c; }
+.voca-book-badge.wait { background: #f3f0e8; color: #73664e; }
+.voca-book-badge.connection { background: #ffe5a5; color: #704805; }
+
+.voca-book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .72em;
+  margin-bottom: .9em;
+}
+
+.voca-book-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1em;
+  border: 1px solid #d4e1dd;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(34, 76, 64, .07);
+}
+
+.voca-book-card[hidden] { display: none; }
+.voca-book-badges { display: flex; flex-wrap: wrap; gap: .34em; }
+
+.voca-book-card h3 {
+  margin: .64em 0 .3em;
+  color: #31554c;
+  font-size: 1.05em;
+  font-weight: 950;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.voca-book-card p {
+  flex: 1;
+  margin: 0 0 .8em;
+  color: #64766f;
+  font-size: .86em;
+  font-weight: 730;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.voca-book-card .vocab-btn { width: 100%; }
+
+.voca-book-card.connection-needed {
+  border-color: #e8cd85;
+  background: #fff8e8;
+}
+
+.voca-book-card.connection-needed h3 { color: #60420d; }
+
+.voca-book-card.connection-needed p { color: #6d582d; }
+
+.voca-connection-help {
+  margin: 0 0 .8em;
+  padding: .72em .78em;
+  border: 1px solid #ead9ad;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #6d582d;
+  font-size: .82em;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.voca-library-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: .55em;
+  margin-bottom: .7em;
+}
+
+.voca-visibility-note {
+  margin: .85em 0;
+  padding: .78em .9em;
+  border: 1px dashed #a9bdb7;
+  border-radius: 13px;
+  color: #5b7069;
+  font-size: .84em;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.voca-browser-panel {
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 2px solid #dce9e5;
+}
+
+.voca-browser-panel[hidden] { display: none !important; }
+
+.voca-browser-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7em;
+  margin-bottom: .7em;
+}
+
+.voca-browser-head b { color: #31554c; font-size: 1.08em; }
+
+.voca-library-empty {
+  grid-column: 1 / -1;
+  padding: 1.05em;
+  border: 1px solid #d7e4e0;
+  border-radius: 15px;
+  background: #fff;
+  color: #657770;
+  font-weight: 800;
+  text-align: center;
+}
+
+body.dark .voca-library-tabs,
+body.dark .voca-scope-banner,
+body.dark .voca-book-card,
+body.dark .voca-library-empty {
+  color: #e8f4f0;
+  border-color: #35514a;
+  background: #1f2a27;
+}
+
+body.dark .voca-library-tabs button { color: #cfe1db; }
+body.dark .voca-library-tabs button.active { color: #f6fffc; background: #31554c; }
+body.dark .voca-scope-banner b,
+body.dark .voca-book-card h3,
+body.dark .voca-browser-head b { color: #f6fffc; }
+body.dark .voca-book-card p,
+body.dark .voca-visibility-note { color: #cfe1db; }
+body.dark .voca-book-card.connection-needed,
+body.dark .voca-connection-help { background: #342b1d; border-color: #725c2f; }
+body.dark .voca-book-card.connection-needed h3,
+body.dark .voca-book-card.connection-needed p,
+body.dark .voca-connection-help { color: #ffe7ae; }
+
+@media (max-width: 760px) {
+  .voca-station-title-row { align-items: flex-start; }
+  .voca-library-tabs button { font-size: .88em; }
+  .voca-scope-banner { align-items: flex-start; flex-direction: column; }
+  .voca-book-grid,
+  .voca-library-search-row { grid-template-columns: 1fr; }
+  .voca-browser-head { align-items: flex-start; flex-direction: column; }
+}
