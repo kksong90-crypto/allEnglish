@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.6.0-VOCA-STATION-ROLE-SAFE" />
+  <meta name="allbarun-student-version" content="6.6.1-POINT-RANK-POSITIVE-ONLY" />
 
   <title>All바른 English</title>
   <meta name="allbarun-student-api-version" content="6.5.1-VOCA-GATEWAY-RETEST-SAFETY" />
@@ -8364,8 +8364,8 @@ async function loadPointRanking() {
       return false;
     }
 
-    pointRankingPayload.currentTop10 = json.currentTop10 || [];
-    pointRankingPayload.totalTop10 = json.totalTop10 || [];
+    pointRankingPayload.currentTop10 = (json.currentTop10 || []).filter(item => Number(item.currentPoint || 0) > 0);
+    pointRankingPayload.totalTop10 = (json.totalTop10 || []).filter(item => Number(item.totalPoint || 0) > 0);
 
     renderPointRanking();
     return true;
@@ -8392,9 +8392,10 @@ function renderPointRanking() {
 
   const isCurrentMode = pointRankingMode === "current";
 
-  const data = isCurrentMode
+  const data = (isCurrentMode
     ? pointRankingPayload.currentTop10
-    : pointRankingPayload.totalTop10;
+    : pointRankingPayload.totalTop10
+  ).filter(item => Number(isCurrentMode ? item.currentPoint : item.totalPoint) > 0);
 
   if (title) {
     title.textContent = isCurrentMode
@@ -8415,7 +8416,7 @@ function renderPointRanking() {
   }
 
   if (!data || !data.length) {
-    box.innerHTML = `<p class="empty-message">아직 포인트 랭킹이 없습니다.</p>`;
+    box.innerHTML = `<p class="empty-message">아직 1P 이상 보유·누적한 랭킹 대상 학생이 없습니다.</p>`;
     return;
   }
 
