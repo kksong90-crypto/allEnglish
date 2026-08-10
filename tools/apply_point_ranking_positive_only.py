@@ -17,17 +17,6 @@ new='''const data = (isCurrentMode
     : pointRankingPayload.totalTop10
   ).filter(item => Number(isCurrentMode ? item.currentPoint : item.totalPoint) > 0);'''
 once(old,new,'render defensive filter')
-# Make the empty state explain that zero-point students are intentionally excluded.
-old_empty='''box.innerHTML = `<div class="rank-empty">랭킹 데이터가 없습니다.</div>`;'''
-if old_empty in s:
-    s=s.replace(old_empty,'box.innerHTML = `<div class="rank-empty">아직 1P 이상 보유·누적한 랭킹 대상 학생이 없습니다.</div>`;',1)
-else:
-    marker='''if (!data || data.length === 0) {'''
-    pos=s.find(marker)
-    if pos<0: raise RuntimeError('ranking empty-state marker not found')
-    # Existing message remains valid only if it already explains the positive-only rule.
-    tail=s[pos:pos+700]
-    if not ('1P 이상' in tail or '포인트가 있는 학생' in tail or '랭킹 대상' in tail):
-        raise RuntimeError('ranking empty-state text requires manual review')
+once('box.innerHTML = `<p class="empty-message">아직 포인트 랭킹이 없습니다.</p>`;','box.innerHTML = `<p class="empty-message">아직 1P 이상 보유·누적한 랭킹 대상 학생이 없습니다.</p>`;','positive-only empty state')
 p.write_text(s,encoding='utf-8',newline='\n')
 print('applied positive-only point ranking guard')
