@@ -1,0 +1,45 @@
+name: Student web positive-only point ranking
+
+on:
+  push:
+    branches:
+      - agent/student-web-point-ranking-positive-only
+    paths:
+      - tools/apply_point_ranking_positive_only.py
+      - tests/point_ranking_positive_only.js
+      - .github/workflows/point-ranking-positive-only.yml
+  pull_request:
+    branches:
+      - agent/student-web-clean-history-20260809
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/student-web-point-ranking-positive-only
+          fetch-depth: 0
+      - name: Apply point ranking guard
+        run: python3 tools/apply_point_ranking_positive_only.py
+      - name: Validate point ranking contract
+        run: node tests/point_ranking_positive_only.js .
+      - name: Verify only frontend changed
+        run: |
+          git diff --check
+          grep -F '6.6.1-POINT-RANK-POSITIVE-ONLY' index.html
+          grep -F '6.5.1-VOCA-GATEWAY-RETEST-SAFETY' index.html
+          unexpected="$(git diff --name-only | grep -Ev '^index\.html$' || true)"
+          test -z "$unexpected"
+      - name: Commit verified frontend to branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "student web: exclude zero-point ranking entries"
+          git push origin HEAD:agent/student-web-point-ranking-positive-only
