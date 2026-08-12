@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.6.1-POINT-RANK-POSITIVE-ONLY" />
+  <meta name="allbarun-student-version" content="6.6.2-RUNTIME-RESILIENCE" />
 
   <title>All바른 English</title>
   <meta name="allbarun-student-api-version" content="6.5.1-VOCA-GATEWAY-RETEST-SAFETY" />
@@ -4309,6 +4309,10 @@ body.dark .retest-admin-memo {
   }
 }
 
+[hidden] {
+  display: none !important;
+}
+
 
 /************************************************************
  * v6.2.0 내 학습일정 · 2주 학습계획 One-Shot
@@ -4830,7 +4834,9 @@ body.dark .retest-admin-memo {
 
 
     const API_TIMEOUT_MS = 15000;
+    const API_GET_TIMEOUT_MS = 20000;
     const API_LONG_TIMEOUT_MS = 90000;
+    const API_GET_RETRY_DELAY_MS = 600;
 
     async function fetchJsonWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
       const controller = new AbortController();
@@ -4844,13 +4850,38 @@ body.dark .retest-admin-memo {
         });
 
         if (!response.ok) {
-          throw new Error(`서버 응답 오류: ${response.status}`);
+          const responseError = new Error(`서버 응답 오류: ${response.status}`);
+          responseError.status = response.status;
+          throw responseError;
         }
 
         return await response.json();
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          const timeoutError = new Error(`서버 응답이 ${Math.round(timeoutMs / 1000)}초 안에 오지 않았습니다.`);
+          timeoutError.name = "ApiTimeoutError";
+          throw timeoutError;
+        }
+        throw err;
       } finally {
         clearTimeout(timer);
       }
+    }
+
+    function isTransientApiError(err) {
+      const status = Number(err && err.status);
+      return Boolean(
+        err &&
+        (err.name === "ApiTimeoutError" ||
+          err.name === "TypeError" ||
+          status === 408 ||
+          status === 429 ||
+          status >= 500)
+      );
+    }
+
+    function waitForApiRetry(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 async function fetchSheet(sheetName) {
   const params = new URLSearchParams({ sheetName });
@@ -5373,13 +5404,44 @@ function applyPointGuide(textMap) {
     }
 
     let authExpiredNoticeShown = false;
+    const AUTHENTICATED_UI_SELECTOR = ".brand-header, .top-user-bar, .app-tabs, body > section, .bottom-nav";
+
+    function setAuthenticatedUiVisible(visible) {
+      document.querySelectorAll(AUTHENTICATED_UI_SELECTOR).forEach(element => {
+        element.hidden = !visible;
+        element.setAttribute("aria-hidden", visible ? "false" : "true");
+      });
+    }
+
+    function showLoggedOutUi(message = "") {
+      setAuthenticatedUiVisible(false);
+      closeFullMenu();
+      closeMainPopup();
+      closePasswordModal();
+
+      const loginScreen = document.getElementById("login-screen");
+      const loginError = document.getElementById("login-error");
+      const userLabel = document.getElementById("user-label");
+      const passwordInput = document.getElementById("login-pw");
+      const loader = document.getElementById("loader");
+
+      if (loginScreen) loginScreen.style.display = "flex";
+      if (loginError) loginError.textContent = message;
+      if (userLabel) userLabel.textContent = "로그인이 필요합니다.";
+      if (passwordInput) passwordInput.value = "";
+      if (loader) loader.classList.add("hidden");
+    }
 
     function handleApiAuthFailure(result) {
       const message = String(result && result.message ? result.message : "");
       const isAuthProblem =
         !result ||
         (result.success === false &&
-          (message.includes("로그인 시간이 만료") || message.includes("로그인이 필요")));
+          (message.includes("로그인 시간이 만료") ||
+            message.includes("로그인이 필요") ||
+            message.includes("세션이 만료") ||
+            message.includes("세션이 유효하지 않") ||
+            message.includes("다시 로그인")));
 
       if (!isAuthProblem) {
         return result;
@@ -5392,16 +5454,7 @@ function applyPointGuide(textMap) {
       studentContentPromise = null;
       studentContentPayload = null;
 
-      const loginScreen = document.getElementById("login-screen");
-      const loginError = document.getElementById("login-error");
-
-      if (loginScreen) {
-        loginScreen.style.display = "flex";
-      }
-
-      if (loginError) {
-        loginError.textContent = "로그인 시간이 만료되었습니다. 다시 로그인하세요.";
-      }
+      showLoggedOutUi("로그인 시간이 만료되었습니다. 다시 로그인하세요.");
 
       if (!authExpiredNoticeShown) {
         authExpiredNoticeShown = true;
@@ -5413,12 +5466,27 @@ function applyPointGuide(textMap) {
 
     async function apiGet(params) {
       const query = new URLSearchParams(params);
+      const requestEpoch = studentSessionEpoch;
       if (currentUser && currentUser.token && !query.has("token")) {
         query.set("token", currentUser.token);
       }
 
-      const result = await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString());
-      return handleApiAuthFailure(result);
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const result = await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString(), {}, API_GET_TIMEOUT_MS);
+          return handleApiAuthFailure(result);
+        } catch (err) {
+          if (attempt > 0 || !isTransientApiError(err)) throw err;
+          await waitForApiRetry(API_GET_RETRY_DELAY_MS);
+          if (requestEpoch !== studentSessionEpoch) {
+            const sessionError = new Error("사용자 세션이 변경되어 이전 요청을 중단했습니다.");
+            sessionError.name = "SessionChangedError";
+            throw sessionError;
+          }
+        }
+      }
+
+      throw new Error("읽기 요청을 완료하지 못했습니다.");
     }
 
     async function apiPost(params, timeoutMs = API_TIMEOUT_MS) {
@@ -5511,7 +5579,11 @@ function applyPointGuide(textMap) {
       currentVocabWords = [];
       wrongWords = [];
       serverWrongWords = [];
+      clearPointTimer();
+      pointSubmitSerial += 1;
+      pointSubmitting = false;
       currentPointTest = null;
+      pointSummaryPromise = null;
       studentContentPromise = null;
       studentContentPayload = null;
 
@@ -5523,6 +5595,38 @@ function applyPointGuide(textMap) {
       if (homeSchedule) homeSchedule.innerHTML = '<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>';
       const reportTarget = document.getElementById('school-report-view');
       if (reportTarget) reportTarget.innerHTML = '<div class="card empty-card">내 성적 리포트를 불러올 준비가 되었습니다.</div>';
+
+      const personalViewDefaults = {
+        'retest-table': '',
+        'retest-import-result': '',
+        'voca-mine-grid': '<div class="card">로그인 후 내 학습 단어를 확인할 수 있습니다.</div>',
+        'voca-exam-grid': '<div class="card">로그인 후 시험범위를 확인할 수 있습니다.</div>',
+        'vocab-progress': '',
+        'vocab-view': '',
+        'folder-control-vocab': '',
+        'folder-control-favorites': '',
+        'favorites-view': '',
+        'wrong-note-view': '',
+        'point-summary-view': '',
+        'point-test-view': '',
+        'pointRankList': '로그인 후 랭킹을 확인할 수 있습니다.'
+      };
+      Object.entries(personalViewDefaults).forEach(([id, html]) => {
+        const target = document.getElementById(id);
+        if (target) target.innerHTML = html;
+      });
+
+      const retestAdminPanel = document.getElementById('retest-admin-panel');
+      if (retestAdminPanel) retestAdminPanel.style.display = 'none';
+
+      ['retest-add-class', 'retest-add-name', 'retest-add-date', 'retest-add-range', 'vocab-search-input'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      ['vocab-book-select', 'vocab-day-select'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) select.innerHTML = '';
+      });
     }
 
 
@@ -5581,6 +5685,7 @@ function applyPointGuide(textMap) {
     }
 
     function afterLogin() {
+  setAuthenticatedUiVisible(true);
   document.getElementById("login-screen").style.display = "none";
   updateUserLabel();
 
@@ -5612,18 +5717,17 @@ function applyPointGuide(textMap) {
 }
 
     async function logout() {
+      const logoutToken = currentUser && currentUser.token ? currentUser.token : "";
       resetUserScopedState();
-      try { if (currentUser && currentUser.token) await apiPost({ action: "logout" }); } catch (ignore) {}
       clearPointTestDraft();
       clearUserSession();
       currentUser = null;
       appContentPromise = null;
-      document.getElementById("login-screen").style.display = "flex";
-      document.getElementById("user-label").textContent = "로그인이 필요합니다.";
-      closeFullMenu();
+      studentContentPromise = null;
+      studentContentPayload = null;
+      showLoggedOutUi("");
       document.getElementById("login-id").value = "";
-      document.getElementById("login-pw").value = "";
-      document.getElementById("login-error").textContent = "";
+      try { if (logoutToken) await apiPost({ action: "logout", token: logoutToken }); } catch (ignore) {}
     }
 
     function openPasswordModal() {
@@ -7789,7 +7893,20 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
 let currentPointTest = null;
 let pointSubmitting = false;
+let pointSubmitSerial = 0;
 let pointTimerInterval = null;
+let pointSummaryPromise = null;
+
+function getMyPointSummaryShared() {
+  if (!currentUser || !currentUser.token) return Promise.resolve(null);
+  if (pointSummaryPromise) return pointSummaryPromise;
+
+  const request = apiGet({ action: "getMyPointSummary" }).finally(() => {
+    if (pointSummaryPromise === request) pointSummaryPromise = null;
+  });
+  pointSummaryPromise = request;
+  return request;
+}
 
 function updateUserLabel() {
   const label = document.getElementById("user-label");
@@ -7806,9 +7923,11 @@ function updateUserLabel() {
 
 async function refreshMyPointSummary() {
   if (!currentUser || !currentUser.token) return;
+  const epoch = studentSessionEpoch;
 
   try {
-    const result = await apiGet({ action: "getMyPointSummary" });
+    const result = await getMyPointSummaryShared();
+    if (epoch !== studentSessionEpoch || !currentUser || !result) return;
 
     if (result && result.success) {
       currentUser.totalPoints = Number(result.totalPoints || 0);
@@ -7820,6 +7939,7 @@ async function refreshMyPointSummary() {
       }
     }
   } catch (err) {
+    if (epoch !== studentSessionEpoch) return;
     console.warn("포인트 요약을 불러오지 못했습니다.", err);
     updateUserLabel();
   }
@@ -7843,9 +7963,11 @@ async function loadPointHome() {
   summaryTarget.innerHTML = "<div class='card'>포인트 상태를 불러오는 중입니다...</div>";
   testTarget.innerHTML = "";
   currentPointTest = null;
+  const epoch = studentSessionEpoch;
 
   try {
-    const result = await apiGet({ action: "getMyPointSummary" });
+    const result = await getMyPointSummaryShared();
+    if (epoch !== studentSessionEpoch || !currentUser || !result) return;
 
     if (!result.success) {
       summaryTarget.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 정보를 불러오지 못했습니다.")}</div>`;
@@ -7858,7 +7980,9 @@ async function loadPointHome() {
 
     renderPointSummary(result);
   } catch (err) {
-    summaryTarget.innerHTML = "<div class='card'>포인트 API 연결에 실패했습니다. Student API v6 배포 상태를 확인하세요.</div>";
+    if (epoch === studentSessionEpoch) {
+      summaryTarget.innerHTML = `<div class='card'>${escapeHtml(err && err.message ? err.message : "포인트 API 연결에 실패했습니다.")}</div>`;
+    }
   }
 }
 
@@ -8171,13 +8295,17 @@ async function submitPointTest(forceSubmit = false) {
   savePointTestDraft();
   clearPointTimer();
   pointSubmitting = true;
+  const submitEpoch = studentSessionEpoch;
+  const submitSerial = ++pointSubmitSerial;
+  const submittedTestId = currentPointTest.testId;
   const elapsedSeconds = currentPointTest.startedAt ? Math.round((Date.now() - currentPointTest.startedAt) / 1000) : "";
   document.getElementById("point-submitting-message")?.remove();
   target.insertAdjacentHTML("beforeend", `<div class='card' id='point-submitting-message'>${forceSubmit ? "시간이 종료되어 자동 제출 중입니다..." : "채점 중입니다..."}</div>`);
 
   let completed = false;
   try {
-    const result = await apiPost({ action: "submitPointTest", testId: currentPointTest.testId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) });
+    const result = await apiPost({ action: "submitPointTest", testId: submittedTestId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) });
+    if (submitEpoch !== studentSessionEpoch || submitSerial !== pointSubmitSerial || !currentUser) return;
     document.getElementById("point-submitting-message")?.remove();
     if (!result.success) {
       target.insertAdjacentHTML("beforeend", `<div class='card'>${escapeHtml(result.message || "채점에 실패했습니다.")}<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>`);
@@ -8191,9 +8319,11 @@ async function submitPointTest(forceSubmit = false) {
     renderPointResult(result);
     refreshMyPointSummary();
   } catch (err) {
+    if (submitEpoch !== studentSessionEpoch || submitSerial !== pointSubmitSerial) return;
     document.getElementById("point-submitting-message")?.remove();
     target.insertAdjacentHTML("beforeend", "<div class='card'><b>제출 확인을 받지 못했습니다.</b><br>답안은 이 기기에 임시저장되어 있습니다. 인터넷 연결을 확인한 뒤 다시 제출하세요.<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>");
   } finally {
+    if (submitEpoch !== studentSessionEpoch || submitSerial !== pointSubmitSerial) return;
     pointSubmitting = false;
     if (completed) {
       clearPointStartKey();
@@ -8315,6 +8445,7 @@ function renderPointResult(result) {
 
 
     window.onload = async () => {
+  setAuthenticatedUiVisible(false);
   restoreLogin();
   loadHomeTextFromCache();
   initAppBackHandling();

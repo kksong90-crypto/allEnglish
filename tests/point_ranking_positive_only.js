@@ -3,7 +3,7 @@ const root=path.resolve(process.argv[2]||'.');const html=fs.readFileSync(path.jo
 function check(n,v){if(!v)throw new Error('FAIL: '+n);checks.push(n)}
 const scripts=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!/\bsrc\s*=/.test(m[1]));
 check('inline javascript syntax',scripts.every(m=>{try{new vm.Script(m[2]);return true}catch(e){return false}}));
-check('student version bumped for ranking guard',/allbarun-student-version" content="6\.6\.1-POINT-RANK-POSITIVE-ONLY"/.test(html));
+check('student version includes ranking guard follow-up',/allbarun-student-version" content="6\.6\.2-RUNTIME-RESILIENCE"/.test(html));
 check('student API contract version is not changed',/allbarun-student-api-version" content="6\.5\.1-VOCA-GATEWAY-RETEST-SAFETY"/.test(html));
 check('current ranking payload filters zero and negative points',/currentTop10\s*=\s*\(json\.currentTop10\s*\|\|\s*\[\]\)\.filter\([^\n]*currentPoint[^\n]*>\s*0/.test(html));
 check('cumulative ranking payload filters zero and negative points',/totalTop10\s*=\s*\(json\.totalTop10\s*\|\|\s*\[\]\)\.filter\([^\n]*totalPoint[^\n]*>\s*0/.test(html));

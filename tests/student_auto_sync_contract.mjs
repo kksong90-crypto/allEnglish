@@ -27,7 +27,10 @@ check(/id = 'allbarun-refresh-button'/.test(sync), 'manual refresh button missin
 for (const page of pages) {
   const html = fs.readFileSync(new URL(page, root), 'utf8');
   check(/sync-layer\.js\?v=6\.6\.0/.test(html), `${page}: sync layer include missing`);
-  check(/6\.6\.0-VOCA-STATION-ROLE-SAFE/.test(html), `${page}: student version marker mismatch`);
+  const expectedVersion = page === 'index.html'
+    ? /6\.6\.2-RUNTIME-RESILIENCE/
+    : /6\.6\.0-VOCA-STATION-ROLE-SAFE/;
+  check(expectedVersion.test(html), `${page}: student version marker mismatch`);
   check(/studentSessionEpoch/.test(html) && /myScheduleRequestSerial/.test(html), `${page}: v6.5.1 stale-response guards lost`);
   check(/getMyScoreReport/.test(html) && /nextPreparationEmptyText/.test(html), `${page}: report/next-lesson features lost`);
 }
