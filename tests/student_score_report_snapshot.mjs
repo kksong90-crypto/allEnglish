@@ -20,4 +20,9 @@ for (const file of files) {
   check(/예상 범위와 목표는 과거 기록 기반 참고치/.test(html), `${file}: forecast disclaimer`);
 }
 
+const productionHtml = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const stagingHtml = fs.readFileSync(new URL('../v6-staging.html', import.meta.url), 'utf8');
+check(/AKfycbxLW0buCbPNwp4RPYZo4rq5tgP8OgPmdOKc0nzuOiA0HtFG8-Qzyq_kcK5FV4fzL372fg/.test(productionHtml), 'production page keeps production API deployment');
+check(/AKfycbzh2MnXCOxt9sPeRDItbg3c2UAY7nRH8tzYQ_OXkGFWDnWvBmWm3all1TohGYlT75DZ/.test(stagingHtml), 'staging page uses isolated API deployment');
+
 console.log(JSON.stringify({ok:true,checks,files}, null, 2));
