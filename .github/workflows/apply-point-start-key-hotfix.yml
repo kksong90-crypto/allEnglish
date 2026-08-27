@@ -1,0 +1,161 @@
+name: Apply point start key hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/student-point-start-key-20260827
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/student-point-start-key-20260827
+          fetch-depth: 0
+
+      - name: Apply exact minimal patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          source = path.read_text(encoding='utf-8')
+
+          replacements = []
+
+          old_version = '<meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />'
+          new_version = '<meta name="allbarun-student-version" content="6.3.1-POINT-START-KEY-HOTFIX" />'
+          replacements.append((old_version, new_version, 'student version marker'))
+
+          marker = '''function pointDraftStorageKey() {
+'''
+          helper = '''function pointStartKeyStorageKey() {
+  const studentKey = String(currentUser?.id || currentUser?.studentId || "guest").trim() || "guest";
+  return `allbarun-point-start-key:${studentKey}`;
+}
+
+function getOrCreatePointStartKey() {
+  const storageKey = pointStartKeyStorageKey();
+  let value = "";
+  try { value = sessionStorage.getItem(storageKey) || ""; } catch (ignore) {}
+
+  if (!/^[A-Za-z0-9_-]{16,160}$/.test(value)) {
+    let randomPart = "";
+    try {
+      randomPart = globalThis.crypto?.randomUUID
+        ? globalThis.crypto.randomUUID().replaceAll("-", "")
+        : "";
+    } catch (ignore) {}
+    if (!randomPart) {
+      randomPart = `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+    }
+    value = `POINTSTART_${randomPart}`;
+    try { sessionStorage.setItem(storageKey, value); } catch (ignore) {}
+  }
+
+  return value;
+}
+
+function clearPointStartKey() {
+  try { sessionStorage.removeItem(pointStartKeyStorageKey()); } catch (ignore) {}
+}
+
+function pointDraftStorageKey() {
+'''
+          replacements.append((marker, helper, 'point start key helpers'))
+
+          old_start = 'const result = await apiPost({ action: "getPointTestInfo" });'
+          new_start = 'const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });'
+          replacements.append((old_start, new_start, 'startKey request parameter'))
+
+          old_error = '''    if (!result.success) {
+      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+'''
+          new_error = '''    if (!result.success) {
+      if (String(result.message || "").includes("시험시작요청키")) clearPointStartKey();
+      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
+      return;
+    }
+'''
+          replacements.append((old_error, new_error, 'rejected key regeneration guard'))
+
+          old_complete = '''  } finally {
+    pointSubmitting = false;
+    if (completed) currentPointTest = null;
+    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
+  }
+'''
+          new_complete = '''  } finally {
+    pointSubmitting = false;
+    if (completed) {
+      clearPointStartKey();
+      currentPointTest = null;
+    }
+    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
+  }
+'''
+          replacements.append((old_complete, new_complete, 'clear key after confirmed submission'))
+
+          for old, new, label in replacements:
+            count = source.count(old)
+            if count != 1:
+              raise SystemExit(f'{label}: expected exactly 1 match, got {count}')
+            source = source.replace(old, new, 1)
+
+          path.write_text(source, encoding='utf-8')
+          PY
+
+      - name: Add focused contract test
+        shell: bash
+        run: |
+          mkdir -p tests
+          cat > tests/student_point_start_key_hotfix.mjs <<'EOF'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+
+          const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+
+          assert.match(source, /6\.3\.1-POINT-START-KEY-HOTFIX/);
+          assert.equal((source.match(/function pointStartKeyStorageKey\(/g) || []).length, 1);
+          assert.equal((source.match(/function getOrCreatePointStartKey\(/g) || []).length, 1);
+          assert.equal((source.match(/function clearPointStartKey\(/g) || []).length, 1);
+          assert.match(source, /POINTSTART_/);
+          assert.match(source, /getPointTestInfo", startKey: getOrCreatePointStartKey\(\)/);
+          assert.match(source, /includes\("시험시작요청키"\)\) clearPointStartKey\(\)/);
+          assert.match(source, /if \(completed\) \{\s*clearPointStartKey\(\);\s*currentPointTest = null;/);
+          assert.doesNotMatch(source, /apiPost\(\{ action: "getPointTestInfo" \}\)/);
+
+          const inlineScripts = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+            .map(match => match[1])
+            .filter(script => script.includes('async function startPointTest'));
+          assert.equal(inlineScripts.length, 1, 'expected exactly one main inline application script');
+          new vm.Script(inlineScripts[0], { filename: 'index-inline.js' });
+
+          console.log('student point start key hotfix contract: PASS');
+          EOF
+
+      - name: Validate hotfix
+        shell: bash
+        run: |
+          node tests/student_point_start_key_hotfix.mjs
+          git diff --check
+          git diff -- index.html tests/student_point_start_key_hotfix.mjs
+
+      - name: Commit validated hotfix and remove patcher workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-point-start-key-hotfix.yml
+          git add index.html tests/student_point_start_key_hotfix.mjs
+          git commit -m "fix: add idempotency key to student point test start"
+          git push origin HEAD:hotfix/student-point-start-key-20260827
