@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />
+  <meta name="allbarun-student-version" content="6.3.1-POINT-START-KEY-HOTFIX" />
 
   <title>All바른 English</title>
   <meta name="allbarun-student-api-version" content="6.2.0-COREDB-LEARNING-PLAN" />
@@ -7772,6 +7772,37 @@ async function openCurrentPointVocabStudy() {
   }
 }
 
+function pointStartKeyStorageKey() {
+  const studentKey = String(currentUser?.id || currentUser?.studentId || "guest").trim() || "guest";
+  return `allbarun-point-start-key:${studentKey}`;
+}
+
+function getOrCreatePointStartKey() {
+  const storageKey = pointStartKeyStorageKey();
+  let value = "";
+  try { value = sessionStorage.getItem(storageKey) || ""; } catch (ignore) {}
+
+  if (!/^[A-Za-z0-9_-]{16,160}$/.test(value)) {
+    let randomPart = "";
+    try {
+      randomPart = globalThis.crypto?.randomUUID
+        ? globalThis.crypto.randomUUID().replaceAll("-", "")
+        : "";
+    } catch (ignore) {}
+    if (!randomPart) {
+      randomPart = `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+    }
+    value = `POINTSTART_${randomPart}`;
+    try { sessionStorage.setItem(storageKey, value); } catch (ignore) {}
+  }
+
+  return value;
+}
+
+function clearPointStartKey() {
+  try { sessionStorage.removeItem(pointStartKeyStorageKey()); } catch (ignore) {}
+}
+
 function pointDraftStorageKey() {
   return `allbarunPointDraft:${currentUser?.id || "guest"}`;
 }
@@ -7831,9 +7862,10 @@ async function startPointTest() {
   currentPointTest = null;
 
   try {
-    const result = await apiPost({ action: "getPointTestInfo" });
+    const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });
 
     if (!result.success) {
+      if (String(result.message || "").includes("시험시작요청키")) clearPointStartKey();
       target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
       return;
     }
@@ -8025,7 +8057,10 @@ async function submitPointTest(forceSubmit = false) {
     target.insertAdjacentHTML("beforeend", "<div class='card'><b>제출 확인을 받지 못했습니다.</b><br>답안은 이 기기에 임시저장되어 있습니다. 인터넷 연결을 확인한 뒤 다시 제출하세요.<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>");
   } finally {
     pointSubmitting = false;
-    if (completed) currentPointTest = null;
+    if (completed) {
+      clearPointStartKey();
+      currentPointTest = null;
+    }
     else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
   }
 }
