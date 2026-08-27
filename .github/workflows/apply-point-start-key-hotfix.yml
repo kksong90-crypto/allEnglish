@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   apply-and-validate:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,88 +27,88 @@ jobs:
           path = Path('index.html')
           source = path.read_text(encoding='utf-8')
 
-          replacements = []
-
           old_version = '<meta name="allbarun-student-version" content="6.3.0-FUTURE-PREPARATION-PRODUCTION" />'
           new_version = '<meta name="allbarun-student-version" content="6.3.1-POINT-START-KEY-HOTFIX" />'
-          replacements.append((old_version, new_version, 'student version marker'))
 
-          marker = '''function pointDraftStorageKey() {
-'''
-          helper = '''function pointStartKeyStorageKey() {
-  const studentKey = String(currentUser?.id || currentUser?.studentId || "guest").trim() || "guest";
-  return `allbarun-point-start-key:${studentKey}`;
-}
-
-function getOrCreatePointStartKey() {
-  const storageKey = pointStartKeyStorageKey();
-  let value = "";
-  try { value = sessionStorage.getItem(storageKey) || ""; } catch (ignore) {}
-
-  if (!/^[A-Za-z0-9_-]{16,160}$/.test(value)) {
-    let randomPart = "";
-    try {
-      randomPart = globalThis.crypto?.randomUUID
-        ? globalThis.crypto.randomUUID().replaceAll("-", "")
-        : "";
-    } catch (ignore) {}
-    if (!randomPart) {
-      randomPart = `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
-    }
-    value = `POINTSTART_${randomPart}`;
-    try { sessionStorage.setItem(storageKey, value); } catch (ignore) {}
-  }
-
-  return value;
-}
-
-function clearPointStartKey() {
-  try { sessionStorage.removeItem(pointStartKeyStorageKey()); } catch (ignore) {}
-}
-
-function pointDraftStorageKey() {
-'''
-          replacements.append((marker, helper, 'point start key helpers'))
+          marker = "function pointDraftStorageKey() {\n"
+          helper = (
+              "function pointStartKeyStorageKey() {\n"
+              "  const studentKey = String(currentUser?.id || currentUser?.studentId || \"guest\").trim() || \"guest\";\n"
+              "  return `allbarun-point-start-key:${studentKey}`;\n"
+              "}\n\n"
+              "function getOrCreatePointStartKey() {\n"
+              "  const storageKey = pointStartKeyStorageKey();\n"
+              "  let value = \"\";\n"
+              "  try { value = sessionStorage.getItem(storageKey) || \"\"; } catch (ignore) {}\n\n"
+              "  if (!/^[A-Za-z0-9_-]{16,160}$/.test(value)) {\n"
+              "    let randomPart = \"\";\n"
+              "    try {\n"
+              "      randomPart = globalThis.crypto?.randomUUID\n"
+              "        ? globalThis.crypto.randomUUID().replaceAll(\"-\", \"\")\n"
+              "        : \"\";\n"
+              "    } catch (ignore) {}\n"
+              "    if (!randomPart) {\n"
+              "      randomPart = `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;\n"
+              "    }\n"
+              "    value = `POINTSTART_${randomPart}`;\n"
+              "    try { sessionStorage.setItem(storageKey, value); } catch (ignore) {}\n"
+              "  }\n\n"
+              "  return value;\n"
+              "}\n\n"
+              "function clearPointStartKey() {\n"
+              "  try { sessionStorage.removeItem(pointStartKeyStorageKey()); } catch (ignore) {}\n"
+              "}\n\n"
+              "function pointDraftStorageKey() {\n"
+          )
 
           old_start = 'const result = await apiPost({ action: "getPointTestInfo" });'
           new_start = 'const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });'
-          replacements.append((old_start, new_start, 'startKey request parameter'))
 
-          old_error = '''    if (!result.success) {
-      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
-      return;
-    }
-'''
-          new_error = '''    if (!result.success) {
-      if (String(result.message || "").includes("시험시작요청키")) clearPointStartKey();
-      target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
-      return;
-    }
-'''
-          replacements.append((old_error, new_error, 'rejected key regeneration guard'))
+          old_error = (
+              "    if (!result.success) {\n"
+              "      target.innerHTML = `<div class='card'>${escapeHtml(result.message || \"포인트 시험을 불러오지 못했습니다.\")}</div>`;\n"
+              "      return;\n"
+              "    }\n"
+          )
+          new_error = (
+              "    if (!result.success) {\n"
+              "      if (String(result.message || \"\").includes(\"시험시작요청키\")) clearPointStartKey();\n"
+              "      target.innerHTML = `<div class='card'>${escapeHtml(result.message || \"포인트 시험을 불러오지 못했습니다.\")}</div>`;\n"
+              "      return;\n"
+              "    }\n"
+          )
 
-          old_complete = '''  } finally {
-    pointSubmitting = false;
-    if (completed) currentPointTest = null;
-    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
-  }
-'''
-          new_complete = '''  } finally {
-    pointSubmitting = false;
-    if (completed) {
-      clearPointStartKey();
-      currentPointTest = null;
-    }
-    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
-  }
-'''
-          replacements.append((old_complete, new_complete, 'clear key after confirmed submission'))
+          old_complete = (
+              "  } finally {\n"
+              "    pointSubmitting = false;\n"
+              "    if (completed) currentPointTest = null;\n"
+              "    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);\n"
+              "  }\n"
+          )
+          new_complete = (
+              "  } finally {\n"
+              "    pointSubmitting = false;\n"
+              "    if (completed) {\n"
+              "      clearPointStartKey();\n"
+              "      currentPointTest = null;\n"
+              "    }\n"
+              "    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);\n"
+              "  }\n"
+          )
+
+          replacements = [
+              (old_version, new_version, 'student version marker'),
+              (marker, helper, 'point start key helpers'),
+              (old_start, new_start, 'startKey request parameter'),
+              (old_error, new_error, 'rejected key regeneration guard'),
+              (old_complete, new_complete, 'clear key after confirmed submission'),
+          ]
 
           for old, new, label in replacements:
-            count = source.count(old)
-            if count != 1:
-              raise SystemExit(f'{label}: expected exactly 1 match, got {count}')
-            source = source.replace(old, new, 1)
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, got {count}')
+              source = source.replace(old, new, 1)
 
           path.write_text(source, encoding='utf-8')
           PY
@@ -123,7 +123,6 @@ function pointDraftStorageKey() {
           import vm from 'node:vm';
 
           const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-
           assert.match(source, /6\.3\.1-POINT-START-KEY-HOTFIX/);
           assert.equal((source.match(/function pointStartKeyStorageKey\(/g) || []).length, 1);
           assert.equal((source.match(/function getOrCreatePointStartKey\(/g) || []).length, 1);
@@ -139,7 +138,6 @@ function pointDraftStorageKey() {
             .filter(script => script.includes('async function startPointTest'));
           assert.equal(inlineScripts.length, 1, 'expected exactly one main inline application script');
           new vm.Script(inlineScripts[0], { filename: 'index-inline.js' });
-
           console.log('student point start key hotfix contract: PASS');
           EOF
 
@@ -148,7 +146,6 @@ function pointDraftStorageKey() {
         run: |
           node tests/student_point_start_key_hotfix.mjs
           git diff --check
-          git diff -- index.html tests/student_point_start_key_hotfix.mjs
 
       - name: Commit validated hotfix and remove patcher workflow
         shell: bash
