@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-assert.match(source, /6\.3\.[12]-(?:POINT-START-KEY-HOTFIX|PUBLISHED-SCORE-REPORT)/);
+assert.match(source, /6\.3\.[123]-(?:POINT-START-KEY-HOTFIX|PUBLISHED-SCORE-REPORT|ASSIGNED-EXAM-PRACTICE)/);
 assert.equal((source.match(/function pointStartKeyStorageKey\(/g) || []).length, 1);
 assert.equal((source.match(/function getOrCreatePointStartKey\(/g) || []).length, 1);
 assert.equal((source.match(/function clearPointStartKey\(/g) || []).length, 1);

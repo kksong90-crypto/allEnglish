@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
-  <meta name="allbarun-student-version" content="6.3.2-PUBLISHED-SCORE-REPORT-STAGING" />
+  <meta name="allbarun-student-version" content="6.3.3-ASSIGNED-EXAM-PRACTICE-STAGING" />
 
   <title>All바른 English v6.0.4 STAGING</title>
-  <meta name="allbarun-student-api-version" content="6.5.4-PUBLISHED-SCORE-SNAPSHOT-STAGING" />
+  <meta name="allbarun-student-api-version" content="6.5.5-ASSIGNED-EXAM-PRACTICE-STAGING" />
 
   <!-- PWA / Icon -->
   <link rel="icon" href="icons/icon-192.png" />
@@ -4327,7 +4327,7 @@ body.dark .retest-admin-memo {
   <div id="login-screen">
     <div class="login-box">
       <h2>All바른 English</h2>
-      <p>학생 ID와 비밀번호를 입력하세요.<br><small>v6.0.2 STAGING · CoreDB 콘텐츠 네이티브</small></p>
+      <p>학생 ID와 비밀번호를 입력하세요.<br><small>v6.3.3 STAGING · 배정 시험범위 개인 연습</small></p>
 
       <input
         type="text"
@@ -4796,7 +4796,7 @@ body.dark .retest-admin-memo {
     /************************************************************
      *  1. 기본 설정 / 전역 변수
      ************************************************************/
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzh2MnXCOxt9sPeRDItbg3c2UAY7nRH8tzYQ_OXkGFWDnWvBmWm3all1TohGYlT75DZ/exec";
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzsuzWNCXXqCyZWwyO8oDlV2L6e1FfWwYH20-x814zfya5LSPQ04XYq-gLcQLSf2h0vHw/exec";
 
 
     const API_TIMEOUT_MS = 15000;
@@ -6115,6 +6115,16 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
+function scheduleVocabItem(items) {
+  const vocabItems = (Array.isArray(items) ? items : []).filter(item => scheduleHasValue(item?.displayText));
+  if (!vocabItems.length) return "";
+  const value = vocabItems.map(item => {
+    const planId = String(item?.testPlanId || "");
+    const connected = planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
+    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this)">시험범위 개인 연습</button>` : ""}</div>`;
+  }).join("");
+  return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
+}
 function sanitizeFuturePreparationSchedule(payload, today = getTodayString()) {
   const cleanDay = day => {
     if (!day || String(day.date || "").slice(0, 10) < today) return null;
@@ -6133,8 +6143,49 @@ function renderScheduleDay(day) {
   const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
   const listeningDisplay = typeof formatListeningScheduleText === "function" ? formatListeningScheduleText(day.listening) : day.listening?.homework;
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
-  const body = [scheduleItem("📘 단어", vocabText), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
+  const body = [scheduleVocabItem(day.vocab), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
+}
+async function startAssignedVocaPractice(testPlanId, button) {
+  const planId = String(testPlanId || "").trim();
+  if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
+  const originalText = button?.textContent || "시험범위 개인 연습";
+  if (button) { button.disabled = true; button.textContent = "불러오는 중…"; }
+  try {
+    await loadVocabBooksOnce();
+    showTab("vocab");
+    const target = document.getElementById("vocab-view");
+    if (target) target.innerHTML = `<div class="card">배정된 시험범위를 확인하고 있습니다…</div>`;
+    const result = await apiPost({
+      action: "getAssignedVocaPracticeQuestions",
+      testPlanId: planId,
+      mode: "MEANING_TO_WORD",
+      limit: "200",
+      randomize: "true"
+    });
+    if (!result?.success) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
+    const rows = (Array.isArray(result.questions) ? result.questions : []).map(question => {
+      const answers = (Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : []).map(String).filter(Boolean);
+      return ["[시험범위]", String(question.sourceLabel || "배정 계획"), answers[0] || "", String(question.prompt || ""), Number(question.questionNo || 0), String(question.bookId || ""), answers.join("|"), String(question.vocabWordId || "")];
+    }).filter(row => row[2] && row[3]);
+    if (!rows.length) throw new Error("이 계획에 연습할 시험범위 단어가 없습니다.");
+    renderTest(rows, {
+      mode: "meaning",
+      modeLabel: "배정 시험범위 개인 연습",
+      targetId: "vocab-view",
+      book: "[시험범위]",
+      day: String(result.planDate || "배정 계획"),
+      source: "ASSIGNED_TEST_PLAN",
+      testPlanId: planId,
+      skipSave: true
+    });
+  } catch (error) {
+    const target = document.getElementById("vocab-view");
+    if (target) target.innerHTML = `<div class="card">${escapeHtml(error?.message || "시험범위 연습을 시작하지 못했습니다.")}</div>`;
+    showAppToast(error?.message || "시험범위 연습을 시작하지 못했습니다.");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = originalText; }
+  }
 }
 function renderMySchedule(payload) {
   const target = document.getElementById("exam-table");
@@ -7404,7 +7455,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
           <div class="score-number">${score}점</div>
           <div class="score-sub">${currentVocabWords.length}문제 중 ${correctCount}개 정답 · 오답 ${wrongWords.length}개</div>
           <div class="score-bar"><div class="score-bar-fill" style="width:${score}%"></div></div>
-          <div id="save-result-status" class="notice-small">결과 저장 중...</div>
+          <div id="save-result-status" class="notice-small">${currentTestMeta?.skipSave ? "개인 연습 결과는 성적·오답노트에 저장되지 않습니다." : "결과 저장 중..."}</div>
         </div>
 
         <table>
@@ -7419,14 +7470,19 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       `;
 
       if (wrongWords.length > 0) {
-        resultHtml += renderWrongNoteHtml();
+        resultHtml += currentTestMeta?.skipSave ? renderPracticeRetryHtml() : renderWrongNoteHtml();
       }
 
       const resultTarget = document.getElementById("vocab-result");
       resultTarget.innerHTML = resultHtml;
       resultTarget.scrollIntoView({ behavior: "smooth" });
 
-      saveResultToServer(correctCount, score);
+      if (currentTestMeta?.skipSave) testAlreadySaved = true;
+      else saveResultToServer(correctCount, score);
+    }
+
+    function renderPracticeRetryHtml() {
+      return `<div style="margin-top:15px;"><button class="vocab-btn" onclick="startWrongWordTest()">틀린 단어 다시 시험 (${wrongWords.length}개)</button></div><div class="card"><b>개인 연습 오답</b><br><span class="notice-small">이번 화면에서만 확인할 수 있으며 실제 학원 시험 기록과 누적 오답노트에는 반영되지 않습니다.</span></div>`;
     }
 
     function renderWrongNoteHtml() {
@@ -7513,12 +7569,15 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         return;
       }
 
-      const targetId = currentTestMeta?.targetId || "vocab-view";
+      const priorMeta = currentTestMeta || {};
+      const targetId = priorMeta.targetId || "vocab-view";
       renderTest([...wrongWords], {
         mode: "wrong-retest",
         modeLabel: "오답 재시험",
         targetId,
-        source: "wrongWords"
+        source: "wrongWords",
+        testPlanId: priorMeta.testPlanId || "",
+        skipSave: Boolean(priorMeta.skipSave)
       });
     }
 

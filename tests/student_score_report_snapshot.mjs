@@ -23,6 +23,6 @@ for (const file of files) {
 const productionHtml = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const stagingHtml = fs.readFileSync(new URL('../v6-staging.html', import.meta.url), 'utf8');
 check(/AKfycbxLW0buCbPNwp4RPYZo4rq5tgP8OgPmdOKc0nzuOiA0HtFG8-Qzyq_kcK5FV4fzL372fg/.test(productionHtml), 'production page keeps production API deployment');
-check(/AKfycbzh2MnXCOxt9sPeRDItbg3c2UAY7nRH8tzYQ_OXkGFWDnWvBmWm3all1TohGYlT75DZ/.test(stagingHtml), 'staging page uses isolated API deployment');
+check(/AKfycbzsuzWNCXXqCyZWwyO8oDlV2L6e1FfWwYH20-x814zfya5LSPQ04XYq-gLcQLSf2h0vHw/.test(stagingHtml), 'staging page uses assigned-exam-practice isolated API deployment');
 
 console.log(JSON.stringify({ok:true,checks,files}, null, 2));
