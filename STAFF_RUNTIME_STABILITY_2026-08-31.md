@@ -1,6 +1,6 @@
 # Staff PWA runtime stability
 
-녹음체크 8.2.9와 Quick 7.3.1 후보의 브라우저 안정성 변경입니다. 아직 Production에 게시하지 않았습니다.
+녹음체크 8.2.9와 Quick 7.3.1의 브라우저 안정성 변경입니다. 2026-08-31 Production에 게시했습니다.
 
 - 읽기와 쓰기 모두 12초부터 지연 상태를 표시하고 최대 45초까지 기다립니다.
 - 조회 실패 시 이미 보이는 화면을 지우지 않습니다.
@@ -12,3 +12,10 @@
 
 `test_staff_runtime_stability.mjs`가 문법, 요청 ID 보존, 대기열 중복 방지, 기존 화면 유지 계약을 검사합니다.
 
+## Production 기록
+
+- GitHub PR: `#12`
+- 병합 커밋: `3d7f26ea9661856e5d5e6ce0e8801b0dae8094d7`
+- GitHub Pages 배포 실행: `33334734972` 성공
+- 실사용 파일 5개에서 녹음 `8.2.9`, Quick `7.3.1`, 두 서비스워커 캐시 버전을 확인
+- 녹음 API 기존 주소의 공개 ping `8.2.9-INTERACTION-SPEED` 확인
