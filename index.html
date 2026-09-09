@@ -8037,7 +8037,7 @@ async function startPointTest() {
   currentPointTest = null;
 
   try {
-    const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() });
+    const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() }, API_LONG_TIMEOUT_MS);
 
     if (!result.success) {
       if (String(result.message || "").includes("시험시작요청키")) clearPointStartKey();
@@ -8214,7 +8214,7 @@ async function submitPointTest(forceSubmit = false) {
 
   let completed = false;
   try {
-    const result = await apiPost({ action: "submitPointTest", testId: currentPointTest.testId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) });
+    const result = await apiPost({ action: "submitPointTest", testId: currentPointTest.testId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) }, API_LONG_TIMEOUT_MS);
     document.getElementById("point-submitting-message")?.remove();
     if (!result.success) {
       target.insertAdjacentHTML("beforeend", `<div class='card'>${escapeHtml(result.message || "채점에 실패했습니다.")}<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>`);
