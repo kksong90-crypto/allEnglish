@@ -7,11 +7,14 @@ const quick = fs.readFileSync('quick/app.js', 'utf8');
 new vm.Script(recording, { filename: 'recording/app.js' });
 new vm.Script(quick, { filename: 'quick/app.js' });
 
-assert.match(recording, /version:'8\.2\.9'/);
+assert.match(recording, /version:'8\.2\.10'/);
 assert.match(recording, /readOnly:true,readOnlyCandidateCache:true/);
 assert.match(recording, /timeoutMs=Number\(override\.timeoutMs\|\|\(write\?45000:45000\)\)/);
 assert.match(recording, /verifyUncertainSave/);
 assert.match(recording, /if\(APP\.data\)\{setSync\('조회 지연 · 기존 화면 유지'/);
+assert.match(recording, /function requireSessionLogin/);
+assert.match(recording, /localStorage\.removeItem\(APP\.tokenKey\)/);
+assert.match(recording, /if\(error\.authRequired\)/);
 
 assert.match(quick, /version:'7\.3\.1'/);
 assert.match(quick, /inFlight:new Map\(\)/);
