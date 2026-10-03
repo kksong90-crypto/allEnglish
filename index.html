@@ -4544,6 +4544,25 @@ body.dark .retest-admin-memo {
 
     <div id="schedule-summary-view"></div>
     <div id="exam-table"></div>
+    <div id="staff-schedule-preview" class="control-card" hidden>
+      <h3>관리자 · 학생 일정 미리보기</h3>
+      <p>읽기 전용입니다. 학생 로그인·계획·점수·인쇄 대기열은 변경하지 않습니다.</p>
+      <label for="staff-schedule-student-id">학생 ID</label>
+      <input id="staff-schedule-student-id" type="text" autocomplete="off" maxlength="100" placeholder="운영센터의 학생 ID" oninput="StaffSchedulePreview.clearResult()" />
+      <label for="staff-schedule-from-date">조회 시작일</label>
+      <input id="staff-schedule-from-date" type="date" onchange="StaffSchedulePreview.clearResult()" />
+      <label for="staff-schedule-range">조회 기간</label>
+      <select id="staff-schedule-range" onchange="StaffSchedulePreview.clearResult()">
+        <option value="today">하루</option>
+        <option value="week">7일</option>
+        <option value="three" selected>14일</option>
+      </select>
+      <div class="button-row">
+        <button id="staff-schedule-query" class="vocab-btn" type="button" onclick="StaffSchedulePreview.load()">학생 일정 읽기 확인</button>
+      </div>
+      <div id="staff-schedule-status" role="status" aria-live="polite"></div>
+      <div id="staff-schedule-result"></div>
+    </div>
   </section>
 
   <!-- 운영센터에서 게시한 V953 학교시험 성적 리포트 -->
@@ -5462,6 +5481,7 @@ function applyPointGuide(textMap) {
 
 
     function resetUserScopedState() {
+      if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
       myScheduleRequestSerial += 1;
       homeScheduleRequestSerial += 1;
@@ -5555,6 +5575,7 @@ function applyPointGuide(textMap) {
     function afterLogin() {
   document.getElementById("login-screen").style.display = "none";
   updateUserLabel();
+  if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.syncPanel();
 
   const epoch = studentSessionEpoch;
   appContentPromise = null;
@@ -6186,12 +6207,12 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
 }
 function scheduleHasValue(value) { return String(value || "").trim() !== ""; }
 function scheduleItem(label, value) { if (!scheduleHasValue(value)) return ""; return `<div class="schedule-item"><div class="schedule-item-label">${label}</div><div class="schedule-item-value">${formatMultilineHtml(value)}</div></div>`; }
-function scheduleVocabItem(items) {
+function scheduleVocabItem(items, readOnly = false) {
   const vocabItems = (Array.isArray(items) ? items : []).filter(item => scheduleHasValue(item?.displayText));
   if (!vocabItems.length) return "";
   const value = vocabItems.map(item => {
     const planId = String(item?.testPlanId || "");
-    const connected = planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
+    const connected = !readOnly && planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
     return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this)">시험범위 개인 연습</button>` : ""}</div>`;
   }).join("");
   return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
@@ -6234,11 +6255,11 @@ function formatListeningScheduleText(listening) {
   if (type === "LISTENING_SOLVE") return `🎧 풀기 · ${scope}`;
   return `🎧 Listening · ${scope}`;
 }
-function renderScheduleDay(day) {
+function renderScheduleDay(day, options = {}) {
   const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
   const listeningDisplay = formatListeningScheduleText(day.listening);
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
-  const body = [scheduleVocabItem(day.vocab), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
+  const body = [scheduleVocabItem(day.vocab, Boolean(options.readOnly)), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
 }
 async function startAssignedVocaPractice(testPlanId, button) {
@@ -6401,6 +6422,7 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
 }
 
 async function loadExamTabOnce(force = false) {
+  if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.syncPanel();
   if (myScheduleLoadedOnce && !force) {
     setScheduleRangeActive(myScheduleCurrentRange || "week");
     renderMySchedule(myScheduleLastPayload || { range: myScheduleCurrentRange || "week", days: [] });
@@ -8529,6 +8551,14 @@ function escapeHtmlForPointRank(text) {
     .replaceAll("'", "&#039;");
 }
   </script>
+  <style>
+    #staff-schedule-preview[hidden] { display: none !important; }
+    #staff-schedule-preview { margin-top: 1em; }
+    #staff-schedule-preview label { display: block; margin-top: .7em; font-weight: 800; }
+    #staff-schedule-preview input, #staff-schedule-preview select { width: 100%; box-sizing: border-box; padding: .7em; border: 1px solid var(--brand-line); border-radius: 10px; }
+    #staff-schedule-status { margin: .8em 0; white-space: pre-line; }
+  </style>
+  <script src="staff-schedule-preview.js"></script>
 
 </body>
 </html>
