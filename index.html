@@ -4544,6 +4544,25 @@ body.dark .retest-admin-memo {
 
     <div id="schedule-summary-view"></div>
     <div id="exam-table"></div>
+    <div id="admin-class-panel" class="control-card" hidden>
+      <h3>관리자 · 모든 반 학습일정</h3>
+      <p>확정된 계획을 학생별로 읽기 조회합니다. 같은 반의 단어그룹별 범위·듣기 차이도 그대로 표시합니다. 다른 학생으로 로그인하지 않습니다.</p>
+      <label for="admin-class-from">조회 시작일</label>
+      <input id="admin-class-from" type="date" onchange="AdminClassSchedule.invalidateDirectory()" />
+      <label for="admin-class-range">조회 기간</label>
+      <select id="admin-class-range" onchange="AdminClassSchedule.invalidateDirectory()">
+        <option value="today">하루</option><option value="week" selected>7일</option><option value="three">14일</option>
+      </select>
+      <div class="button-row"><button class="vocab-btn secondary" type="button" onclick="AdminClassSchedule.loadDirectory(true)">반 목록 새로고침</button></div>
+      <label for="admin-class-select">반</label>
+      <select id="admin-class-select" onchange="AdminClassSchedule.clearResult()"><option value="">반 목록을 불러오세요</option></select>
+      <div class="button-row">
+        <button id="admin-class-query" class="vocab-btn" type="button" onclick="AdminClassSchedule.load()">선택 반 전체 일정 조회</button>
+        <button id="admin-class-cancel" class="vocab-btn secondary" type="button" onclick="AdminClassSchedule.cancel()" hidden>조회 중단</button>
+      </div>
+      <div id="admin-class-status" role="status" aria-live="polite"></div>
+      <div id="admin-class-result"></div>
+    </div>
     <div id="staff-schedule-preview" class="control-card" hidden>
       <h3>관리자 · 학생 일정 미리보기</h3>
       <p>읽기 전용입니다. 학생 로그인·계획·점수·인쇄 대기열은 변경하지 않습니다.</p>
@@ -5481,6 +5500,7 @@ function applyPointGuide(textMap) {
 
 
     function resetUserScopedState() {
+      if (typeof AdminClassSchedule !== "undefined") AdminClassSchedule.reset();
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
       myScheduleRequestSerial += 1;
@@ -5845,7 +5865,7 @@ function renderMyScoreReport(data) {
   const target = document.getElementById('school-report-view');
   if (!target) return;
   if (!data?.published || !data.report) {
-    target.innerHTML = '<div class="card empty-card">아직 운영센터에서 학생웹에 게시한 성적 리포트가 없습니다.</div>';
+    target.innerHTML = '<div class="card empty-card">아직 운영센터에서 학생웹에 게시한 성적 리포트가 없습니다.<br><span class="muted">점수 저장·초안 저장·PDF 생성만으로는 게시되지 않습니다. 선생님이 운영센터의 학과성적 → 학생별 성적 리포트 → 추가 리포트 작업 → 학생웹 게시를 완료하면 표시됩니다.</span></div>';
     myScoreReportPayload = null;
     return;
   }
@@ -5863,6 +5883,11 @@ async function loadMyScoreReport(force = false) {
   if (!currentUser || !currentUser.token) return;
   const requestSerial = ++myScoreReportRequestSerial, epoch = studentSessionEpoch;
   const target = document.getElementById('school-report-view');
+  if (String(currentUser.role || '').toLowerCase() === 'admin') {
+    myScoreReportPayload = null;
+    if (target) target.innerHTML = '<div class="card empty-card">관리자 계정에는 개인 성적 리포트가 없습니다. 운영센터의 학과성적에서 대상 학생·연결 시험을 확인하고, 학생별 성적 리포트 → 추가 리포트 작업 → 학생웹 게시를 실행하세요. 게시된 리포트는 각 학생의 본인 계정에 표시됩니다.</div>';
+    return;
+  }
   if (target) target.innerHTML = '<div class="card empty-card">게시된 성적 리포트를 불러오는 중입니다.</div>';
   try {
     const result = await apiPost({action:'getMyScoreReport',forceRefresh:force ? 'true' : 'false'}, API_LONG_TIMEOUT_MS);
@@ -6389,6 +6414,10 @@ function setScheduleButtonsDisabled(disabled) {
 }
 
 async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
+  if (typeof AdminClassSchedule !== "undefined" && currentUser && String(currentUser.role || '').toLowerCase() === 'admin') {
+    myScheduleCurrentRange = normalizeScheduleRange(range);
+    return AdminClassSchedule.open(myScheduleCurrentRange, forceRefresh);
+  }
   const normalized = normalizeScheduleRange(range);
   const epoch = studentSessionEpoch;
   const requestSerial = ++myScheduleRequestSerial;
@@ -8557,8 +8586,15 @@ function escapeHtmlForPointRank(text) {
     #staff-schedule-preview label { display: block; margin-top: .7em; font-weight: 800; }
     #staff-schedule-preview input, #staff-schedule-preview select { width: 100%; box-sizing: border-box; padding: .7em; border: 1px solid var(--brand-line); border-radius: 10px; }
     #staff-schedule-status { margin: .8em 0; white-space: pre-line; }
+    #admin-class-panel[hidden] { display: none !important; }
+    #admin-class-panel label { display: block; margin-top: .7em; font-weight: 800; }
+    #admin-class-panel input, #admin-class-panel select { width: 100%; box-sizing: border-box; padding: .7em; border: 1px solid var(--brand-line); border-radius: 10px; }
+    #admin-class-status { margin: .8em 0; white-space: pre-line; }
+    .admin-student-schedule { border: 1px solid var(--brand-line); border-radius: 12px; padding: 12px; margin-top: 10px; }
+    .admin-student-schedule summary { cursor: pointer; font-weight: 800; }
   </style>
   <script src="staff-schedule-preview.js"></script>
+  <script src="admin-class-schedule.js"></script>
 
 </body>
 </html>
