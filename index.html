@@ -5420,17 +5420,44 @@ function applyPointGuide(textMap) {
       return result;
     }
 
+    // Share only simultaneous verified read requests. No response TTL or persistent cache.
+    const studentReadonlyFlights = new Map();
+    let studentReadonlyEpoch = 0;
+    function invalidateStudentReadonlyFlights() {
+      studentReadonlyEpoch++;
+      studentReadonlyFlights.clear();
+    }
+    async function studentReadonlyFetch(query) {
+      const allowed = ['getStudentContent','getFavoriteState','getStudentStats','getWrongNote'];
+      if (!allowed.includes(query.get('action'))) return fetchJsonWithTimeout(SHEET_URL + '?' + query.toString());
+      query.sort();
+      const key = studentReadonlyEpoch + '|' + SHEET_URL + '|' + query.toString();
+      let pending = studentReadonlyFlights.get(key);
+      if (!pending) {
+        pending = fetchJsonWithTimeout(SHEET_URL + '?' + query.toString());
+        studentReadonlyFlights.set(key, pending);
+      }
+      try {
+        // Each consumer owns its response; mutations cannot leak into another view.
+        return JSON.parse(JSON.stringify(await pending));
+      } finally {
+        if (studentReadonlyFlights.get(key) === pending) studentReadonlyFlights.delete(key);
+      }
+    }
+
     async function apiGet(params) {
       const query = new URLSearchParams(params);
       if (currentUser && currentUser.token && !query.has("token")) {
         query.set("token", currentUser.token);
       }
 
-      const result = await fetchJsonWithTimeout(SHEET_URL + "?" + query.toString());
+      const result = await studentReadonlyFetch(query);
       return handleApiAuthFailure(result);
     }
 
     async function apiPost(params, timeoutMs = API_TIMEOUT_MS) {
+      // Conservatively separate reads across every POST, including future write actions.
+      invalidateStudentReadonlyFlights();
       const body = new URLSearchParams(params);
       if (currentUser && currentUser.token && !body.has("token")) {
         body.set("token", currentUser.token);
