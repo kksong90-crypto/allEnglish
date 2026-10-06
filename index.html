@@ -4878,6 +4878,7 @@ async function fetchSheet(sheetName) {
     let serverWrongWords = [];
     let vocabHiddenMode = false;
     let favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
+    let favoriteEditSerial = 0;
     let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
     let currentTestMeta = null;
     let testAlreadySaved = false;
@@ -5547,6 +5548,7 @@ function applyPointGuide(textMap) {
       examClassesLoadedOnce = false;
 
       favoriteFolders = { [DEFAULT_FOLDER_NAME]: [] };
+      favoriteEditSerial += 1;
       currentFavoriteFolder = DEFAULT_FOLDER_NAME;
       vocabData = [];
       currentVocabWords = [];
@@ -7154,9 +7156,22 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       return `currentFavoriteFolder:${userId}`;
     }
 
+    function favoriteStateSignature(state) {
+      return JSON.stringify(Object.keys(state).sort().map(name =>
+        [name, [...new Set(state[name])].sort()]));
+    }
+
+    function isFavoriteFolderState(state) {
+      return state && typeof state === "object" && !Array.isArray(state)
+        && Object.values(state).every(Array.isArray);
+    }
+
     async function loadFavoriteFolders() {
+      const epoch = studentSessionEpoch, editSerial = favoriteEditSerial;
+      const foldersKey = favoriteStorageKey(), selectionKey = currentFolderStorageKey();
+      const isCurrent = () => epoch === studentSessionEpoch && editSerial === favoriteEditSerial;
       let localState = null;
-      try { localState = JSON.parse(localStorage.getItem(favoriteStorageKey()) || "null"); } catch (err) {}
+      try { localState = JSON.parse(localStorage.getItem(foldersKey) || "null"); } catch (err) {}
       if (!localState || typeof localState !== "object" || Array.isArray(localState)) localState = { [DEFAULT_FOLDER_NAME]: [] };
       if (!localState[DEFAULT_FOLDER_NAME]) localState[DEFAULT_FOLDER_NAME] = [];
       favoriteFolders = localState;
@@ -7164,30 +7179,39 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       if (currentUser && currentUser.token) {
         try {
           const result = await apiGet({ action: "getFavoriteState" });
-          if (result.success && result.folders) {
-            const serverState = result.folders;
+          if (!isCurrent()) return false;
+          if (result.success && isFavoriteFolderState(result.folders) && isFavoriteFolderState(localState)) {
+            const serverState = Object.create(null);
+            Object.keys(result.folders).forEach(name => { serverState[name] = [...result.folders[name]]; });
             Object.keys(localState).forEach(name => {
               if (!serverState[name]) serverState[name] = [];
               serverState[name] = [...new Set([...(serverState[name] || []), ...(localState[name] || [])])];
             });
             favoriteFolders = serverState;
-            await saveFavoriteFolders();
+            if (favoriteStateSignature(result.folders) !== favoriteStateSignature(serverState)) {
+              await saveFavoriteFolders(epoch, true);
+            }
           }
-        } catch (err) { console.warn("중요단어 CoreDB 동기화 실패", err); }
+        } catch (err) { if (isCurrent()) console.warn("중요단어 CoreDB 동기화 실패", err); }
       }
-      const savedFolder = localStorage.getItem(currentFolderStorageKey());
+      if (!isCurrent()) return false;
+      const savedFolder = localStorage.getItem(selectionKey);
       currentFavoriteFolder = favoriteFolders[savedFolder] ? savedFolder : DEFAULT_FOLDER_NAME;
-      localStorage.setItem(favoriteStorageKey(), JSON.stringify(favoriteFolders));
-      localStorage.setItem(currentFolderStorageKey(), currentFavoriteFolder);
+      localStorage.setItem(foldersKey, JSON.stringify(favoriteFolders));
+      localStorage.setItem(selectionKey, currentFavoriteFolder);
+      return true;
     }
 
-    async function saveFavoriteFolders() {
+    async function saveFavoriteFolders(epoch = studentSessionEpoch, automatic = false) {
+      if (epoch !== studentSessionEpoch) return false;
+      if (!automatic) favoriteEditSerial += 1;
       localStorage.setItem(favoriteStorageKey(), JSON.stringify(favoriteFolders));
       localStorage.setItem(currentFolderStorageKey(), currentFavoriteFolder);
       if (currentUser && currentUser.token) {
         try { await apiPost({ action: "saveFavoriteState", foldersJson: JSON.stringify(favoriteFolders) }); }
-        catch (err) { console.warn("중요단어 서버 저장 실패", err); }
+        catch (err) { if (epoch === studentSessionEpoch) console.warn("중요단어 서버 저장 실패", err); }
       }
+      return epoch === studentSessionEpoch;
     }
 
     function getCurrentFolderWords() { return favoriteFolders[currentFavoriteFolder] || []; }

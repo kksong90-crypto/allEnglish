@@ -1,0 +1,9 @@
+# Favorite synchronization session safety
+
+Source-derived synthetic reproduction before the patch: an old account's delayed getFavoriteState response replaced a new account's folder state and invoked saveFavoriteState with the new identity. No actual account, data or live request was used; this does not establish that production corruption occurred.
+
+Candidate boundaries: existing session epoch plus a manual-edit serial stop obsolete reads before merge/save/local persistence. An automatic save finishing after a session switch cannot finalize new-account storage. Explicit saves reject obsolete epochs before any action. Identical folder/word sets no longer cause automatic POSTs; local-only word migration still unions and saves once to its original account. Response dictionaries are copied without mutating the response or relying on inherited object keys. Invalid remote folder schemas never auto-save over local state.
+
+Tests:10 new synthetic scenarios,46 related tests total PASS; all inline scripts compile. The pending-save fixture initially observed too early across VM/host Promise queues, then was corrected to wait one event-loop turn before asserting that the fake POST is live. Runtime protections were not weakened. No live API/network/storage used by tests. This reduces redundant requests in the tested equal-state case from1 to0, not a measured production latency or memory claim.
+
+No authentication/server/URL/content schema change, no favorite deletion or cleanup, no cross-device conflict-resolution policy change, no score/attendance/queue/printing actions. Existing server save failures and multi-device concurrent edits still lack a revision/CAS contract; they are not claimed fixed. Rollback reverts this UI-only patch; no migration or operational data rollback is required. Runtime and publication verification remain separate gates.
