@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.11',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.12',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}

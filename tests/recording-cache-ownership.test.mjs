@@ -1,4 +1,8 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import {test} from 'node:test';
+test('recording app, metadata, displayed version and cache pin agree',()=>{
+ const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8'),app=read('../recording/app.js'),html=read('../recording/index.html'),sw=read('../recording/sw.js'),version=/version:'([^']+)'/.exec(app)[1];
+ assert.match(html,new RegExp('content="'+version.replaceAll('.','\\.')+'-'));assert.ok(html.includes('<span>v'+version+'</span>'));assert.ok(sw.includes('allbarun-recording-v'+version.replaceAll('.','')+'-'));
+});
 test('recording activation preserves caches belonging to other apps on the same origin',async()=>{
  const deleted=[],handlers={},keys=['allbarun-recording-v8211-incremental-save','allbarun-student-v1','unrelated-cache'];
  const source=fs.readFileSync(new URL('../recording/sw.js',import.meta.url),'utf8');const current=/const CACHE='([^']+)'/.exec(source)[1];keys.push(current);
