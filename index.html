@@ -5583,7 +5583,9 @@ function applyPointGuide(textMap) {
       }
     }
 
+    let loginRequestPending = false;
     async function checkLogin() {
+      if (loginRequestPending) return;
       const id = document.getElementById("login-id").value.trim();
       const pw = document.getElementById("login-pw").value.trim();
       const error = document.getElementById("login-error");
@@ -5594,9 +5596,12 @@ function applyPointGuide(textMap) {
       }
 
       error.textContent = "로그인 확인 중입니다...";
+      loginRequestPending = true;
+      const loginButton = document.querySelector('#login-screen button[onclick="checkLogin()"]');
+      if (loginButton) loginButton.disabled = true;
 
       try {
-        const result = await apiPost({ action: "login", id, pw });
+        const result = await apiPost({ action: "login", id, pw }, API_LONG_TIMEOUT_MS);
 
         if (!result.success) {
           error.textContent = result.message || "로그인에 실패했습니다.";
@@ -5615,7 +5620,12 @@ function applyPointGuide(textMap) {
         saveUserSession(currentUser);
         afterLogin();
       } catch (err) {
-        error.textContent = "로그인 API 연결 실패: " + (err && err.message ? err.message : String(err));
+        error.textContent = err && err.name === 'AbortError'
+          ? "로그인 응답 대기 시간이 초과되었습니다. 비밀번호 오류로 확인된 것은 아닙니다. 잠시 후 다시 시도해 주세요."
+          : "로그인 API 연결 실패: " + (err && err.message ? err.message : String(err));
+      } finally {
+        loginRequestPending = false;
+        if (loginButton) loginButton.disabled = false;
       }
     }
 
