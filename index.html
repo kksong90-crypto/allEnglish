@@ -6463,6 +6463,8 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     myScheduleLastPayload = payload;
     renderMySchedule(payload);
+    // A completed explicit schedule read supersedes an older home-only read.
+    homeScheduleRequestSerial += 1;
     renderHomeLearningPreview(payload);
     myScheduleLoadedOnce = true;
   } catch (err) {
@@ -6479,7 +6481,7 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
 
 async function loadExamTabOnce(force = false) {
   if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.syncPanel();
-  if (myScheduleLoadedOnce && !force) {
+  if (myScheduleLoadedOnce && !force && myScheduleLastPayload?.startDate === getTodayString()) {
     setScheduleRangeActive(myScheduleCurrentRange || "week");
     renderMySchedule(myScheduleLastPayload || { range: myScheduleCurrentRange || "week", days: [] });
     return;
