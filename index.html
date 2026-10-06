@@ -4885,6 +4885,7 @@ async function fetchSheet(sheetName) {
     let appTabHistory = [];
 
     let vocabLoadedOnce = false;
+    let vocabLoadPromise = null;
     let retestLoadedOnce = false;
     let pointLoadedOnce = false;
     let myScoreReportLoadedOnce = false;
@@ -5537,6 +5538,7 @@ function applyPointGuide(textMap) {
       myScheduleCurrentRange = 'week';
       myScheduleLastPayload = null;
       vocabLoadedOnce = false;
+      vocabLoadPromise = null;
       retestLoadedOnce = false;
       pointLoadedOnce = false;
       myScoreReportLoadedOnce = false;
@@ -5812,15 +5814,17 @@ function applyPointGuide(textMap) {
       }
     }
 async function loadVocabBooksOnce(force = false) {
-  if (vocabLoadedOnce && !force) return;
-
-  try {
-    await loadVocabBooks();
-    vocabLoadedOnce = true;
-  } catch (err) {
-    vocabLoadedOnce = false;
-    throw err;
-  }
+  if (vocabLoadedOnce && !force) return true;
+  if (vocabLoadPromise) return vocabLoadPromise;
+  const epoch = studentSessionEpoch;
+  const task = loadVocabBooks(epoch).then(loaded => {
+    if (epoch === studentSessionEpoch) vocabLoadedOnce = loaded === true;
+    return loaded;
+  }).finally(() => {
+    if (vocabLoadPromise === task) vocabLoadPromise = null;
+  });
+  vocabLoadPromise = task;
+  return task;
 }
 
 async function loadRetestOnce(force = false) {
@@ -7009,22 +7013,23 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     /************************************************************
      *  6. 단어장 불러오기 / Day 이동
      ************************************************************/
-    async function loadVocabBooks() {
+    async function loadVocabBooks(epoch = studentSessionEpoch) {
       const target = document.getElementById("vocab-view");
 
       try {
         const vocabResult = await apiGet({ action: "getVocabData" });
+        if (epoch !== studentSessionEpoch) return false;
 
         if (!vocabResult.success) {
           target.innerHTML = `<div class='card'>${escapeHtml(vocabResult.message || "단어장 데이터를 불러오지 못했습니다.")}</div>`;
-          return;
+          return false;
         }
 
         vocabData = vocabResult.values || [];
 
         if (!Array.isArray(vocabData) || vocabData.length < 2) {
           target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
-          return;
+          return true;
         }
 
         const bookSelect = document.getElementById("vocab-book-select");
@@ -7045,7 +7050,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
         if (books.length === 0) {
           target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
-          return;
+          return true;
         }
 
         bookSelect.innerHTML =
@@ -7055,10 +7060,13 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         daySelect.innerHTML = `<option value="">Day 선택</option>`;
         target.innerHTML = "<div class='card'>단어장과 Day를 선택하세요.</div>";
 
-        bookSelect.addEventListener("change", loadVocabDays);
-        daySelect.addEventListener("change", showVocabList);
+        bookSelect.onchange = loadVocabDays;
+        daySelect.onchange = showVocabList;
+        return true;
       } catch (err) {
+        if (epoch !== studentSessionEpoch) return false;
         target.innerHTML = "<div class='card'>Vocab 시트를 불러오지 못했습니다. CoreDB VocabBooks/VocabWords 데이터를 확인하세요.</div>";
+        return false;
       }
     }
 

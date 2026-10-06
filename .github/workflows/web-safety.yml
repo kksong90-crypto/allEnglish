@@ -26,5 +26,5 @@ jobs:
           node --check recording/app.js
           node --check recording/sw.js
           node --check quick/sw.js
-          node --test tests/login-timeout.test.mjs tests/schedule-freshness.test.mjs tests/admin_class_schedule.mjs tests/staff_schedule_preview.mjs
+          node --test tests/login-timeout.test.mjs tests/vocab-read-load.test.mjs tests/schedule-freshness.test.mjs tests/admin_class_schedule.mjs tests/staff_schedule_preview.mjs
           node --test tests/recording-read-timing.test.mjs tests/recording-date-identity.test.mjs tests/recording-read-write-race.test.mjs tests/recording-cache-ownership.test.mjs tests/recording-incremental-save.test.mjs tests/readonly-flights.test.mjs test_recording_session_relogin.mjs test_staff_runtime_stability.mjs
