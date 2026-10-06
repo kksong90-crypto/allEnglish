@@ -36,6 +36,7 @@ const context = vm.createContext({
     setItem: (key, value) => storage.set(key, String(value)),
     removeItem: key => storage.delete(key),
   },
+  performance,
   navigator: { onLine: true },
   window: { addEventListener: () => {} },
   document: {

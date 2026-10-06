@@ -73,6 +73,10 @@
 <div id="settings-modal" class="modal" onclick="if(event.target===this)closeSettings()">
   <div class="sheet">
     <h2>설정·진단</h2>
+    <details>
+      <summary>최근 조회 처리 시간</summary>
+      <pre id="read-timing" class="audit-result">조회 기록 없음</pre>
+    </details>
     <div class="settings-grid">
       <button class="btn secondary" type="button" onclick="readServerAgain()">서버 상태 다시 읽기</button>
       <button class="btn secondary" type="button" onclick="runAudit()">현재 날짜 진단</button>

@@ -5,6 +5,7 @@ function harness({loading=false,saving=[]}={}){
  const calls=[],APP={loading,saving:new Set(saving),targetDate:'2026-10-06',data:{targetDate:'2026-10-06',classes:[]}},student={name:'Synthetic',received:false,canCheck:true};
  let resolve;const response=new Promise(r=>resolve=r);const state={textContent:''},row={querySelector:()=>state,classList:{add(){},remove(){},toggle(){}}},input={checked:true,isConnected:true,closest:()=>row};
  const ctx={APP,Date,Error,navigator:{onLine:true},ensureConnected:()=>true,setSync(){},toast(){},render(){},renderError(){},updateNetwork(){},confirm:()=>true,requestId:()=> 'SYNTHETIC',findStudent:()=>student,applySummary(){},api:async(action,payload)=>{calls.push({action,payload});return response;}};
+ Object.assign(ctx,{performance,renderReadTiming(){}});
  vm.createContext(ctx);vm.runInContext(['loadData','selectDate','saveOne','verifyUncertainSave','acceptBeforeDeadline'].map(line).join('\n'),ctx);
  return {ctx,APP,calls,input,resolve,event:{preventDefault(){},stopPropagation(){},currentTarget:{disabled:false}}};
 }
