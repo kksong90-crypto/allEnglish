@@ -6281,7 +6281,8 @@ function scheduleVocabItem(items, readOnly = false) {
   const value = vocabItems.map(item => {
     const planId = String(item?.testPlanId || "");
     const connected = !readOnly && planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
-    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this)">시험범위 개인 연습</button>` : ""}</div>`;
+    const warning = item?.vocaScopeState === "DUPLICATE" ? '<div role="status">⚠ 학교 시험범위 계획이 중복되어 확인이 필요합니다. 표시된 학교범위는 확정 범위로 사용하지 마세요. 선생님께 문의해 주세요.</div>' : "";
+    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this)">시험범위 개인 연습</button>` : ""}</div>`;
   }).join("");
   return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
 }
