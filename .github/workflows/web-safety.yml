@@ -1,0 +1,29 @@
+name: Web safety regression
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'recording/**'
+      - 'quick/sw.js'
+      - 'tests/**'
+      - 'test_recording_session_relogin.mjs'
+      - 'test_staff_runtime_stability.mjs'
+      - '.github/workflows/web-safety.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and synthetic regression (no live API)
+        run: |
+          node --check recording/app.js
+          node --check recording/sw.js
+          node --check quick/sw.js
+          node --test tests/recording-date-identity.test.mjs tests/recording-read-write-race.test.mjs tests/recording-cache-ownership.test.mjs tests/recording-incremental-save.test.mjs tests/readonly-flights.test.mjs test_recording_session_relogin.mjs test_staff_runtime_stability.mjs
