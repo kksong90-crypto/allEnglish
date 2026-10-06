@@ -7227,7 +7227,9 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
     async function changeFavoriteFolder(folderName) {
       if (!favoriteFolders[folderName]) return;
-      currentFavoriteFolder = folderName; await saveFavoriteFolders(); renderFolderControls();
+      currentFavoriteFolder = folderName;
+      localStorage.setItem(currentFolderStorageKey(), currentFavoriteFolder);
+      renderFolderControls();
       if (document.getElementById("favorites").classList.contains("active")) showFavorites();
       if (document.getElementById("vocab").classList.contains("active")) showVocabList();
     }
