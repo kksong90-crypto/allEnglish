@@ -121,7 +121,11 @@ const AdminClassSchedule = (() => {
       }).join('') : '<div class="schedule-empty">이 기간에 배정된 재원 학생이 없습니다.</div>';
       status(`반 전체 ${entries.length}명 일정 확인 완료 · 읽기 전용. 학생 로그인·계획·점수·인쇄 요청은 변경하지 않았습니다. ${adminClassReadTimingText(timingSamples)}`);
     } catch (error) {
-      if (isCurrent()) {el('admin-class-result').innerHTML = ''; status(error.message || '전체 일정 조회 실패');}
+      if (isCurrent()) {
+        el('admin-class-result').innerHTML = '';
+        const delayed = error?.name === 'AbortError' || error?.name === 'TimeoutError' || error?.message === 'signal is aborted without reason';
+        status(delayed ? '서버 응답이 지연되어 전체 일정 조회를 완료하지 못했습니다. 일부 결과는 표시하지 않으며 자동으로 재요청하지 않습니다. 기간을 줄여 다시 조회할 수 있습니다. 계획·점수·인쇄 요청은 변경하지 않았습니다.' : (error?.message || '전체 일정 조회 실패'));
+      }
     } finally {
       if (isCurrent()) {el('admin-class-query').disabled = false; el('admin-class-cancel').hidden = true;}
     }
