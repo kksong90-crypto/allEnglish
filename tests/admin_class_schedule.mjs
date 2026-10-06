@@ -18,3 +18,13 @@ test('administrator class directory loads without student impersonation',async()
 test('all students in selected class show distinct listening and HOLD state readonly',async()=>{const f=fixture();await f.feature.load();assert.match(f.nodes['admin-class-result'].innerHTML,/3회 딕테이션/);assert.match(f.nodes['admin-class-result'].innerHTML,/HOLD/);assert.match(f.nodes['admin-class-status'].textContent,/전체 2명.*완료/);assert.equal(f.calls[0].action,'getStaffClassLearningSchedule');assert.doesNotMatch(f.nodes['admin-class-result'].innerHTML,/<button/);});
 test('mismatched target response is never shown',async()=>{const f=fixture(),api=f.context.apiPost;f.context.apiPost=async p=>({...await api(p),classId:'OTHER'});await f.feature.load();assert.equal(f.nodes['admin-class-result'].innerHTML,'');assert.doesNotMatch(f.nodes['admin-class-status'].textContent,/확인 완료/);});
 test('no secrets, printing or write actions used by administrator module',()=>{assert.doesNotMatch(source,/localStorage|sessionStorage|\.token|\.print\(|claim|lease|saveVocab|submit|changePassword/);assert.match(html,/점수 저장·초안 저장·PDF 생성만으로는 게시되지 않습니다/);});
+test('조회 진단은 기존 요청만 측정하고 서버 구간이 없으면 없다고 표시',async()=>{
+ const f=fixture();await f.feature.load();assert.equal(f.calls.length,1);
+ assert.match(f.nodes['admin-class-status'].textContent,/API 대기\(파싱 포함\): \d+ ms · 1회 · 서버 구간 계측 없음/);
+});
+test('서버 진단은 허용한 숫자 구간만 표시하고 불완전·문자열은 숨김',()=>{
+ const f=fixture();const timing={scope:'ADMIN_CLASS_REQUEST',totalMs:50,authOptionsClassMs:5,rosterMs:10,tablesMs:20,revisionMs:5,assemblyMs:10,token:'출력 금지'};
+ const format=f.context.adminClassReadTimingText;
+ const output=format([{waitMs:60,server:timing}]);assert.match(output,/서버 합계: 50 ms/);assert.doesNotMatch(output,/출력 금지|token/);
+ for(const bad of [{...timing,totalMs:'50'},{...timing,totalMs:NaN},{...timing,totalMs:-1},{...timing,scope:'OTHER'},{scope:'ADMIN_CLASS_REQUEST'}])assert.match(format([{waitMs:60,server:bad}]),/서버 구간 계측 없음/);
+});

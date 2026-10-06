@@ -1,4 +1,13 @@
 /* Uses the existing administrator session; no student sign-in or operational writes. */
+function adminClassReadTimingText(samples) {
+  const waits=samples.reduce((sum,item)=>sum+item.waitMs,0);
+  const client=`API 대기(파싱 포함): ${Math.round(waits)} ms · ${samples.length}회`;
+  const fields=['totalMs','authOptionsClassMs','rosterMs','tablesMs','revisionMs','assemblyMs'];
+  const valid=samples.every(item=>item.server?.scope==='ADMIN_CLASS_REQUEST' && fields.every(key=>typeof item.server[key]==='number' && Number.isFinite(item.server[key]) && item.server[key]>=0));
+  if(!samples.length||!valid)return client+' · 서버 구간 계측 없음';
+  const sum=key=>Math.round(samples.reduce((value,item)=>value+item.server[key],0));
+  return client+` · 서버 합계: ${sum('totalMs')} ms · 인증·옵션·반: ${sum('authOptionsClassMs')} ms · 명단: ${sum('rosterMs')} ms · 테이블: ${sum('tablesMs')} ms · revision: ${sum('revisionMs')} ms · 일정 구성: ${sum('assemblyMs')} ms (페이지별 누적, 구간 합을 전체 시간으로 보지 않습니다.)`;
+}
 const AdminClassSchedule = (() => {
   let serial = 0;
   let directoryKey = '';
@@ -84,9 +93,12 @@ const AdminClassSchedule = (() => {
       el('admin-class-query').disabled = true; el('admin-class-cancel').hidden = false;
       let offset = 0, revision = '', total = null;
       const entries = [], seen = new Set();
+      const timingSamples = [];
       while (isCurrent()) {
         status(`반 전체 일정을 읽는 중… ${entries.length}${total === null ? '' : '/' + total}명`);
+        const requestStart = Date.now();
         const data = await apiPost({action:'getStaffClassLearningSchedule', ...opt, classId, offset:String(offset), revision}, API_LONG_TIMEOUT_MS);
+        timingSamples.push({waitMs:Math.max(0,Date.now()-requestStart),server:data?.serverTiming});
         if (!isCurrent()) return;
         if (!data?.success) throw new Error(data?.message || '반 일정을 읽지 못했습니다.');
         if (!data.readOnly || data.classId !== classId || data.startDate !== opt.fromDate || data.range !== opt.range || data.offset !== offset || !Array.isArray(data.entries) || data.entries.length > 8 || !data.revision || (revision && data.revision !== revision)) throw new Error('조회 대상 또는 계획 버전이 다른 응답입니다. 다시 조회하세요.');
@@ -107,7 +119,7 @@ const AdminClassSchedule = (() => {
         const days = clean.days.filter(d => d.hasPlan || d.scheduled || d.closed);
         return `<details class="admin-student-schedule"><summary>${escapeHtml(entry.student.name)} · ${escapeHtml(entry.student.className)}</summary><div class="schedule-card-list">${days.length ? days.map(d=>renderScheduleDay(d,{readOnly:true})).join('') : '<div class="schedule-empty">표시할 학습일정이 없습니다.</div>'}</div></details>`;
       }).join('') : '<div class="schedule-empty">이 기간에 배정된 재원 학생이 없습니다.</div>';
-      status(`반 전체 ${entries.length}명 일정 확인 완료 · 읽기 전용. 학생 로그인·계획·점수·인쇄 요청은 변경하지 않았습니다.`);
+      status(`반 전체 ${entries.length}명 일정 확인 완료 · 읽기 전용. 학생 로그인·계획·점수·인쇄 요청은 변경하지 않았습니다. ${adminClassReadTimingText(timingSamples)}`);
     } catch (error) {
       if (isCurrent()) {el('admin-class-result').innerHTML = ''; status(error.message || '전체 일정 조회 실패');}
     } finally {

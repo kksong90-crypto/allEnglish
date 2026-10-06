@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'admin-class-schedule.js'
       - 'recording/**'
       - 'quick/sw.js'
       - 'tests/**'
