@@ -22,6 +22,31 @@ test('조회 진단은 기존 요청만 측정하고 서버 구간이 없으면 
  const f=fixture();await f.feature.load();assert.equal(f.calls.length,1);
  assert.match(f.nodes['admin-class-status'].textContent,/API 대기\(파싱 포함\): \d+ ms · 1회 · 서버 구간 계측 없음/);
 });
+
+test('읽기 시간 초과는 한국어 안내만 바꾸고 재요청·일부 결과 표시 없음',async()=>{
+ for(const [name,message] of [['AbortError','aborted'],['TimeoutError','timed out'],['Error','signal is aborted without reason']]){
+  const f=fixture();let calls=0;
+  f.context.apiPost=async()=>{calls++;const e=new Error(message);e.name=name;throw e;};
+  await f.feature.load();assert.equal(calls,1);
+  assert.match(f.nodes['admin-class-status'].textContent,/서버 응답이 지연/);
+  assert.match(f.nodes['admin-class-status'].textContent,/자동으로 재요청하지 않습니다/);
+  assert.equal(f.nodes['admin-class-result'].innerHTML,'');
+  assert.equal(f.nodes['admin-class-query'].disabled,false);assert.equal(f.nodes['admin-class-cancel'].hidden,true);
+ }
+});
+test('서버 권한·정합성 오류 안내는 시간 초과로 덮어쓰지 않음',async()=>{
+ const f=fixture();f.context.apiPost=async()=>{throw new Error('계획 버전이 변경됐습니다.');};
+ await f.feature.load();assert.equal(f.nodes['admin-class-status'].textContent,'계획 버전이 변경됐습니다.');
+});
+test('사용자가 조회 중단한 뒤 늦은 시간 초과는 현재 화면을 덮어쓰지 않음',async()=>{
+ const f=fixture();let reject;
+ f.context.apiPost=()=>new Promise((resolve,fail)=>{reject=fail;});
+ const pending=f.feature.load();f.feature.cancel();
+ const message=f.nodes['admin-class-status'].textContent;
+ const e=new Error('signal is aborted without reason');e.name='AbortError';reject(e);await pending;
+ assert.equal(f.nodes['admin-class-status'].textContent,message);
+ assert.equal(f.nodes['admin-class-result'].innerHTML,'');
+});
 test('서버 진단은 허용한 숫자 구간만 표시하고 불완전·문자열은 숨김',()=>{
  const f=fixture();const timing={scope:'ADMIN_CLASS_REQUEST',totalMs:50,authOptionsClassMs:5,rosterMs:10,tablesMs:20,revisionMs:5,assemblyMs:10,token:'출력 금지'};
  const format=f.context.adminClassReadTimingText;
