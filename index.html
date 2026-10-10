@@ -8500,11 +8500,22 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
 // silent fallback on failure of selected-section integrity checks.
 (function(){
  let catalog=null,epoch=-1,generation=0,globalRows=null,globalTask=null,selectedKey='';
+ const nativeReadObservations=[];
+ async function readNative(params){
+  const started=Date.now();let reply;
+  try{reply=await apiGet(params);return reply;}
+  finally{
+   nativeReadObservations.push({action:params.action,clientElapsedMs:Math.max(0,Date.now()-started),apiSuccess:reply?.success===true,rowsReturned:Array.isArray(reply?.rows)?reply.rows.length:null,booksReturned:Array.isArray(reply?.books)?reply.books.length:null});
+   if(nativeReadObservations.length>20)nativeReadObservations.shift();
+   const view=document.getElementById('vocab-view');
+   if(view&&typeof view.setAttribute==='function')view.setAttribute('data-native-read-observations',JSON.stringify(nativeReadObservations));
+  }
+ }
  const header=['단어장명','Day','영어','뜻','정렬번호','book_id','허용답'];
  const renderList=showVocabList,renderSearch=searchVocab,renderFavorites=showFavorites;
  const favoriteTest=startFavoriteTest,favoriteMeaning=startFavoriteMeaningCheck;
  const loadSelected=createStudentSelectedSectionLoader({currentSession:()=>studentSessionEpoch,readSection:async scope=>{
-  const r=await apiGet({action:'getLegacyNativeBrowseSection',...scope});
+  const r=await readNative({action:'getLegacyNativeBrowseSection',...scope});
   if(r.success!==true||r.schema!=='STUDENT_LEGACY_NATIVE_BROWSE_V1')throw Error('구간을 불러오지 못했습니다.');return r;
  }});
  function current(){return catalog&&epoch===studentSessionEpoch;}
@@ -8521,7 +8532,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
   document.getElementById('vocab-book-select').innerHTML='<option value="">단어장 선택</option>';
   document.getElementById('vocab-day-select').innerHTML='<option value="">Day 선택</option>';
   document.getElementById('vocab-progress').innerHTML='';document.getElementById('vocab-search-result').innerHTML='';
-  try{const r=await apiGet({action:'getLegacyNativeBrowseCatalog'});if(session!==studentSessionEpoch||version!==generation)return false;
+  try{const r=await readNative({action:'getLegacyNativeBrowseCatalog'});if(session!==studentSessionEpoch||version!==generation)return false;
    if(r.success!==true||r.schema!=='STUDENT_LEGACY_NATIVE_BROWSE_V1'||!Array.isArray(r.books))throw Error('단어장 목록 응답이 올바르지 않습니다.');
    const names=new Set(),bookIds=new Set(),revisionIds=new Set();
    for(const b of r.books){
