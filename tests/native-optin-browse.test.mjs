@@ -30,3 +30,12 @@ test('failed selected integrity does not download the legacy full table',async()
  const {c,elements,calls}=fixture();await c.loadVocabBooks();elements['vocab-book-select'].value='Book';await c.loadVocabDays();elements['vocab-day-select'].value='1';
  c.apiGet=async p=>{calls.push(p.action);throw Error('BODY_INTEGRITY');};await c.showVocabList();assert.match(elements['vocab-view'].innerHTML,/BODY_INTEGRITY/);assert.equal(calls.includes('getVocabData'),false);
 });
+test('read timing observations contain only numeric counts and action, never scope or credentials',async()=>{
+ const {c,elements,calls}=fixture();let saved;
+ elements['vocab-view'].setAttribute=(name,value)=>{assert.equal(name,'data-native-read-observations');saved=JSON.parse(value);};
+ await c.loadVocabBooks();elements['vocab-book-select'].value='Book';await c.loadVocabDays();elements['vocab-day-select'].value='1';await c.showVocabList();
+ assert.equal(calls.length,2);assert.equal(saved.length,2);
+ for(const item of saved){assert.deepEqual(Object.keys(item).sort(),['action','apiSuccess','booksReturned','clientElapsedMs','rowsReturned'].sort());assert.equal(item.apiSuccess,true);assert.ok(item.clientElapsedMs>=0);}
+ assert.equal(saved[0].booksReturned,1);assert.equal(saved[1].rowsReturned,1);
+ assert.equal(JSON.stringify(saved).includes('LEGACYDTO-H'),false);
+});
