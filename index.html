@@ -8670,6 +8670,49 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
 
 
     }
+// Read-only comparator. Serialized reply bytes are NOT on-wire HTTP bytes.
+async function compareEquivalentStudentRead({read,book,day,now,order=['legacy','native']}){
+ if(typeof read!=='function'||typeof now!=='function'||typeof book!=='string'||!Number.isSafeInteger(day)||day<1||order.length!==2||new Set(order).size!==2||order.some(v=>!['legacy','native'].includes(v)))throw Error('BENCHMARK_INPUT_INVALID');
+ const results={},requests=[];
+ for(const route of order){
+  const started=now();let serializedResponseBytes=0,calls=0;
+  const request=async params=>{requests.push(params.action);calls++;const r=await read(params);serializedResponseBytes+=new TextEncoder().encode(JSON.stringify(r)).length;if(r?.success!==true)throw Error('BENCHMARK_READ_FAILED');return r;};
+  let rows;
+  if(route==='legacy'){
+   const r=await request({action:'getVocabData'});if(!Array.isArray(r.values)||r.values.length<1)throw Error('BENCHMARK_LEGACY_INVALID');
+   rows=r.values.slice(1).filter(row=>Array.isArray(row)&&row[0]===book&&String(row[1])===String(day)).sort((a,b)=>Number(a[4])-Number(b[4]));
+  }else{
+   const c=await request({action:'getLegacyNativeBrowseCatalog'});if(c.schema!=='STUDENT_LEGACY_NATIVE_BROWSE_V1'||!Array.isArray(c.books))throw Error('BENCHMARK_CATALOG_INVALID');
+   const books=c.books.filter(b=>b.name===book);if(books.length!==1)throw Error('BENCHMARK_BOOK_AMBIGUOUS');const b=books[0],sections=b.sections?.filter(s=>String(s.day)===String(day));
+   if(!b.bookId||!b.revisionId||sections?.length!==1||!sections[0].sectionId||!Number.isSafeInteger(sections[0].wordCount)||sections[0].wordCount<1)throw Error('BENCHMARK_SECTION_AMBIGUOUS');
+   const s=sections[0],r=await request({action:'getLegacyNativeBrowseSection',bookId:b.bookId,revisionId:b.revisionId,sectionId:s.sectionId});
+   if(r.schema!=='STUDENT_LEGACY_NATIVE_BROWSE_V1'||r.bookId!==b.bookId||r.revisionId!==b.revisionId||r.sectionId!==s.sectionId||!Array.isArray(r.rows)||r.rows.length!==s.wordCount)throw Error('BENCHMARK_SECTION_CHANGED');rows=r.rows;
+  }
+  if(!rows.length||rows.some(r=>!Array.isArray(r)||r.length!==7||r[0]!==book||String(r[1])!==String(day)))throw Error('BENCHMARK_ROWS_INVALID');
+  results[route]={rows,clientElapsedMs:now()-started,serializedResponseBytes,requests:calls};
+ }
+ if(JSON.stringify(results.legacy.rows)!==JSON.stringify(results.native.rows))throw Error('BENCHMARK_OUTPUT_MISMATCH');
+ return {schema:'EQUIVALENT_STUDENT_READ_SAMPLE_V1',book,day,order:order.slice(),matchedRows:results.native.rows.length,allFieldsAndOrderEqual:true,legacy:{...results.legacy,rows:undefined},native:{...results.native,rows:undefined},requests,coldStartProven:false,onWireBytesMeasured:false,globalSpeedImprovementProven:false};
+}
+
+// Temporary explicit read-only AB/BA comparison. No persisted state writes.
+(function(){
+ if(new URLSearchParams(location.search).get('vocabEquivalentBenchmark')!=='1')return;
+ const original=showVocabList;
+ showVocabList=async function(){await original();const view=document.getElementById('vocab-view');if(!view||document.getElementById('equivalent-read-benchmark')||!Array.isArray(vocabData)||vocabData.length<2)return;
+  const panel=document.createElement('div'),button=document.createElement('button'),status=document.createElement('div');panel.id='equivalent-read-benchmark';button.textContent='동일 구간 읽기 성능 비교 (저장 안 함)';panel.appendChild(button);panel.appendChild(status);view.appendChild(panel);
+  button.addEventListener('click',async()=>{
+   button.disabled=true;const epoch=studentSessionEpoch,folders=JSON.stringify(favoriteFolders),book=document.getElementById('vocab-book-select').value,day=Number(document.getElementById('vocab-day-select').value),samples=[];
+   const unchanged=()=>epoch===studentSessionEpoch&&folders===JSON.stringify(favoriteFolders)&&book===document.getElementById('vocab-book-select').value&&String(day)===document.getElementById('vocab-day-select').value;
+   try{
+    const read=async params=>{if(!unchanged())throw Error('BENCHMARK_UI_CHANGED');if(!['getVocabData','getLegacyNativeBrowseCatalog','getLegacyNativeBrowseSection'].includes(params.action))throw Error('BENCHMARK_ACTION_DENIED');const query=new URLSearchParams(params);if(currentUser&&currentUser.token)query.set('token',currentUser.token);const result=handleApiAuthFailure(await fetchJsonWithTimeout(SHEET_URL+'?'+query.toString(),{method:'GET'},API_LONG_TIMEOUT_MS));if(!unchanged())throw Error('BENCHMARK_UI_CHANGED');return result;};
+    for(const order of [['legacy','native'],['native','legacy']]){status.textContent='같은 범위 AB/BA 읽기 비교 중 '+(samples.length+1)+'/2';samples.push(await compareEquivalentStudentRead({read,book,day,now:()=>Date.now(),order}));}
+    if(!unchanged())throw Error('BENCHMARK_UI_CHANGED');panel.setAttribute('data-equivalent-benchmark',JSON.stringify({status:'EXACT_AB_BA_MATCH',samples,savedKeysChanged:false}));status.textContent='동일 구간 AB/BA 비교 완료. 저장 변경 없음.';
+   }catch(e){panel.setAttribute('data-equivalent-benchmark',JSON.stringify({status:'FAILED',message:e.message,completedSamples:samples,savedKeysChanged:false}));status.textContent=e.message;}finally{button.disabled=false;}
+  });
+ };
+})();
+
     window.onload = async () => {
   restoreLogin();
   loadHomeTextFromCache();
