@@ -8670,30 +8670,6 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
 
 
     }
-// Temporary exact published-scope read only. No plan/test/score/queue actions.
-(function(){
- if(new URLSearchParams(location.search).get('vocabSchoolScopeAudit')!=='1')return;
- const original=loadVocabBooks;
- loadVocabBooks=async function(...args){const loaded=await original(...args),view=document.getElementById('vocab-view');if(!loaded||!view||document.getElementById('school-scope-read-audit'))return loaded;
-  const panel=document.createElement('div'),button=document.createElement('button'),status=document.createElement('div');panel.id='school-scope-read-audit';button.textContent='확정 교과서 5~7과 읽기 검증 (저장 안 함)';panel.appendChild(button);panel.appendChild(status);view.appendChild(panel);
-  button.addEventListener('click',async()=>{
-   button.disabled=true;const session=studentSessionEpoch,folders=JSON.stringify(favoriteFolders),started=Date.now(),revisionId='VBR-abc7d2db-f233-4f1b-9dfb-f96242cd3834',ids=['VSEC-ebdfe04c-5637-4b76-8756-662a86f881c5','VSEC-5077064c-7c1c-4904-a39b-1676d71c401d','VSEC-3d0942db-c2d0-4397-86a8-6206dc9f552e'];
-   status.textContent='확정된 세 구간의 실제 연결을 읽고 있습니다.';
-   try{
-    const read=async params=>{if(!['getVocaCatalog','getVocaSection'].includes(params.action))throw Error('SCHOOL_AUDIT_ACTION_DENIED');const q=new URLSearchParams(params);if(currentUser&&currentUser.token)q.set('token',currentUser.token);const r=handleApiAuthFailure(await fetchJsonWithTimeout(SHEET_URL+'?'+q.toString(),{method:'GET'},API_LONG_TIMEOUT_MS));if(session!==studentSessionEpoch||folders!==JSON.stringify(favoriteFolders))throw Error('SCHOOL_AUDIT_SESSION_CHANGED');if(r?.success!==true)throw Error(r?.message||'SCHOOL_AUDIT_READ_FAILED');return r;};
-    const catalogue=await read({action:'getVocaCatalog'}),books=catalogue.books?.filter(b=>b.revisionId===revisionId);if(books?.length!==1)throw Error('SCHOOL_AUDIT_REVISION_UNPROVEN');
-    const sections=ids.map(id=>{const hits=books[0].sections?.filter(s=>s.sectionId===id);if(hits?.length!==1||!Number.isSafeInteger(hits[0].wordCount)||hits[0].wordCount<1)throw Error('SCHOOL_AUDIT_SECTION_UNPROVEN');return hits[0];}).sort((a,b)=>a.sortOrder-b.sortOrder),expected=sections.reduce((n,s)=>n+s.wordCount,0);
-    const reply=await read({action:'getVocaSection',revisionId,sectionIdsJson:JSON.stringify(sections.map(s=>s.sectionId))});
-    if(reply.revisionId!==revisionId||reply.count!==expected||!Array.isArray(reply.words)||reply.words.length!==expected||reply.source!=='VOCA_STATION')throw Error('SCHOOL_AUDIT_COUNT_MISMATCH');
-    const counts=Object.fromEntries(sections.map(s=>[s.sectionId,0])),seen=new Set();let previousSection=-1;
-    for(const w of reply.words){const index=sections.findIndex(s=>s.sectionId===w.sectionId);if(index<previousSection||index<0||typeof w.vocabWordId!=='string'||seen.has(w.vocabWordId)||typeof w.word!=='string'||typeof w.meaning!=='string')throw Error('SCHOOL_AUDIT_WORD_SCOPE_INVALID');previousSection=index;seen.add(w.vocabWordId);counts[w.sectionId]++;}
-    if(sections.some(s=>counts[s.sectionId]!==s.wordCount))throw Error('SCHOOL_AUDIT_SECTION_COUNT_MISMATCH');
-    panel.setAttribute('data-school-scope-audit',JSON.stringify({status:'EXACT_PUBLISHED_SCOPE_READ',revisionId,expected,received:reply.count,sections:sections.map(s=>({sectionId:s.sectionId,label:s.label,wordCount:s.wordCount})),batchCount:reply.batchCount,clientElapsedMs:Date.now()-started,savedKeysChanged:false,nativePageRouteDistinguishedFromLegacy:false}));status.textContent='확정 교과서 세 구간 '+expected+'개 읽기 완료. 저장 변경 없음.';
-   }catch(e){panel.setAttribute('data-school-scope-audit',JSON.stringify({status:'FAILED',message:e.message,clientElapsedMs:Date.now()-started,savedKeysChanged:false}));status.textContent=e.message;}finally{button.disabled=false;}
-  });return loaded;
- };
-})();
-
     window.onload = async () => {
   restoreLogin();
   loadHomeTextFromCache();
