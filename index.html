@@ -8504,7 +8504,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
 // Broad search/favorite hydration is an explicit compatibility path, not a
 // silent fallback on failure of selected-section integrity checks.
 (function(){
- let catalog=null,epoch=-1,generation=0,globalRows=null,globalTask=null,selectedKey='';
+ let catalog=null,epoch=-1,generation=0,globalRows=null,globalTask=null,selectedKey='',searchGeneration=0;
  const nativeReadObservations=[];
  async function nativeReadonlyRequest(params){
   if(!['getLegacyNativeBrowseCatalog','getLegacyNativeBrowseSection','getLegacyNativeFavorites'].includes(params.action))throw Error('NATIVE_READ_ACTION_NOT_ALLOWED');
@@ -8591,6 +8591,9 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
   }catch(e){if(session===studentSessionEpoch&&version===generation&&document.getElementById('vocab-book-select').value===name&&document.getElementById('vocab-day-select').value===day)error('vocab-view',e.message);}
  };
  searchVocab=async function(){const session=studentSessionEpoch,version=generation;
+  const request=++searchGeneration;
+  const searchPin=()=>JSON.stringify(['vocab-book-select','vocab-day-select','vocab-search-scope','vocab-search-input'].map(id=>document.getElementById(id).value));
+  const pin=searchPin(),currentSearch=()=>session===studentSessionEpoch&&version===generation&&request===searchGeneration&&pin===searchPin();
   try{
    if(!current())throw Error('단어장 목록을 다시 불러오세요.');
    // The renderer already handles an empty query. Do not hydrate the entire
@@ -8602,13 +8605,14 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
     if(!s)throw Error('단어장과 Day를 먼저 선택하세요.');
     const expected=JSON.stringify([epoch,b.bookId,b.revisionId,s.sectionId]);
     if(selectedKey!==expected)await showVocabList();
-    if(session!==studentSessionEpoch||version!==generation||document.getElementById('vocab-book-select').value!==name||document.getElementById('vocab-day-select').value!==day||document.getElementById('vocab-search-scope').value!=='current-day')return;
+    if(!currentSearch()||document.getElementById('vocab-book-select').value!==name||document.getElementById('vocab-day-select').value!==day||document.getElementById('vocab-search-scope').value!=='current-day')return;
     if(selectedKey!==expected)throw Error('선택한 구간을 불러온 뒤 다시 검색하세요.');
     return renderSearch();
    }
-   const rows=await fullForCompatibility();if(session!==studentSessionEpoch||version!==generation)return;const saved=vocabData;try{vocabData=rows;renderSearch();}finally{vocabData=saved;}
+   error('vocab-search-result','검색 범위의 자료를 불러오는 중입니다.');
+   const rows=await fullForCompatibility();if(!currentSearch())return;const saved=vocabData;try{vocabData=rows;renderSearch();}finally{vocabData=saved;}
   }
-  catch(e){if(session===studentSessionEpoch&&version===generation)error('vocab-search-result',e.message);}
+  catch(e){if(currentSearch())error('vocab-search-result',e.message);}
  };
  getFavoriteRows=function(folder=currentFavoriteFolder){const keys=new Set(favoriteFolders[folder]||[]);return sortWordsByOrder((globalRows||[header]).slice(1).filter(r=>keys.has(makeWordKey(r))));};
  async function favoriteAction(action){const session=studentSessionEpoch,version=generation;try{await fullForCompatibility();if(session===studentSessionEpoch&&version===generation)return action();}catch(e){if(session===studentSessionEpoch&&version===generation)error('favorites-view',e.message);}}
