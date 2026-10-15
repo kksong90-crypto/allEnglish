@@ -8625,7 +8625,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
  if(globalThis.studentNativeFavoritesEnabled!==true)return;
  const hooks=globalThis.studentNativeFavoriteRenderers;
  const render=hooks?.render||showFavorites,test=hooks?.test||startFavoriteTest,meaning=hooks?.meaning||startFavoriteMeaningCheck;
- let loaded=null,pending=null;
+ let loaded=null,pending=null,catalogPending=null;
  function scope(){return JSON.stringify([studentSessionEpoch,currentFavoriteFolder,favoriteFolders[currentFavoriteFolder]||[],typeof hooks?.context==='function'?hooks.context():null]);}
  function failure(message){document.getElementById('favorites-view').innerHTML="<div class='card'>"+escapeHtml(message)+"</div>";}
  getFavoriteRows=function(folder=currentFavoriteFolder){
@@ -8633,9 +8633,16 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
   return loaded.rows.map(row=>row.slice());
  };
  async function action(callback){
-  const pin=scope(),keys=(favoriteFolders[currentFavoriteFolder]||[]).slice();
+  let pin=scope();const keys=(favoriteFolders[currentFavoriteFolder]||[]).slice(),initialSession=studentSessionEpoch,initialFolder=currentFavoriteFolder;
   try{
-   if(typeof hooks?.context==='function'&&hooks.context().ready!==true)throw Error('단어장 목록을 다시 불러오세요.');
+   if(typeof hooks?.context==='function'&&hooks.context().ready!==true){
+    if(typeof loadVocabBooks!=='function')throw Error('단어장 목록을 다시 불러오세요.');
+    if(!catalogPending){const task=Promise.resolve().then(()=>loadVocabBooks(initialSession));catalogPending=task;task.finally(()=>{if(catalogPending===task)catalogPending=null;}).catch(()=>{});}
+    await catalogPending;
+    if(initialSession!==studentSessionEpoch||initialFolder!==currentFavoriteFolder||JSON.stringify(keys)!==JSON.stringify(favoriteFolders[currentFavoriteFolder]||[]))return;
+    if(hooks.context().ready!==true)throw Error('단어장 목록을 다시 불러오세요.');
+    pin=scope();
+   }
    if(!loaded||loaded.pin!==pin){
     if(!pending||pending.pin!==pin){const read=typeof hooks?.read==='function'?hooks.read:params=>apiPost(params,90000);const request={pin,task:null};request.task=read({action:'getLegacyNativeFavorites',keysJson:JSON.stringify(keys)});pending=request;}
     const request=pending,reply=await request.task;
@@ -8655,6 +8662,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
  }
  showFavorites=()=>action(render);startFavoriteTest=()=>action(test);startFavoriteMeaningCheck=()=>action(meaning);
 })();
+
 
 
     }
