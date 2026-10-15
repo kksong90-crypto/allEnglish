@@ -8,6 +8,13 @@ function adminClassReadTimingText(samples) {
   const sum=key=>Math.round(samples.reduce((value,item)=>value+item.server[key],0));
   return client+` · 서버 합계: ${sum('totalMs')} ms · 인증·옵션·반: ${sum('authOptionsClassMs')} ms · 명단: ${sum('rosterMs')} ms · 테이블: ${sum('tablesMs')} ms · revision: ${sum('revisionMs')} ms · 일정 구성: ${sum('assemblyMs')} ms (페이지별 누적, 구간 합을 전체 시간으로 보지 않습니다.)`;
 }
+async function adminClassReadonlyRequest(params, timeoutMs = API_LONG_TIMEOUT_MS) {
+  if (!['getStaffScheduleDirectory','getStaffClassLearningSchedule'].includes(params.action)) throw new Error('ADMIN_READ_ACTION_NOT_ALLOWED');
+  const query = new URLSearchParams(params);
+  if (currentUser && currentUser.token && !query.has('token')) query.set('token', currentUser.token);
+  const result = await fetchJsonWithTimeout(SHEET_URL + '?' + query.toString(), {method:'GET'}, timeoutMs);
+  return handleApiAuthFailure(result);
+}
 const AdminClassSchedule = (() => {
   let serial = 0;
   let directoryKey = '';
@@ -56,7 +63,7 @@ const AdminClassSchedule = (() => {
     status('반 목록을 읽는 중입니다…');
     const promise = (async () => {
       try {
-        const data = await apiPost({action:'getStaffScheduleDirectory', ...opt}, API_LONG_TIMEOUT_MS);
+        const data = await adminClassReadonlyRequest({action:'getStaffScheduleDirectory', ...opt}, API_LONG_TIMEOUT_MS);
         if (!isCurrent()) return;
         if (!data?.success || !data.readOnly || data.startDate !== opt.fromDate || !Array.isArray(data.classes)) throw new Error(data?.message || '반 목록 응답을 확인하지 못했습니다.');
         const previous = el('admin-class-select').value;
@@ -97,7 +104,7 @@ const AdminClassSchedule = (() => {
       while (isCurrent()) {
         status(`반 전체 일정을 읽는 중… ${entries.length}${total === null ? '' : '/' + total}명`);
         const requestStart = Date.now();
-        const data = await apiPost({action:'getStaffClassLearningSchedule', ...opt, classId, offset:String(offset), revision}, API_LONG_TIMEOUT_MS);
+        const data = await adminClassReadonlyRequest({action:'getStaffClassLearningSchedule', ...opt, classId, offset:String(offset), revision}, API_LONG_TIMEOUT_MS);
         timingSamples.push({waitMs:Math.max(0,Date.now()-requestStart),server:data?.serverTiming});
         if (!isCurrent()) return;
         if (!data?.success) throw new Error(data?.message || '반 일정을 읽지 못했습니다.');
