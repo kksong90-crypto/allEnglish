@@ -6427,6 +6427,10 @@ async function loadHomeLearningPreview(forceRefresh = false) {
   const epoch = studentSessionEpoch;
   const requestSerial = ++homeScheduleRequestSerial;
   const target = document.getElementById("home-learning-content");
+  if (String(currentUser.role || "").toLowerCase() === "admin") {
+    if (target) target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-title">모든 반 학습일정</div><div class="muted">학습일정에서 반을 선택하면 확정된 단어·듣기 범위를 읽기 전용으로 확인할 수 있습니다.</div><button class="home-panel-action" type="button" onclick="showTab('exam')">반별 학습일정 확인</button></div>`;
+    return;
+  }
   if (target) target.innerHTML = `<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>`;
   try {
     const payload = await fetchMyLearningSchedule("upcoming", forceRefresh);
