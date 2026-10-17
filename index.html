@@ -4562,6 +4562,13 @@ body.dark .retest-admin-memo {
       </div>
       <div id="admin-class-status" role="status" aria-live="polite"></div>
       <div id="admin-class-result"></div>
+      <details id="admin-confirmed-scope-reader">
+        <summary>확정 시험범위 본문 확인 · 관리자 읽기 전용</summary>
+        <p>운영센터의 확정 시험범위 계획 ID로 현재 또는 과거 범위 본문을 확인합니다. 학생 로그인·연습·계획·점수·인쇄는 변경하지 않습니다.</p>
+        <label for="admin-confirmed-scope-plan">확정 시험범위 계획 ID</label>
+        <input id="admin-confirmed-scope-plan" type="text" maxlength="160" autocomplete="off" />
+        <button type="button" class="vocab-btn secondary" onclick="AdminSchoolScopePreview.open(document.getElementById('admin-confirmed-scope-plan').value,this)">확정 범위 본문 읽기</button>
+      </details>
     </div>
     <div id="staff-schedule-preview" class="control-card" hidden>
       <h3>관리자 · 학생 일정 미리보기</h3>
