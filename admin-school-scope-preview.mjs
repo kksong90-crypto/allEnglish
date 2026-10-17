@@ -5,7 +5,7 @@ export function createAdminSchoolScopePreview({getUser,getEpoch,request,sha256,d
  function cancelAll(){for(const r of active){r.cancelled=true;r.abort.abort();r.panel.remove();if(r.button.isConnected!==false){r.button.disabled=false;r.button.textContent=r.original;}}active.clear();}
  async function open(testPlanId,button){
   if(!permitted()||!button?.parentElement||!/^[A-Za-z0-9._:-]{3,160}$/.test(String(testPlanId)))return;
-  cancelAll();const epoch=getEpoch(),panel=document.createElement('section'),status=document.createElement('p'),body=document.createElement('div'),cancel=document.createElement('button');
+  cancelAll();const epoch=getEpoch(),panel=document.createElement('div'),status=document.createElement('p'),body=document.createElement('div'),cancel=document.createElement('button');
   const record={cancelled:false,abort:new AbortController(),panel,button,original:button.textContent};active.add(record);
   panel.setAttribute('aria-label','학교 시험범위 읽기 전용 미리보기');status.setAttribute('role','status');cancel.type='button';cancel.textContent='미리보기 닫기';cancel.addEventListener('click',cancelAll);panel.append(status,body,cancel);button.parentElement.append(panel);button.disabled=true;button.textContent='본문 확인 중…';status.textContent='확정 계획의 전체 본문을 읽는 중입니다. 일부 결과는 표시하지 않습니다.';
   const current=()=>!record.cancelled&&active.has(record)&&epoch===getEpoch()&&permitted()&&panel.isConnected!==false;

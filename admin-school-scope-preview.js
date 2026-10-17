@@ -2,7 +2,7 @@
 const AdminSchoolScopePreview=(()=>{
  let controller=null,loading=null,generation=0;
  async function open(planId,button){const requested=generation,epoch=studentSessionEpoch;if(String(currentUser?.role||'').toLowerCase()!=='admin')return;
-  if(!controller){if(!loading)loading=import('./admin-school-scope-preview.mjs').then(({createAdminSchoolScopePreview})=>{controller=createAdminSchoolScopePreview({getUser:()=>currentUser,getEpoch:()=>studentSessionEpoch,request:p=>apiPost(p,API_LONG_TIMEOUT_MS),sha256:async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join(''),document});return controller;}).catch(error=>{loading=null;throw error;});try{await loading;}catch(error){if(button)button.textContent='미리보기 모듈을 불러오지 못했습니다.';return;}}
+  if(!controller){if(!loading)loading=import('./admin-school-scope-preview.mjs').then(({createAdminSchoolScopePreview})=>{controller=createAdminSchoolScopePreview({getUser:()=>currentUser,getEpoch:()=>studentSessionEpoch,request:p=>apiPost(p,Math.max(API_LONG_TIMEOUT_MS,270000)),sha256:async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))),b=>b.toString(16).padStart(2,'0')).join(''),document});return controller;}).catch(error=>{loading=null;throw error;});try{await loading;}catch(error){if(button)button.textContent='미리보기 모듈을 불러오지 못했습니다.';return;}}
   if(requested===generation&&epoch===studentSessionEpoch)return controller.open(planId,button);
  }
  function cancelAll(){generation++;if(controller)controller.cancelAll();}
