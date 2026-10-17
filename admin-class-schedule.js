@@ -24,6 +24,7 @@ const AdminClassSchedule = (() => {
   const status = text => { if (el('admin-class-status')) el('admin-class-status').textContent = text; };
   function clearResult() {
     serial += 1;
+    if(typeof AdminSchoolScopePreview!=='undefined')AdminSchoolScopePreview.cancelAll();
     if (el('admin-class-result')) el('admin-class-result').innerHTML = '';
     if (el('admin-class-query')) el('admin-class-query').disabled = false;
     if (el('admin-class-cancel')) el('admin-class-cancel').hidden = true;
