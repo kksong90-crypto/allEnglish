@@ -9,6 +9,8 @@ const AdminSchoolScopePreview=(()=>{
  return{open,cancelAll};
 })();
 function renderAdminSchoolScopeButton(item,readOnly){
- const id=String(item?.testPlanId||'');if(!readOnly||String(currentUser?.role||'').toLowerCase()!=='admin'||item?.vocaScopeState!=='CONNECTED'||!['SCHOOL_EXAM','FRIDAY_TEST'].includes(item?.planType)||!/^[A-Za-z0-9._:-]{3,160}$/.test(id))return '';
+ // Real schedule DTOs keep weekday planType REGULAR while pointing at the
+ // separately confirmed SCHOOL_EXAM plan. Never send the regular plan ID.
+ const id=String(item?.schoolScopePlanId||(item?.planType==='SCHOOL_EXAM'?item.testPlanId:'')||'');if(!readOnly||String(currentUser?.role||'').toLowerCase()!=='admin'||item?.vocaScopeState!=='CONNECTED'||!/^[A-Za-z0-9._:-]{3,160}$/.test(id))return '';
  return `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(id)}" onclick="AdminSchoolScopePreview.open(this.dataset.testPlanId,this)">시험범위 본문 확인 · 읽기 전용</button>`;
 }
