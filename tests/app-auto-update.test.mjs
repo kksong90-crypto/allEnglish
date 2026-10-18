@@ -76,11 +76,11 @@ test('a failed asset refresh cannot navigate to a partial update',async()=>{
 });
 
 const source=fs.readFileSync(new URL('../app-auto-update.js',import.meta.url),'utf8');
-function browser({marker=true,dirty=false,tab='home',inTest=false}={}){
- let now=Date.parse('2026-10-18T05:00:00Z'),remote='new',requests=[],navigations=[];
+function browser({marker=true,dirty=false,tab='home',inTest=false,modified='2026-10-18T04:00:00Z',remoteCode='new'}={}){
+ let now=Date.parse('2026-10-18T05:00:00Z'),remote=remoteCode,requests=[],navigations=[];
  const listeners={},storage=new Map(),fields=[];
  const node=text=>({tagName:'SCRIPT',textContent:text,getAttribute:()=>null});
- const doc={baseURI:'https://example.test/allEnglish/',lastModified:'2026-10-18T04:00:00Z',visibilityState:'visible',activeElement:null,
+ const doc={baseURI:'https://example.test/allEnglish/',lastModified:modified,visibilityState:'visible',activeElement:null,
  querySelector:selector=>selector.startsWith('meta')?{}:null,querySelectorAll:()=>[node('old')],
  createElement:()=>({style:{},setAttribute(){}}),body:{appendChild(){}},
  addEventListener:(name,fn)=>listeners[name]=fn};
@@ -149,5 +149,10 @@ test('all embedded student scripts retain valid JavaScript syntax',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  let count=0;for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){new vm.Script(match[1]);count++;}
  assert.ok(count>0);
+});
+test('a UTC wall-clock document date does not trigger an update in a Korean timezone',async()=>{
+ const b=browser({modified:'10/18/2026 04:00:00',remoteCode:'old'});
+ await b.controller.check();b.advance();assert.equal(b.controller.state().pending,null);
+ assert.equal(await b.controller.tick(),false);assert.equal(b.navigations.length,0);
 });
 
