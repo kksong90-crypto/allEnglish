@@ -115,4 +115,17 @@ test('shell API wrapper preserves result and this binding, including safety guar
 test('no login clearing, service worker takeover, global cache purge or study writes',()=>{
  assert.doesNotMatch(source,/localStorage|removeItem|\.clear\(|caches\.delete|serviceWorker\.register|submitPointTest|saveVocab|changePassword/);
 });
+test('unchanged version metadata avoids repeated full HTML downloads',async()=>{
+ const b=browser();await b.controller.check();await b.controller.check();
+ assert.equal(b.requests.filter(r=>r.options.method==='GET').length,1);
+});
+test('already targeted release cannot produce a reload loop even without session storage',async()=>{
+ const b=browser();await b.controller.check();
+ b.win.location.href+='&_app_build='+b.controller.state().pending;
+ b.advance();assert.equal(await b.controller.tick(),false);assert.equal(b.navigations.length,0);
+});
+test('after one successful navigation, pending timers cannot navigate again',async()=>{
+ const b=browser();await b.controller.check();b.advance();await b.controller.tick();
+ await b.controller.check();await b.controller.tick();assert.equal(b.navigations.length,1);
+});
 
