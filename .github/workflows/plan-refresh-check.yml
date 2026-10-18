@@ -15,6 +15,8 @@ jobs:
           path: baseline
       - name: Same-day and mobile resume regression
         run: node --test tests/app-auto-update.test.mjs tests/schedule-freshness.test.mjs tests/schedule_duplicate_warning.mjs tests/assigned_exam_practice_contract.mjs tests/login-timeout.test.mjs tests/favorite-session-safety.test.mjs tests/readonly-flights.test.mjs
+      - name: Korean timezone update regression
+        run: TZ=Asia/Seoul node --test tests/app-auto-update.test.mjs
       - name: Compare full existing regression with pinned baseline
         shell: bash
         run: |
