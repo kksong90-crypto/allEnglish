@@ -69,6 +69,11 @@ test('a withdrawn release clears the pending notice without navigation',async()=
  assert.equal(f.c.state().pending,null);assert.equal(await f.c.tick(),false);
  assert.deepEqual(f.notices,['pending','current']);
 });
+test('a failed asset refresh cannot navigate to a partial update',async()=>{
+ let now=0,nav=0;
+ const d=createController({currentRelease:'old',now:()=>now,visible:()=>true,online:()=>true,busy:()=>false,readRelease:async()=> 'new',notify(){},canReload:()=>true,prepare:async()=>{throw Error('asset unavailable');},reload:()=>nav++});
+ await d.check();now=20000;assert.equal(await d.tick(),false);assert.equal(nav,0);
+});
 
 const source=fs.readFileSync(new URL('../app-auto-update.js',import.meta.url),'utf8');
 function browser({marker=true,dirty=false,tab='home',inTest=false}={}){
@@ -83,9 +88,9 @@ function browser({marker=true,dirty=false,tab='home',inTest=false}={}){
  sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
  addEventListener:(name,fn)=>listeners['window:'+name]=fn,setInterval(){},setTimeout(){},
  apiPost:async function(value){assert.equal(this,win);return value;},
- fetch:async(url,options)=>{requests.push({url,options});return {ok:true,headers:{get:k=>k==='content-type'?'text/html':'Sun, 18 Oct 2026 04:00:00 GMT'},text:async()=>remote};}};
+ fetch:async(url,options)=>{requests.push({url,options});return {ok:true,headers:{get:k=>k==='content-type'?(options.cache==='reload'?'text/javascript':'text/html'):'Sun, 18 Oct 2026 04:00:00 GMT'},text:async()=>remote,arrayBuffer:async()=>new ArrayBuffer(2)};}};
  const context={window:win,module:undefined,URL,AbortController,setTimeout,clearTimeout,Date:class extends Date{static now(){return now;}},
- DOMParser:class{parseFromString(text){return {querySelector:()=>marker?{}:null,querySelectorAll:()=>[node(text)]};}},
+ DOMParser:class{parseFromString(text){return {querySelector:()=>marker?{}:null,querySelectorAll:selector=>selector==='script[src],link[rel="stylesheet"][href]'?[{getAttribute:k=>k==='src'?'app.js':null}]:[node(text)]};}},
  getActiveTabId:()=>tab,currentUser:{token:'synthetic'},currentTestMeta:inTest?{}:null,testAlreadySaved:false,console};
  vm.runInNewContext(source,context);
  if(dirty){
@@ -98,7 +103,8 @@ function browser({marker=true,dirty=false,tab='home',inTest=false}={}){
 test('real shell adapter detects new code and cache-busts without losing existing URL options',async()=>{
  const b=browser();await b.controller.check();b.advance();assert.equal(await b.controller.tick(),true);
  const url=new URL(b.navigations[0]);assert.equal(url.searchParams.get('keep'),'1');assert.ok(url.searchParams.get('_app_build'));
- assert.ok(b.requests.every(r=>r.options.cache==='no-store'&&r.options.credentials==='omit'));
+ assert.ok(b.requests.every(r=>['no-store','reload'].includes(r.options.cache)&&r.options.credentials==='omit'));
+ assert.ok(b.requests.some(r=>r.options.cache==='reload'&&r.url.endsWith('app.js')));
 });
 test('real shell preserves unsaved input and active test answers',async()=>{
  for(const options of [{dirty:true},{inTest:true},{tab:'point'}]){
