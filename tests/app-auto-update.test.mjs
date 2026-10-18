@@ -128,4 +128,15 @@ test('after one successful navigation, pending timers cannot navigate again',asy
  const b=browser();await b.controller.check();b.advance();await b.controller.tick();
  await b.controller.check();await b.controller.tick();assert.equal(b.navigations.length,1);
 });
+test('updater is mounted once in the outer shell rather than a generated report popup',()=>{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal(html.split('app-auto-update.js?v=20261018.1').length,2);
+ assert.match(html,/<script defer src="app-auto-update\.js\?v=20261018\.1"><\/script>\s*<\/body>/);
+ assert.doesNotMatch(html,/myScheduleLoadedOnce|myScheduleLastPayload/);
+});
+test('all embedded student scripts retain valid JavaScript syntax',()=>{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ let count=0;for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){new vm.Script(match[1]);count++;}
+ assert.ok(count>0);
+});
 
