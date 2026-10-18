@@ -57,6 +57,8 @@
   if(!doc.querySelector('meta[name="allbarun-app"][content="student-v1"]'))return;
   const initialSignature=signature(doc);
   const loadedModified=Date.parse(doc.lastModified)||0;
+  const localModified=new Date(doc.lastModified);
+  const loadedWallClock=Date.UTC(localModified.getFullYear(),localModified.getMonth(),localModified.getDate(),localModified.getHours(),localModified.getMinutes(),localModified.getSeconds())||0;
   let lastFullRead=0,lastSeenModified=0,lastObservedRelease=initialSignature,banner=null,candidateAssets=[],preparedRelease=null;
   const dirty=new Set();
   function fieldChanged(el) {
@@ -118,7 +120,8 @@
     lastSeenModified=modified;
     const next=signature(remote);
     // A deployment can update external assets without changing the HTML scripts.
-    lastObservedRelease=next!==initialSignature?next:(modified>loadedModified?'deploy-'+modified:initialSignature);
+    const sameModified=modified===loadedModified||modified===loadedWallClock;
+    lastObservedRelease=next!==initialSignature?next:(!sameModified&&modified>Math.min(loadedModified||Infinity,loadedWallClock||Infinity)?'deploy-'+modified:initialSignature);
     return lastObservedRelease;
   }
   async function prepare(release){
