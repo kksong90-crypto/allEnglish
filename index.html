@@ -4321,6 +4321,39 @@ body.dark .retest-admin-memo {
 
 </style>
 
+
+  <style id="student-preparation-layout">
+    .preparation-home .home-brand-note{padding:.65rem 0!important;margin:0 0 .6rem!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important}
+    .preparation-home .home-brand-note::before,.preparation-home .home-brand-note::after{display:none!important}
+    .preparation-home .hero-content{padding:0!important;max-width:none}
+    .preparation-home #heroTitle{font-size:.9rem!important;line-height:1.5!important;margin:0!important;color:var(--brand-dark)!important}
+    .preparation-home #heroKicker,.preparation-home #heroSubtitle{display:none}
+    .preparation-home #heroButton{font-size:.76rem!important;padding:.3rem 0!important;margin-top:.15rem!important;background:none!important;color:var(--brand-dark)!important;box-shadow:none!important}
+    .preparation-home .home-learning-panel{margin-top:0}
+    .preparation-home .home-notice-panel{margin-top:1rem}
+    .home-preparation-state{padding:1.2rem;border:1px solid var(--brand-line);border-radius:16px;background:#fff;line-height:1.7;color:var(--brand-text)}
+    .home-preparation-state p{margin:.4rem 0;color:var(--brand-muted)}
+    .home-preparation-state button{margin-top:.6rem;min-height:44px}
+    .home-preparation-meta{display:flex;justify-content:space-between;gap:.6rem;align-items:center;font-size:.88rem;color:var(--brand-muted);padding:.2rem 0}
+    .home-preparation-meta time{font-weight:800;color:var(--brand-dark)}
+    .home-verified-label{font-size:.75rem;white-space:nowrap;color:var(--brand-dark);background:#eaf5ef;padding:.25rem .5rem;border-radius:20px}
+    .home-task{padding:1rem;border:1px solid var(--brand-line);border-radius:18px;background:#fff;line-height:1.6;min-width:0}
+    .home-task h3{margin:0 0 .5rem;font-size:1rem;color:var(--brand-dark)}
+    .home-task p{margin:.2rem 0;white-space:pre-line;overflow-wrap:anywhere}
+    .home-task-book{color:var(--brand-muted);font-size:.86rem}
+    .home-task-scope{font-size:clamp(1.3rem,5vw,1.9rem);font-weight:900;color:var(--brand-dark);line-height:1.4;margin:.35rem 0!important}
+    .home-task-school{margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--brand-line)}
+    .home-task-school small{font-weight:800;color:var(--brand-muted)}
+    .home-task-warning{border-color:#d9b76f;background:#fffaf0}
+    .home-task-note{color:var(--brand-muted);font-size:.88rem}
+    body.dark .home-task,body.dark .home-preparation-state{background:#1f2a27;color:#eef8f5;border-color:#35514a}
+    body.dark .home-task h3,body.dark .home-task-scope,body.dark .home-preparation-meta time,body.dark .preparation-home #heroTitle,body.dark .preparation-home #heroButton{color:#eef8f5!important}
+    body.dark .home-task-book,body.dark .home-task-note,body.dark .home-task-school small,body.dark .home-preparation-meta{color:#cfe1db}
+    body.dark .home-task-warning{background:#3a3020;border-color:#9f844e}
+    body.dark .home-verified-label{background:#29483d;color:#e6fff0}
+    @media(max-width:760px){.bottom-logo-button .bottom-logo{width:30px!important;height:30px!important}nav.app-tabs{display:none!important}.preparation-home{padding:1rem!important}.preparation-home .home-panel-header h2{font-size:1.2rem}.home-task{padding:1rem}.home-preparation-meta{align-items:flex-start}}
+  </style>
+
 </head>
 
 <body>
@@ -4436,7 +4469,7 @@ body.dark .retest-admin-memo {
         <button onclick="goTabFromFullMenu('exam')"><span>📅</span><b>학습일정</b></button>
         <button onclick="goTabFromFullMenu('report')"><span>📊</span><b>내 성적</b></button>
         <button onclick="goTabFromFullMenu('retest')"><span>🧾</span><b>재시험</b></button>
-        <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>단어장</b></button>
+        <button onclick="goTabFromFullMenu('vocab')"><span>📘</span><b>전체 단어장</b></button>
         <button onclick="goTabFromFullMenu('favorites')"><span>⭐</span><b>중요단어</b></button>
         <button onclick="goTabFromFullMenu('point')"><span>🎯</span><b>포인트</b></button>
         <button onclick="goTabFromFullMenu('pointRank')"><span>🏆</span><b>랭킹</b></button>
@@ -4474,15 +4507,15 @@ body.dark .retest-admin-memo {
     <button data-tab="exam" onclick="showTab('exam')">학습일정</button>
     <button data-tab="report" onclick="showTab('report')">내 성적</button>
     <button data-tab="retest" onclick="showTab('retest')">재시험</button>
-    <button data-tab="vocab" onclick="showTab('vocab')">단어장</button>
+    <button data-tab="vocab" onclick="showTab('vocab')">전체 단어장</button>
     <button data-tab="favorites" onclick="showTab('favorites')">⭐중요단어</button>
     <button data-tab="point" onclick="showTab('point')">🎯포인트</button>
     <button data-tab="pointRank" onclick="showTab('pointRank')">🏆랭킹</button>
   </nav>
 
   <!-- 홈 -->
-  <section id="home" class="active home-section">
-    <div class="hero-card">
+  <section id="home" class="active home-section preparation-home">
+    <div class="hero-card home-brand-note">
       <div class="hero-content">
         <div class="hero-kicker" id="heroKicker"></div>
         <h1 id="heroTitle"></h1>
@@ -4490,30 +4523,22 @@ body.dark .retest-admin-memo {
         <button id="heroButton"></button>
       </div>
     </div>
-
+    <div class="home-learning-panel">
+      <div class="home-panel-header">
+        <div><div class="home-panel-kicker">다음 수업까지</div><h2>무엇을 준비할까요?</h2></div>
+        <button class="home-panel-action" onclick="showTab('exam')">다른 날짜</button>
+      </div>
+      <div id="home-learning-content" class="home-learning-content" aria-live="polite">
+        <div class="home-preparation-state">로그인하면 다음 수업 계획을 확인할 수 있어요.</div>
+      </div>
+    </div>
     <div class="home-notice-panel">
       <div class="home-panel-header">
-        <div>
-          <div class="home-panel-kicker">최근 공지</div>
-          <h2>공지사항</h2>
-        </div>
+        <div><div class="home-panel-kicker">학원 안내</div><h2>공지사항</h2></div>
         <button class="home-panel-action" onclick="showTab('notice')">전체보기</button>
       </div>
       <div id="home-notice-content" class="home-notice-content">
-        <div class="card empty-card">공지사항을 불러오는 중입니다.</div>
-      </div>
-    </div>
-
-    <div class="home-learning-panel">
-      <div class="home-panel-header">
-        <div>
-          <div class="home-panel-kicker">다음 수업 준비</div>
-          <h2>내 학습일정</h2>
-        </div>
-        <button class="home-panel-action" onclick="showTab('exam')">일정 보기</button>
-      </div>
-      <div id="home-learning-content" class="home-learning-content">
-        <div class="card empty-card">로그인 후 내 학습일정을 확인할 수 있습니다.</div>
+        <div class="card empty-card">공지사항을 확인하고 있어요.</div>
       </div>
     </div>
   </section>
@@ -4808,8 +4833,9 @@ body.dark .retest-admin-memo {
       <span>학습일정</span>
     </button>
 
-    <button data-tab="vocab" onclick="showTab('vocab')" class="bottom-logo-button">
+    <button data-tab="vocab" onclick="showTab('vocab')" class="bottom-logo-button" aria-label="전체 단어장" title="전체 단어장">
       <img class="bottom-logo" src="assets/Allbarun_Student_Logo_Mark.png" alt="All바른" />
+      <span>전체 단어장</span>
     </button>
 
     <button data-tab="favorites" onclick="showTab('favorites')">
@@ -5990,6 +6016,7 @@ function printMyScoreReport() {
       if (tabId === "exam") {
           loadExamTabOnce();
         }
+      if (tabId === "home" && previousTab !== "home") loadHomeLearningPreview(true);
 
       if (tabId === "report") {
         loadMyScoreReport(false);
@@ -6410,22 +6437,64 @@ function renderMySchedule(payload) {
     ? `<div class="schedule-card-list">${visibleDays.map(renderScheduleDay).join("")}</div>`
     : `<div class="card empty-card">표시할 학습일정이 없습니다.</div>`;
 }
+function renderHomePreparationState(state, message = "") {
+  const target = document.getElementById("home-learning-content");
+  if (!target) return;
+  const loading = state === "loading";
+  target.innerHTML = loading
+    ? '<div class="home-preparation-state" role="status"><b>최신 계획을 확인하고 있어요.</b><p>확인된 단어·듣기만 여기에 보여 드릴게요.</p></div>'
+    : '<div class="home-preparation-state"><b>지금은 계획을 확인하지 못했어요.</b><p>이전 범위로 준비하지 않도록, 잠시 가려 두었습니다.</p><button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">다시 확인</button></div>';
+  target.setAttribute("aria-busy", loading ? "true" : "false");
+}
+function invalidateStudentPreparation() {
+  if (!currentUser || !currentUser.token || String(currentUser.role || "").toLowerCase() === "admin") return;
+  homeScheduleRequestSerial += 1;
+  myScheduleRequestSerial += 1;
+  renderHomePreparationState("loading");
+  const target = document.getElementById("exam-table");
+  const summary = document.getElementById("schedule-summary-view");
+  if (target) target.innerHTML = '<div class="card" role="status">최신 계획을 다시 확인하고 있어요.</div>';
+  if (summary) summary.innerHTML = "";
+}
+function renderHomeVocabTask(item) {
+  if (item.vocaScopeState === "DUPLICATE") return '<article class="home-task home-task-warning"><h3>단어 범위 확인이 필요해요.</h3><p>확정 범위를 확인한 뒤 준비해 주세요.</p></article>';
+  const regular = String(item.regularText || "").trim();
+  const school = String(item.schoolVocabText || "").trim();
+  const book = item.vocabBookName || item.bookName || item.groupName || "";
+  const fallback = !regular && !school ? String(item.displayText || "").trim() : "";
+  return '<article class="home-task"><h3>이번 시험 단어</h3>' +
+    (book ? '<p class="home-task-book">' + escapeHtml(book) + '</p>' : '') +
+    (regular ? '<p class="home-task-scope">' + escapeHtml(regular) + '</p>' : '') +
+    (school ? '<div class="home-task-school"><small>학교 시험 범위</small><p>' + escapeHtml(school) + '</p></div>' : '') +
+    (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') + '</article>';
+}
 function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
   if (!target) return;
   const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
-  const day = futurePayload.nextPlan || futurePayload.visibleDays[0] || futurePayload.days.find(item => item.hasPlan || item.closed) || null;
-  if (!day) { target.innerHTML = `<div class="home-notice-card home-schedule-card">다가오는 학습일정이 없습니다.</div>`; return; }
-  const vocabText = (day.vocab || []).map(item => item.displayText).filter(Boolean).join(" / ");
-  const lines = [];
-  if (day.closed) lines.push(`🏖️ ${escapeHtml(day.closure?.type || "휴원")}`);
-  if (vocabText) lines.push(`📘 ${escapeHtml(vocabText)}`);
-  if (day.quiz?.scope) lines.push(`🧩 ${escapeHtml(day.quiz.scope)}`);
-  const listeningDisplay = formatListeningScheduleText(day.listening);
-  if (listeningDisplay) lines.push(escapeHtml(listeningDisplay));
-  if (day.homework?.text) lines.push(`📚 ${escapeHtml(day.homework.text)}`);
-  if (day.lessonTest?.scope) lines.push(`📝 ${escapeHtml(day.lessonTest.scope)}`);
-  target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-date">${escapeHtml(day.displayDate || day.date)} · ${escapeHtml(day.className || "")}</div><div class="home-schedule-title">다음 수업 준비</div><div class="home-schedule-lines">${lines.length ? lines.map(line => `<div>${line}</div>`).join("") : `<div class="muted">표시할 준비사항이 없습니다.</div>`}</div></div>`;
+  const day = futurePayload.nextPlan || (futurePayload.visibleDays || [])[0] ||
+    (futurePayload.days || []).find(item => item.hasPlan || item.closed) || null;
+  target.setAttribute("aria-busy", "false");
+  if (!day) {
+    target.innerHTML = '<div class="home-preparation-state"><b>다음 수업 계획이 아직 없어요.</b><p>새 계획이 등록되면 여기에 표시됩니다.</p><button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">다시 확인</button></div>';
+    return;
+  }
+  const date = day.displayDate || day.date || "";
+  const tasks = [];
+  const vocab = Array.isArray(day.vocab) ? day.vocab : [];
+  if (day.closed) tasks.push('<article class="home-task"><h3>' + escapeHtml(day.closure?.type || "휴원") + '</h3><p>' + escapeHtml(day.closure?.memo || "이번 날짜에는 수업이 없습니다.") + '</p></article>');
+  else if (vocab.length) tasks.push(vocab.map(renderHomeVocabTask).join(""));
+  else tasks.push('<article class="home-task"><h3>단어 시험</h3><p class="home-task-note">' +
+    (day.preparationStatus?.vocab === "EXEMPT" ? "이번 수업 단어시험 없음" : "단어 범위 안내가 아직 없습니다.") + '</p></article>');
+  const listening = formatListeningScheduleText(day.listening);
+  const listeningEmpty = day.preparationStatus?.listening === "EXEMPT" ? "듣기 면제" :
+    day.preparationStatus?.listening === "SKIPPED" ? "이번 수업 듣기 과제 없음" : "현재 등록된 듣기 안내가 없습니다.";
+  tasks.push('<article class="home-task"><h3>듣기 숙제</h3><p' + (listening ? '' : ' class="home-task-note"') + '>' + escapeHtml(listening || listeningEmpty) + '</p></article>');
+  for (const [label,value] of [["Quiz",!day.closed&&day.quiz?.scope],["숙제",!day.closed&&day.homework?.public!==false&&day.homework?.text],["수업 TEST",!day.closed&&day.lessonTest?.scope],["수업 안내",day.notice]]) {
+    if (value) tasks.push('<article class="home-task"><h3>' + label + '</h3><p>' + escapeHtml(value) + '</p></article>');
+  }
+  target.innerHTML = '<div class="home-preparation-meta"><div><time>' + escapeHtml(date) + '</time>' +
+    (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">방금 확인한 계획</span></div>' + tasks.join("");
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
@@ -6436,15 +6505,16 @@ async function loadHomeLearningPreview(forceRefresh = false) {
     if (target) target.innerHTML = `<div class="home-notice-card home-schedule-card"><div class="home-schedule-title">모든 반 학습일정</div><div class="muted">학습일정에서 반을 선택하면 확정된 단어·듣기 범위를 읽기 전용으로 확인할 수 있습니다.</div><button class="home-panel-action" type="button" onclick="showTab('exam')">반별 학습일정 확인</button></div>`;
     return;
   }
-  if (target) target.innerHTML = `<div class="card empty-card">내 학습일정을 불러오는 중입니다.</div>`;
+  myScheduleRequestSerial += 1;
+  if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
   try {
-    const payload = await fetchMyLearningSchedule("upcoming", forceRefresh);
+    const payload = await fetchMyLearningSchedule("upcoming", true);
     if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
     renderHomeLearningPreview(payload);
   } catch (err) {
     console.error(err);
     if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
-    if (target) target.innerHTML = `<div class="card empty-card">학습일정을 불러오지 못했습니다.<br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
+    if (typeof renderHomePreparationState === "function") renderHomePreparationState("error");
   }
 }
 function setScheduleRangeActive(range) {
@@ -6474,6 +6544,10 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   const normalized = normalizeScheduleRange(range);
   const epoch = studentSessionEpoch;
   const requestSerial = ++myScheduleRequestSerial;
+  homeScheduleRequestSerial += 1;
+  if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
+  const priorSummary = document.getElementById("schedule-summary-view");
+  if (priorSummary) priorSummary.innerHTML = "";
   myScheduleCurrentRange = normalized;
   setScheduleRangeActive(normalized);
 
@@ -6485,16 +6559,16 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   setScheduleButtonsDisabled(true);
 
   try {
-    const payload = await fetchMyLearningSchedule(normalized, forceRefresh);
+    const payload = await fetchMyLearningSchedule(normalized, true);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     renderMySchedule(payload);
-    // A completed explicit schedule read supersedes an older home-only read.
-    homeScheduleRequestSerial += 1;
+    // The explicit read superseded older home responses before the request began.
     renderHomeLearningPreview(payload);
   } catch (err) {
     console.error(err);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
+    if (typeof renderHomePreparationState === "function") renderHomePreparationState("error");
   } finally {
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) delete target.dataset.loading;
@@ -6512,10 +6586,16 @@ async function loadExamTabOnce(force = false) {
 async function refreshExamInfo() { await loadMySchedule(myScheduleCurrentRange || "week", true); }
 
 async function refreshLearningScheduleOnResume() {
-  if (!currentUser || !currentUser.token || document.visibilityState === "hidden") return;
+  if (!currentUser || !currentUser.token) return;
+  if (document.visibilityState === "hidden") {
+    if (typeof invalidateStudentPreparation === "function") invalidateStudentPreparation();
+    learningScheduleLastResumeAt = 0;
+    return;
+  }
   const now = Date.now();
   if (now - learningScheduleLastResumeAt < 10000) return;
   learningScheduleLastResumeAt = now;
+  if (typeof invalidateStudentPreparation === "function") invalidateStudentPreparation();
   if (getActiveTabId() === "exam") await loadExamTabOnce(true);
   else await loadHomeLearningPreview(true);
 }
