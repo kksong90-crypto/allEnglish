@@ -4925,6 +4925,12 @@ async function fetchSheet(sheetName) {
     let vocabLoadedOnce = false;
     let vocabLoadPromise = null;
     let retestLoadedOnce = false;
+    let retestLoadPromise = null;
+    let retestRequestSerial = 0;
+    let pointLoadPromise = null;
+    let pointReadSerial = 0;
+    let pointRankingLoadPromise = null;
+    let pointRankingRequestSerial = 0;
     let pointLoadedOnce = false;
     let myScoreReportLoadedOnce = false;
     let myScoreReportRequestSerial = 0;
@@ -5576,7 +5582,20 @@ function applyPointGuide(textMap) {
       vocabLoadedOnce = false;
       vocabLoadPromise = null;
       retestLoadedOnce = false;
+      retestLoadPromise = null;
+      retestRequestSerial += 1;
       pointLoadedOnce = false;
+      pointLoadPromise = null;
+      pointReadSerial += 1;
+      pointStartPending = false;
+      pointRankingLoaded = false;
+      pointRankingLoadPromise = null;
+      pointRankingRequestSerial += 1;
+      pointRankingPayload = { currentTop10: [], totalTop10: [] };
+      for (const id of ['retest-table', 'point-summary-view', 'point-test-view', 'pointRankList']) {
+        const target = document.getElementById(id);
+        if (target) target.innerHTML = '';
+      }
       myScoreReportLoadedOnce = false;
       myScoreReportRequestSerial += 1;
       myScoreReportPayload = null;
@@ -5865,38 +5884,32 @@ async function loadVocabBooksOnce(force = false) {
 }
 
 async function loadRetestOnce(force = false) {
-  if (retestLoadedOnce && !force) return;
-
-  try {
-    await loadRetest();
-    retestLoadedOnce = true;
-  } catch (err) {
-    retestLoadedOnce = false;
-    throw err;
-  }
+  if (retestLoadPromise) return retestLoadPromise;
+  if (retestLoadedOnce && !force) return true;
+  const task = loadRetest().finally(() => {
+    if (retestLoadPromise === task) retestLoadPromise = null;
+  });
+  retestLoadPromise = task;
+  return task;
 }
 
 async function loadPointHomeOnce(force = false) {
-  if (pointLoadedOnce && !force) return;
-
-  try {
-    await loadPointHome();
-    pointLoadedOnce = true;
-  } catch (err) {
-    pointLoadedOnce = false;
-    throw err;
-  }
+  if (pointLoadPromise) return pointLoadPromise;
+  if (pointLoadedOnce && !force) return true;
+  const task = loadPointHome().finally(() => {
+    if (pointLoadPromise === task) pointLoadPromise = null;
+  });
+  pointLoadPromise = task;
+  return task;
 }
 async function loadPointRankingOnce(force = false) {
-  if (pointRankingLoaded && !force) return;
-
-  const success = await loadPointRanking();
-
-  if (success) {
-    pointRankingLoaded = true;
-  } else {
-    pointRankingLoaded = false;
-  }
+  if (pointRankingLoadPromise) return pointRankingLoadPromise;
+  if (pointRankingLoaded && !force) return true;
+  const task = loadPointRanking().finally(() => {
+    if (pointRankingLoadPromise === task) pointRankingLoadPromise = null;
+  });
+  pointRankingLoadPromise = task;
+  return task;
 }
 
 function scoreReportNumber(value, suffix = '') {
@@ -6970,17 +6983,23 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
   return `${yyyy}-${mm}-${dd}`;
 }
     async function loadRetest() {
+  if (!currentUser || !currentUser.token) return false;
+  const epoch = studentSessionEpoch;
+  const serial = ++retestRequestSerial;
+  retestLoadedOnce = false;
   renderRetestAdminPanel();
 
   const target = document.getElementById("retest-table");
+  if (!target) return false;
   target.innerHTML = "<div class='card'>재시험 명단을 불러오는 중입니다...</div>";
 
   try {
     const result = await apiGet({ action: "getRetestList" });
 
-    if (!result.success) {
-      target.innerHTML = `<div class='card empty-card'>${escapeHtml(result.message || "재시험 명단을 불러오지 못했습니다.")}</div>`;
-      return;
+    if (epoch !== studentSessionEpoch || serial !== retestRequestSerial) return false;
+    if (!result || !result.success) {
+      target.innerHTML = `<div class='card empty-card'>${escapeHtml(result?.message || "재시험 명단을 불러오지 못했습니다.")}</div>`;
+      return false;
     }
 
     const headers = Array.isArray(result.headers) && result.headers.length
@@ -6998,7 +7017,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       target.innerHTML = archiveNotice + (canManage
         ? "<div class='card empty-card'>현재 재시험 대상이 없습니다.</div>"
         : "<div class='card empty-card'>현재 내 재시험 대상이 없습니다.</div>");
-      return;
+      retestLoadedOnce = true;
+      return true;
     }
 
     if (!canManage) {
@@ -7029,7 +7049,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
       cardHtml += "</div>";
       target.innerHTML = cardHtml;
-      return;
+      retestLoadedOnce = true;
+      return true;
     }
 
     let html = archiveNotice + "<div class='retest-card-list retest-admin-card-list'>";
@@ -7103,10 +7124,14 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
     html += "</div>";
     target.innerHTML = html;
+    retestLoadedOnce = true;
+    return true;
 
   } catch (err) {
+    if (epoch !== studentSessionEpoch || serial !== retestRequestSerial) return false;
     console.error(err);
-    target.innerHTML = "<div class='card empty-card'>재시험 명단 API 연결에 실패했습니다.</div>";
+    target.innerHTML = "<div class='card empty-card'>재시험 명단을 불러오지 못했어요. 다시 확인해 주세요.</div>";
+    return false;
   }
 }
 
@@ -8017,6 +8042,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
 let currentPointTest = null;
 let pointSubmitting = false;
+let pointStartPending = false;
 let pointTimerInterval = null;
 
 function updateUserLabel() {
@@ -8035,29 +8061,37 @@ function updateUserLabel() {
 async function refreshMyPointSummary() {
   if (!currentUser || !currentUser.token) return;
 
+  const epoch = studentSessionEpoch;
+  const serial = pointReadSerial;
   try {
     const result = await apiGet({ action: "getMyPointSummary" });
 
+    if (epoch !== studentSessionEpoch || serial !== pointReadSerial) return;
     if (result && result.success) {
       currentUser.totalPoints = Number(result.totalPoints || 0);
       saveUserSession(currentUser);
       updateUserLabel();
 
-      if (document.getElementById("point")?.classList.contains("active")) {
+      if (!currentPointTest && !pointSubmitting && !pointStartPending && document.getElementById("point")?.classList.contains("active")) {
         renderPointSummary(result);
       }
     }
   } catch (err) {
+    if (epoch !== studentSessionEpoch || serial !== pointReadSerial) return;
     console.warn("포인트 요약을 불러오지 못했습니다.", err);
     updateUserLabel();
   }
 }
 
 async function loadPointHome() {
+  if (currentPointTest || pointSubmitting || pointStartPending) return false;
+  const epoch = studentSessionEpoch;
+  const serial = ++pointReadSerial;
+  pointLoadedOnce = false;
   const summaryTarget = document.getElementById("point-summary-view");
   const testTarget = document.getElementById("point-test-view");
 
-  if (!summaryTarget || !testTarget) return;
+  if (!summaryTarget || !testTarget) return false;
 
   applyPointGuide(homeTextMap);
   clearPointTimer();
@@ -8065,7 +8099,7 @@ async function loadPointHome() {
   if (!currentUser || !currentUser.token) {
     summaryTarget.innerHTML = "<div class='card'>로그인 후 사용할 수 있습니다.</div>";
     testTarget.innerHTML = "";
-    return;
+    return false;
   }
 
   summaryTarget.innerHTML = "<div class='card'>포인트 상태를 불러오는 중입니다...</div>";
@@ -8075,9 +8109,10 @@ async function loadPointHome() {
   try {
     const result = await apiGet({ action: "getMyPointSummary" });
 
-    if (!result.success) {
-      summaryTarget.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 정보를 불러오지 못했습니다.")}</div>`;
-      return;
+    if (epoch !== studentSessionEpoch || serial !== pointReadSerial || currentPointTest || pointSubmitting || pointStartPending) return false;
+    if (!result || !result.success) {
+      summaryTarget.innerHTML = `<div class='card'>${escapeHtml(result?.message || "포인트 정보를 불러오지 못했습니다.")}</div>`;
+      return false;
     }
 
     currentUser.totalPoints = Number(result.totalPoints || 0);
@@ -8085,8 +8120,12 @@ async function loadPointHome() {
     updateUserLabel();
 
     renderPointSummary(result);
+    pointLoadedOnce = true;
+    return true;
   } catch (err) {
-    summaryTarget.innerHTML = "<div class='card'>포인트 API 연결에 실패했습니다. Student API v6 배포 상태를 확인하세요.</div>";
+    if (epoch !== studentSessionEpoch || serial !== pointReadSerial || currentPointTest || pointSubmitting || pointStartPending) return false;
+    summaryTarget.innerHTML = "<div class='card'>포인트 정보를 불러오지 못했어요. 다시 확인해 주세요.</div>";
+    return false;
   }
 }
 
@@ -8243,6 +8282,8 @@ function restorePointTestDraft() {
 }
 
 async function startPointTest() {
+  if (pointStartPending || pointSubmitting) return;
+  const epoch = studentSessionEpoch;
   const target = document.getElementById("point-test-view");
   if (!target) return;
 
@@ -8251,6 +8292,8 @@ async function startPointTest() {
     return;
   }
 
+  pointReadSerial += 1;
+  pointLoadedOnce = false;
   clearPointTimer();
   if (restorePointTestDraft()) {
     target.insertAdjacentHTML("afterbegin", "<div class='card'>이전에 진행하던 포인트 시험을 복구했습니다.</div>");
@@ -8259,9 +8302,11 @@ async function startPointTest() {
   target.innerHTML = "<div class='card'>포인트 시험을 준비하는 중입니다...</div>";
   currentPointTest = null;
 
+  pointStartPending = true;
   try {
     const result = await apiPost({ action: "getPointTestInfo", startKey: getOrCreatePointStartKey() }, API_LONG_TIMEOUT_MS);
 
+    if (epoch !== studentSessionEpoch) return;
     if (!result.success) {
       if (String(result.message || "").includes("시험시작요청키")) clearPointStartKey();
       target.innerHTML = `<div class='card'>${escapeHtml(result.message || "포인트 시험을 불러오지 못했습니다.")}</div>`;
@@ -8297,7 +8342,10 @@ async function startPointTest() {
     savePointTestDraft();
     startPointTimer(currentPointTest.timeLimitSeconds);
   } catch (err) {
+    if (epoch !== studentSessionEpoch) return;
     target.innerHTML = "<div class='card'>포인트 시험 API 연결에 실패했습니다.</div>";
+  } finally {
+    if (epoch === studentSessionEpoch) pointStartPending = false;
   }
 }
 
@@ -8800,6 +8848,10 @@ let pointRankingPayload = {
 };
 
 async function loadPointRanking() {
+  if (!currentUser || !currentUser.token) return false;
+  const epoch = studentSessionEpoch;
+  const serial = ++pointRankingRequestSerial;
+  pointRankingLoaded = false;
   const box = document.getElementById("pointRankList");
   if (!box) return false;
 
@@ -8811,7 +8863,8 @@ async function loadPointRanking() {
       limit: 10
     });
 
-    if (!json.success) {
+    if (epoch !== studentSessionEpoch || serial !== pointRankingRequestSerial) return false;
+    if (!json || !json.success) {
       box.innerHTML = `<p class="error">포인트 랭킹을 불러오지 못했습니다.</p>`;
       return false;
     }
@@ -8820,9 +8873,11 @@ async function loadPointRanking() {
     pointRankingPayload.totalTop10 = json.totalTop10 || [];
 
     renderPointRanking();
+    pointRankingLoaded = true;
     return true;
 
   } catch (err) {
+    if (epoch !== studentSessionEpoch || serial !== pointRankingRequestSerial) return false;
     console.error(err);
     box.innerHTML = `<p class="error">포인트 랭킹을 불러오지 못했습니다.</p>`;
     return false;
