@@ -37,6 +37,7 @@
           // Recheck immediately before navigation; never reload from a stale detection.
           const release=await env.readRelease();
           if(!release||release!==pending){pending=release&&release!==env.currentRelease?release:null;if(!pending)env.notify('current');return false;}
+          if(env.prepare)await env.prepare(pending);
           if(!env.visible()||!env.online()||inflight||holds.size||env.busy()||env.now()-lastActivity<10000)return false;
           env.remember(pending);
           env.reload(pending);
@@ -56,7 +57,7 @@
   if(!doc.querySelector('meta[name="allbarun-app"][content="student-v1"]'))return;
   const initialSignature=signature(doc);
   const loadedModified=Date.parse(doc.lastModified)||0;
-  let lastFullRead=0,lastSeenModified=0,lastObservedRelease=initialSignature,banner=null;
+  let lastFullRead=0,lastSeenModified=0,lastObservedRelease=initialSignature,banner=null,candidateAssets=[],preparedRelease=null;
   const dirty=new Set();
   function fieldChanged(el) {
     if(el.type==='checkbox'||el.type==='radio')return el.checked!==el.defaultChecked;
@@ -112,6 +113,7 @@
     if(text.length>2000000)throw Error('UPDATE_TOO_LARGE');
     const remote=new DOMParser().parseFromString(text,'text/html');
     if(!remote.querySelector('meta[name="allbarun-app"][content="student-v1"]'))throw Error('UPDATE_WRONG_APP');
+    candidateAssets=Array.from(remote.querySelectorAll('script[src],link[rel="stylesheet"][href]')).map(el=>new URL(el.getAttribute('src')||el.getAttribute('href'),url)).filter(u=>u.origin===url.origin&&u.pathname.startsWith(url.pathname.slice(0,url.pathname.lastIndexOf('/')+1))).map(u=>u.href);
     lastFullRead=Date.now();
     lastSeenModified=modified;
     const next=signature(remote);
@@ -119,11 +121,21 @@
     lastObservedRelease=next!==initialSignature?next:(modified>loadedModified?'deploy-'+modified:initialSignature);
     return lastObservedRelease;
   }
+  async function prepare(release){
+    if(preparedRelease===release)return;
+    const assets=[...new Set(candidateAssets)];if(assets.length>12)throw Error('ASSETS_TOO_MANY');
+    for(const asset of assets){
+      const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),10000);
+      try{const r=await root.fetch(asset,{cache:'reload',credentials:'omit',signal:abort.signal,redirect:'error'});if(!r.ok)throw Error('ASSET_REFRESH_FAILED');if((r.headers.get('content-type')||'').includes('text/html'))throw Error('ASSET_NOT_CODE');const body=await r.arrayBuffer();if(body.byteLength>2000000)throw Error('ASSET_TOO_LARGE');}
+      finally{clearTimeout(timer);}
+    }
+    preparedRelease=release;
+  }
   const storageKey='allbarun-shell-update-attempt';
   function previous(){try{return JSON.parse(root.sessionStorage.getItem(storageKey)||'null');}catch(ignore){return null;}}
   const controller=createController({
     currentRelease:initialSignature,now:()=>Date.now(),visible:()=>doc.visibilityState==='visible',
-    online:()=>root.navigator.onLine!==false,busy,readRelease,notify,
+    online:()=>root.navigator.onLine!==false,busy,readRelease,prepare,notify,
     canReload:release=>{const old=previous();return new URL(root.location.href).searchParams.get('_app_build')!==release&&(!old||old.release!==release||old.count<2);},
     remember:release=>{try{const old=previous();root.sessionStorage.setItem(storageKey,JSON.stringify({release,at:Date.now(),count:old&&old.release===release?old.count+1:1}));}catch(ignore){}},
     reload:release=>{const target=new URL(root.location.href);target.searchParams.set('_app_build',release);root.location.replace(target.href);}
