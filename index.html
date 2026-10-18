@@ -4323,14 +4323,16 @@ body.dark .retest-admin-memo {
 
 
   <style id="student-preparation-layout">
-    .preparation-home .home-brand-note{padding:.65rem 0!important;margin:0 0 .6rem!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important}
+    .preparation-home .home-brand-note{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.2rem!important;margin:0 0 1.2rem!important;background:linear-gradient(120deg,#eef6f1,#f9fbf5)!important;border:1px solid var(--brand-line)!important;border-radius:20px;box-shadow:none!important;min-height:0!important}
+    .home-brand-logo{width:56px;height:56px;object-fit:contain;flex:0 0 auto}
+    body.dark .preparation-home .home-brand-note{background:linear-gradient(120deg,#243b32,#202d28)!important}
     .preparation-home .home-brand-note::before,.preparation-home .home-brand-note::after{display:none!important}
     .preparation-home .hero-content{padding:0!important;max-width:none}
-    .preparation-home #heroTitle{font-size:.9rem!important;line-height:1.5!important;margin:0!important;color:var(--brand-dark)!important}
+    .preparation-home #heroTitle{font-size:clamp(1rem,3.8vw,1.2rem)!important;line-height:1.55!important;white-space:pre-line;margin:0!important;color:var(--brand-dark)!important}
     .preparation-home #heroKicker,.preparation-home #heroSubtitle{display:none}
-    .preparation-home #heroButton{font-size:.76rem!important;padding:.3rem 0!important;margin-top:.15rem!important;background:none!important;color:var(--brand-dark)!important;box-shadow:none!important}
-    .preparation-home .home-learning-panel{margin-top:0}
-    .preparation-home .home-notice-panel{margin-top:1rem}
+    .preparation-home #heroButton{display:none}
+    .preparation-home .home-learning-panel{margin-top:1.25rem}
+    .preparation-home .home-notice-panel{margin-top:0}
     .home-preparation-state{padding:1.2rem;border:1px solid var(--brand-line);border-radius:16px;background:#fff;line-height:1.7;color:var(--brand-text)}
     .home-preparation-state p{margin:.4rem 0;color:var(--brand-muted)}
     .home-preparation-state button{margin-top:.6rem;min-height:44px}
@@ -4516,20 +4518,12 @@ body.dark .retest-admin-memo {
   <!-- 홈 -->
   <section id="home" class="active home-section preparation-home">
     <div class="hero-card home-brand-note">
+      <img class="home-brand-logo" src="assets/Allbarun_Student_Logo_Mark.png" alt="All바른" width="56" height="56" />
       <div class="hero-content">
         <div class="hero-kicker" id="heroKicker"></div>
         <h1 id="heroTitle"></h1>
         <p id="heroSubtitle"></p>
         <button id="heroButton"></button>
-      </div>
-    </div>
-    <div class="home-learning-panel">
-      <div class="home-panel-header">
-        <div><div class="home-panel-kicker">다음 수업까지</div><h2>무엇을 준비할까요?</h2></div>
-        <button class="home-panel-action" onclick="showTab('exam')">다른 날짜</button>
-      </div>
-      <div id="home-learning-content" class="home-learning-content" aria-live="polite">
-        <div class="home-preparation-state">로그인하면 다음 수업 계획을 확인할 수 있어요.</div>
       </div>
     </div>
     <div class="home-notice-panel">
@@ -4539,6 +4533,15 @@ body.dark .retest-admin-memo {
       </div>
       <div id="home-notice-content" class="home-notice-content">
         <div class="card empty-card">공지사항을 확인하고 있어요.</div>
+      </div>
+    </div>
+    <div class="home-learning-panel">
+      <div class="home-panel-header">
+        <div><div class="home-panel-kicker">다음 수업까지</div><h2>무엇을 준비할까요?</h2></div>
+        <button class="home-panel-action" onclick="showTab('exam')">다른 날짜</button>
+      </div>
+      <div id="home-learning-content" class="home-learning-content" aria-live="polite">
+        <div class="home-preparation-state">로그인하면 다음 수업 계획을 확인할 수 있어요.</div>
       </div>
     </div>
   </section>
