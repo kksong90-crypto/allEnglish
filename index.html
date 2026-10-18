@@ -13,6 +13,7 @@
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="manifest" href="manifest.json" />
+  <meta name="allbarun-app" content="student-v1" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -5542,9 +5543,7 @@ function applyPointGuide(textMap) {
       myScheduleRequestSerial += 1;
       homeScheduleRequestSerial += 1;
 
-      myScheduleLoadedOnce = false;
       myScheduleCurrentRange = 'week';
-      myScheduleLastPayload = null;
       vocabLoadedOnce = false;
       vocabLoadPromise = null;
       retestLoadedOnce = false;
@@ -6217,9 +6216,7 @@ ${escapeHtml(item.body || "")}</div>
       }
     }
 
-let myScheduleLoadedOnce = false;
 let myScheduleCurrentRange = "week";
-let myScheduleLastPayload = null;
 let learningScheduleLastResumeAt = 0;
 
 function normalizeScheduleRange(range) {
@@ -6490,12 +6487,10 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   try {
     const payload = await fetchMyLearningSchedule(normalized, forceRefresh);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
-    myScheduleLastPayload = payload;
     renderMySchedule(payload);
     // A completed explicit schedule read supersedes an older home-only read.
     homeScheduleRequestSerial += 1;
     renderHomeLearningPreview(payload);
-    myScheduleLoadedOnce = true;
   } catch (err) {
     console.error(err);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
@@ -8883,6 +8878,7 @@ function escapeHtmlForPointRank(text) {
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
 
+  <script defer src="app-auto-update.js?v=20261018.1"></script>
 </body>
 </html>
   
