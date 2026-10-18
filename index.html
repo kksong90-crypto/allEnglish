@@ -6220,6 +6220,7 @@ ${escapeHtml(item.body || "")}</div>
 let myScheduleLoadedOnce = false;
 let myScheduleCurrentRange = "week";
 let myScheduleLastPayload = null;
+let learningScheduleLastResumeAt = 0;
 
 function normalizeScheduleRange(range) {
   const text = String(range || "week").toLowerCase();
@@ -6509,15 +6510,23 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
 
 async function loadExamTabOnce(force = false) {
   if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.syncPanel();
-  if (myScheduleLoadedOnce && !force && myScheduleLastPayload?.startDate === getTodayString()) {
-    setScheduleRangeActive(myScheduleCurrentRange || "week");
-    renderMySchedule(myScheduleLastPayload || { range: myScheduleCurrentRange || "week", days: [] });
-    return;
-  }
-  await loadMySchedule(myScheduleCurrentRange || "week", force);
+  // Published plans can change within the same day. Always read the current server state.
+  await loadMySchedule(myScheduleCurrentRange || "week", true);
 }
 
 async function refreshExamInfo() { await loadMySchedule(myScheduleCurrentRange || "week", true); }
+
+async function refreshLearningScheduleOnResume() {
+  if (!currentUser || !currentUser.token || document.visibilityState === "hidden") return;
+  const now = Date.now();
+  if (now - learningScheduleLastResumeAt < 10000) return;
+  learningScheduleLastResumeAt = now;
+  if (getActiveTabId() === "exam") await loadExamTabOnce(true);
+  else await loadHomeLearningPreview(true);
+}
+window.addEventListener("focus", refreshLearningScheduleOnResume);
+document.addEventListener("visibilitychange", refreshLearningScheduleOnResume);
+
 
 function isRetestAdmin() {
   return !!(
@@ -8483,6 +8492,8 @@ function renderPointResult(result) {
           currentUser = savedUser;
           afterLogin();
         }
+      } else {
+        refreshLearningScheduleOnResume();
       }
     });
 
