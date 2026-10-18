@@ -13,12 +13,15 @@
   function createController(env) {
     let pending=null,checking=false,applying=false,applied=false,inflight=0,lastActivity=env.now(),failed=false;
     const holds=new Set();
+    let lastCheckAt=-Infinity;
     return {
       activity(){lastActivity=env.now();},
       hold(reason){const key={reason};holds.add(key);return ()=>holds.delete(key);},
       async protect(fn){inflight++;try{return await fn();}finally{inflight--;lastActivity=env.now();}},
-      async check(){
+      async check(force=false){
         if(checking||applying||applied||!env.visible()||!env.online())return false;
+        if(!force && env.now()-lastCheckAt<(env.checkIntervalMs||0))return Boolean(pending);
+        lastCheckAt=env.now();
         checking=true;
         try {
           const release=await env.readRelease();
@@ -137,7 +140,7 @@
   const storageKey='allbarun-shell-update-attempt';
   function previous(){try{return JSON.parse(root.sessionStorage.getItem(storageKey)||'null');}catch(ignore){return null;}}
   const controller=createController({
-    currentRelease:initialSignature,now:()=>Date.now(),visible:()=>doc.visibilityState==='visible',
+    currentRelease:initialSignature,checkIntervalMs:15000,now:()=>Date.now(),visible:()=>doc.visibilityState==='visible',
     online:()=>root.navigator.onLine!==false,busy,readRelease,prepare,notify,
     canReload:release=>{const old=previous();return new URL(root.location.href).searchParams.get('_app_build')!==release&&(!old||old.release!==release||old.count<2);},
     remember:release=>{try{const old=previous();root.sessionStorage.setItem(storageKey,JSON.stringify({release,at:Date.now(),count:old&&old.release===release?old.count+1:1}));}catch(ignore){}},
@@ -158,14 +161,14 @@
     if(!controller.state().pending||pendingTimer!==null||doc.visibilityState!=='visible')return;
     pendingTimer=root.setTimeout(async()=>{pendingTimer=null;await controller.tick();scheduleApply();},5000);
   }
-  async function check(){
-    await controller.check();await controller.tick();scheduleApply();
+  async function check(force=false){
+    await controller.check(force);await controller.tick();scheduleApply();
   }
-  root.addEventListener('focus',check);
-  root.addEventListener('online',check);
-  root.addEventListener('pageshow',check);
+  root.addEventListener('focus',()=>check());
+  root.addEventListener('online',()=>check(true));
+  root.addEventListener('pageshow',()=>check());
   doc.addEventListener('visibilitychange',()=>{if(doc.visibilityState==='visible')check();});
-  root.setInterval(check,60000);
-  root.setTimeout(check,2000);
+  root.setInterval(()=>check(),60000);
+  root.setTimeout(()=>check(),2000);
 })(typeof window==='object'?window:null);
 

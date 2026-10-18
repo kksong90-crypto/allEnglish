@@ -1,7 +1,7 @@
 import fs from 'node:fs';import vm from 'node:vm';import test from 'node:test';import assert from 'node:assert/strict';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const start=html.indexOf('    // Read-only staged native browse. Default route remains byte-preserved.');
-const end=html.indexOf('    window.onload = async () => {',start);
+const end=html.indexOf('    window.onload =',start);
 assert.ok(start>=0&&end>start);const injected=html.slice(start,end);
 test('native pilot is explicitly opt-in; normal URLs preserve original functions',()=>{
  for(const search of ['', '?other=1', '?vocabNativePilot=0']){
