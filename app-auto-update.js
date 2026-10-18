@@ -23,7 +23,8 @@
         try {
           const release=await env.readRelease();
           failed=false;
-          if(release && release!==env.currentRelease){pending=release;env.notify('pending');}
+          if(release && release!==env.currentRelease){if(pending!==release)env.notify('pending');pending=release;}
+          else if(release===env.currentRelease&&pending){pending=null;env.notify('current');}
           return Boolean(pending);
         } catch(ignore) {failed=true;return false;}
         finally{checking=false;}
@@ -35,7 +36,7 @@
         try {
           // Recheck immediately before navigation; never reload from a stale detection.
           const release=await env.readRelease();
-          if(!release||release!==pending){pending=release&&release!==env.currentRelease?release:null;return false;}
+          if(!release||release!==pending){pending=release&&release!==env.currentRelease?release:null;if(!pending)env.notify('current');return false;}
           if(!env.visible()||!env.online()||inflight||holds.size||env.busy()||env.now()-lastActivity<10000)return false;
           env.remember(pending);
           env.reload(pending);
@@ -81,6 +82,7 @@
     return false;
   }
   function notify(state){
+    if(state==='current'){if(banner){banner.remove();banner=null;}return;}
     if(!banner){
       banner=doc.createElement('div');banner.id='app-update-status';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
       banner.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;z-index:11000;padding:12px 16px;border-radius:14px;background:#24534a;color:white;font:600 14px/1.5 sans-serif;box-shadow:0 4px 20px #0003;pointer-events:none';
