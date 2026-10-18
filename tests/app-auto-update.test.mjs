@@ -64,6 +64,11 @@ test('retry-loop budget stops reloads',async()=>{
  const f=fixture();await f.c.check();f.advance();f.set({allowed:false});
  assert.equal(await f.c.tick(),false);assert.deepEqual(f.notices,['pending','paused']);
 });
+test('a withdrawn release clears the pending notice without navigation',async()=>{
+ const f=fixture();await f.c.check();f.set({release:'old'});await f.c.check();f.advance();
+ assert.equal(f.c.state().pending,null);assert.equal(await f.c.tick(),false);
+ assert.deepEqual(f.notices,['pending','current']);
+});
 
 const source=fs.readFileSync(new URL('../app-auto-update.js',import.meta.url),'utf8');
 function browser({marker=true,dirty=false,tab='home',inTest=false}={}){
