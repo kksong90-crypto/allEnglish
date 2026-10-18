@@ -5543,9 +5543,7 @@ function applyPointGuide(textMap) {
       myScheduleRequestSerial += 1;
       homeScheduleRequestSerial += 1;
 
-      myScheduleLoadedOnce = false;
       myScheduleCurrentRange = 'week';
-      myScheduleLastPayload = null;
       vocabLoadedOnce = false;
       vocabLoadPromise = null;
       retestLoadedOnce = false;
@@ -6219,9 +6217,7 @@ ${escapeHtml(item.body || "")}</div>
       }
     }
 
-let myScheduleLoadedOnce = false;
 let myScheduleCurrentRange = "week";
-let myScheduleLastPayload = null;
 let learningScheduleLastResumeAt = 0;
 
 function normalizeScheduleRange(range) {
@@ -6492,12 +6488,10 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   try {
     const payload = await fetchMyLearningSchedule(normalized, forceRefresh);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
-    myScheduleLastPayload = payload;
     renderMySchedule(payload);
     // A completed explicit schedule read supersedes an older home-only read.
     homeScheduleRequestSerial += 1;
     renderHomeLearningPreview(payload);
-    myScheduleLoadedOnce = true;
   } catch (err) {
     console.error(err);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
