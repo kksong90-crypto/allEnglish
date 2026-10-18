@@ -76,7 +76,7 @@ test('a failed asset refresh cannot navigate to a partial update',async()=>{
 });
 
 const source=fs.readFileSync(new URL('../app-auto-update.js',import.meta.url),'utf8');
-function browser({marker=true,dirty=false,tab='home',inTest=false,modified='2026-10-18T04:00:00Z',remoteCode='new'}={}){
+function browser({marker=true,dirty=false,tab='home',inTest=false,modified='2026-10-18T04:00:00Z',remoteCode='new',assets=['app.js']}={}){
  let now=Date.parse('2026-10-18T05:00:00Z'),remote=remoteCode,requests=[],navigations=[];
  const listeners={},storage=new Map(),fields=[];
  const node=text=>({tagName:'SCRIPT',textContent:text,getAttribute:()=>null});
@@ -90,7 +90,7 @@ function browser({marker=true,dirty=false,tab='home',inTest=false,modified='2026
  apiPost:async function(value){assert.equal(this,win);return value;},
  fetch:async(url,options)=>{requests.push({url,options});return {ok:true,headers:{get:k=>k==='content-type'?(options.cache==='reload'?'text/javascript':'text/html'):'Sun, 18 Oct 2026 04:00:00 GMT'},text:async()=>remote,arrayBuffer:async()=>new ArrayBuffer(2)};}};
  const context={window:win,module:undefined,URL,AbortController,setTimeout,clearTimeout,Date:class extends Date{static now(){return now;}},
- DOMParser:class{parseFromString(text){return {querySelector:()=>marker?{}:null,querySelectorAll:selector=>selector==='script[src],link[rel="stylesheet"][href]'?[{getAttribute:k=>k==='src'?'app.js':null}]:[node(text)]};}},
+ DOMParser:class{parseFromString(text){return {querySelector:()=>marker?{}:null,querySelectorAll:selector=>selector==='script[src],link[rel="stylesheet"][href]'?assets.map(asset=>({getAttribute:k=>k==='src'?asset:null})):[node(text)]};}},
  getActiveTabId:()=>tab,currentUser:{token:'synthetic'},currentTestMeta:inTest?{}:null,testAlreadySaved:false,console};
  vm.runInNewContext(source,context);
  if(dirty){
@@ -141,8 +141,8 @@ test('after one successful navigation, pending timers cannot navigate again',asy
 });
 test('updater is mounted once in the outer shell rather than a generated report popup',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.equal(html.split('app-auto-update.js?v=20261018.1').length,2);
- assert.match(html,/<script defer src="app-auto-update\.js\?v=20261018\.1"><\/script>\s*<\/body>/);
+ assert.equal(html.split('app-auto-update.js?v=20261018.2').length,2);
+ assert.match(html,/<script defer src="app-auto-update\.js\?v=20261018\.2"><\/script>\s*<\/body>/);
  assert.doesNotMatch(html,/myScheduleLoadedOnce|myScheduleLastPayload/);
 });
 test('all embedded student scripts retain valid JavaScript syntax',()=>{
@@ -156,3 +156,26 @@ test('a UTC wall-clock document date does not trigger an update in a Korean time
  assert.equal(await b.controller.tick(),false);assert.equal(b.navigations.length,0);
 });
 
+
+test('focus, pageshow and visibility burst uses one version HEAD per 15-second window',async()=>{
+ const b=browser({remoteCode:'old'});await b.listeners['window:focus']();await b.listeners['window:pageshow']();b.listeners.visibilitychange();await b.listeners['window:focus']();
+ assert.equal(b.requests.filter(x=>x.options.method==='HEAD').length,1);
+ b.advance();await b.listeners['window:focus']();assert.equal(b.requests.filter(x=>x.options.method==='HEAD').length,1);
+ b.advance();await b.listeners['window:focus']();assert.ok(b.requests.filter(x=>x.options.method==='HEAD').length>=2);
+});
+test('online recovery checks release immediately even inside the event window',async()=>{
+ const b=browser({remoteCode:'old'});await b.listeners['window:focus']();await b.listeners['window:online']();
+ assert.equal(b.requests.filter(x=>x.options.method==='HEAD').length,2);
+});
+test('hidden events do not consume the next visible check window',async()=>{
+ const b=browser({remoteCode:'old'});b.doc.visibilityState='hidden';await b.listeners['window:focus']();assert.equal(b.requests.length,0);
+ b.doc.visibilityState='visible';await b.listeners['window:focus']();assert.equal(b.requests.filter(x=>x.options.method==='HEAD').length,1);
+});
+test('extracted stylesheet is refreshed before navigating to the new shell',async()=>{
+ const b=browser({assets:['app.js','student-shell.css?v=20261018.1']});await b.controller.check();b.advance();assert.equal(await b.controller.tick(),true);
+ assert.ok(b.requests.some(x=>x.options.cache==='reload'&&x.url.includes('student-shell.css')));assert.equal(b.navigations.length,1);
+});
+test('missing extracted stylesheet prevents partial shell navigation',async()=>{
+ const b=browser({assets:['student-shell.css?v=20261018.1']});const original=b.win.fetch;b.win.fetch=async(url,options)=>{if(options.cache==='reload')throw Error('stylesheet unavailable');return original(url,options);};
+ await b.controller.check();b.advance();assert.equal(await b.controller.tick(),false);assert.equal(b.navigations.length,0);
+});

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const css=fs.readFileSync(new URL('../student-shell.css',import.meta.url),'utf8');
 function extract(name){const marker=html.includes('async function '+name+'(')?'async function '+name+'(':'function '+name+'(';const a=html.indexOf(marker),b=html.indexOf('\n}',a);assert.ok(a>=0&&b>a,name);return html.slice(a,b+2);}
 function harness(){
  const nodes=Object.fromEntries(['home-learning-content','exam-table','schedule-summary-view'].map(id=>[id,{innerHTML:'',dataset:{},attrs:{},setAttribute(k,v){this.attrs[k]=v;}}]));
@@ -28,5 +29,5 @@ test('closure suppresses Quiz/homework but preserves permitted listening',()=>{c
 test('ambiguous scope fails closed rather than showing an assignment',()=>{const h=harness();h.ctx.renderHomeLearningPreview(payload(day({vocab:[{vocaScopeState:'DUPLICATE',regularText:'BAD_SCOPE'}]})));assert.match(h.nodes['home-learning-content'].innerHTML,/확인이 필요/);assert.doesNotMatch(h.nodes['home-learning-content'].innerHTML,/BAD_SCOPE/);});
 test('task HTML is escaped and past results are excluded',()=>{const h=harness();h.ctx.renderHomeLearningPreview(payload(day({homework:{text:'<img onerror="bad">',public:true},result:{score:'PRIVATE_SCORE'},attendance:'PRIVATE_ATTENDANCE'})));const s=h.nodes['home-learning-content'].innerHTML;assert.match(s,/&lt;img/);assert.doesNotMatch(s,/<img|PRIVATE_SCORE|PRIVATE_ATTENDANCE/);});
 test('empty schedule explains the absence without fabricating a task',()=>{const h=harness();h.ctx.renderHomeLearningPreview({days:[],visibleDays:[]});assert.match(h.nodes['home-learning-content'].innerHTML,/계획이 아직 없어요/);assert.doesNotMatch(h.nodes['home-learning-content'].innerHTML,/이번 시험 단어|방금 확인/);});
-test('all nine routes remain and mobile keeps the existing full menu',()=>{for(const route of ['home','notice','exam','report','retest','vocab','favorites','point','pointRank'])assert.ok(html.includes("goTabFromFullMenu('"+route+"')"),route);assert.match(html,/aria-label="전체 단어장"/);assert.match(html,/@media\(max-width:760px\).*nav\.app-tabs\{display:none!important\}/);assert.ok(html.indexOf('id="home-notice-content"')<html.indexOf('id="home-learning-content"'));});
+test('all nine routes remain and mobile keeps the existing full menu',()=>{for(const route of ['home','notice','exam','report','retest','vocab','favorites','point','pointRank'])assert.ok(html.includes("goTabFromFullMenu('"+route+"')"),route);assert.match(html,/aria-label="전체 단어장"/);assert.match(css,/@media\(max-width:760px\).*nav\.app-tabs\{display:none!important\}/);assert.ok(html.indexOf('id="home-notice-content"')<html.indexOf('id="home-learning-content"'));});
 test('all embedded scripts compile',()=>{for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new vm.Script(m[1]);});
