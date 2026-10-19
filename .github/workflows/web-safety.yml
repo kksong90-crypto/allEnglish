@@ -3,10 +3,19 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'student-shell.css'
+      - 'app-auto-update.js'
+      - 'manifest.json'
+      - 'icons/**'
+      - 'icon-*.png'
       - 'admin-class-schedule.js'
+      - 'admin-school-scope-preview.*'
+      - 'staff-*.js'
+      - 'staff-*.mjs'
       - 'recording/**'
-      - 'quick/sw.js'
+      - 'quick/**'
       - 'tests/**'
+      - 'scripts/check-student-web.mjs'
       - 'test_recording_session_relogin.mjs'
       - 'test_staff_runtime_stability.mjs'
       - '.github/workflows/web-safety.yml'
@@ -22,13 +31,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Syntax and synthetic regression (no live API)
-        run: |
-          node --check recording/app.js
-          node --check recording/sw.js
-          node --check quick/sw.js
-          node --test tests/schedule_duplicate_warning.mjs tests/assigned_exam_practice_contract.mjs
-          node --test tests/login-timeout.test.mjs tests/vocab-read-load.test.mjs tests/favorite-session-safety.test.mjs tests/schedule-freshness.test.mjs tests/admin_class_schedule.mjs tests/staff_schedule_preview.mjs
-          node --test tests/native-optin-browse.test.mjs
-          node --test tests/recording-read-timing.test.mjs tests/recording-date-identity.test.mjs tests/recording-read-write-race.test.mjs tests/recording-cache-ownership.test.mjs tests/recording-incremental-save.test.mjs tests/readonly-flights.test.mjs test_recording_session_relogin.mjs test_staff_runtime_stability.mjs
-          node --test tests/recording-student-scope.test.mjs
+      - name: Syntax and all portable synthetic regressions (no live API)
+        run: node scripts/check-student-web.mjs
