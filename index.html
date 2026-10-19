@@ -1301,6 +1301,8 @@ async function loadHomeContent(forceRefresh = false) {
       pointLoadPromise = null;
       pointReadSerial += 1;
       pointStartPending = false;
+      pointSubmitting = false;
+      clearPointTimer();
       pointRankingLoaded = false;
       pointRankingLoadPromise = null;
       pointRankingRequestSerial += 1;
@@ -4168,6 +4170,9 @@ async function submitPointTest(forceSubmit = false) {
   if (!target) return;
   if (!currentPointTest || !currentPointTest.testId) { alert("진행 중인 포인트 시험이 없습니다."); return; }
 
+  const epoch = studentSessionEpoch;
+  const submittedTest = currentPointTest;
+  const isCurrent = () => epoch === studentSessionEpoch && currentPointTest === submittedTest;
   const inputs = target.querySelectorAll("input[id^='answer-point-']");
   const answers = [];
   inputs.forEach(input => answers.push({ qid: input.dataset.qid || "", answer: input.value || "" }));
@@ -4184,7 +4189,8 @@ async function submitPointTest(forceSubmit = false) {
 
   let completed = false;
   try {
-    const result = await apiPost({ action: "submitPointTest", testId: currentPointTest.testId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) }, API_LONG_TIMEOUT_MS);
+    const result = await apiPost({ action: "submitPointTest", testId: submittedTest.testId, answersJson: JSON.stringify(answers), elapsedSeconds: String(elapsedSeconds) }, API_LONG_TIMEOUT_MS);
+    if (!isCurrent()) return;
     document.getElementById("point-submitting-message")?.remove();
     if (!result.success) {
       target.insertAdjacentHTML("beforeend", `<div class='card'>${escapeHtml(result.message || "채점에 실패했습니다.")}<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>`);
@@ -4198,15 +4204,19 @@ async function submitPointTest(forceSubmit = false) {
     renderPointResult(result);
     refreshMyPointSummary();
   } catch (err) {
+    if (!isCurrent()) return;
     document.getElementById("point-submitting-message")?.remove();
     target.insertAdjacentHTML("beforeend", "<div class='card'><b>제출 확인을 받지 못했습니다.</b><br>답안은 이 기기에 임시저장되어 있습니다. 인터넷 연결을 확인한 뒤 다시 제출하세요.<br><button class='vocab-btn' onclick='submitPointTest(false)' style='margin-top:0.8em;'>다시 제출</button></div>");
   } finally {
-    pointSubmitting = false;
-    if (completed) {
-      clearPointStartKey();
-      currentPointTest = null;
+    // Only this account/test owns its submit lock, draft and timer.
+    if (isCurrent()) {
+      pointSubmitting = false;
+      if (completed) {
+        clearPointStartKey();
+        currentPointTest = null;
+      }
+      else if (Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
     }
-    else if (currentPointTest && Number(currentPointTest.remainingSeconds || 0) > 0) startPointTimer(currentPointTest.remainingSeconds);
   }
 }
 
