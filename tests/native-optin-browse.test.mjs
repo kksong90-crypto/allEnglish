@@ -10,14 +10,16 @@ test('native pilot is explicitly opt-in; normal URLs preserve original functions
  }
 });
 function fixture(){
- const elements=Object.fromEntries(['vocab-view','vocab-book-select','vocab-day-select','vocab-progress','vocab-search-result','vocab-search-scope','favorites-view'].map(id=>[id,{value:'',innerHTML:''}]));
+ const elements=Object.fromEntries(['vocab-view','vocab-book-select','vocab-day-select','vocab-progress','vocab-search-result','vocab-search-scope','vocab-search-input','favorites-view'].map(id=>[id,{value:'',innerHTML:''}]));
+ elements['vocab-search-input'].value='false';
  const calls=[],renders=[];const row=['Book',1,'false','0',1,'B','["true"]'];
- const c={URLSearchParams,window:{location:{search:'?vocabNativePilot=1'}},structuredClone,studentSessionEpoch:1,vocabData:[],document:{getElementById:id=>elements[id]},escapeHtml:String,currentFavoriteFolder:'default',favoriteFolders:{default:[]},sortWordsByOrder:x=>x,makeWordKey:()=>'',loadVocabBooks(){},loadVocabDays(){},showVocabList:()=>renders.push('body'),searchVocab:()=>renders.push('search'),showFavorites(){},startFavoriteTest(){},startFavoriteMeaningCheck(){},getFavoriteRows(){},apiGet:async p=>{
+ const c={URLSearchParams,SHEET_URL:'https://example.invalid/student-api',API_LONG_TIMEOUT_MS:90000,currentUser:{token:'synthetic-native'},handleApiAuthFailure:r=>r,window:{location:{search:'?vocabNativePilot=1'}},structuredClone,studentSessionEpoch:1,vocabData:[],document:{getElementById:id=>elements[id]},escapeHtml:String,currentFavoriteFolder:'default',favoriteFolders:{default:[]},sortWordsByOrder:x=>x,makeWordKey:()=>'',loadVocabBooks(){},loadVocabDays(){},showVocabList:()=>renders.push('body'),searchVocab:()=>renders.push('search'),showFavorites(){},startFavoriteTest(){},startFavoriteMeaningCheck(){},getFavoriteRows(){},apiGet:async p=>{calls.push(p.action);throw Error('UNEXPECTED_FULL_READ');},nativeTransport:async p=>{
   calls.push(p.action);
   if(p.action==='getLegacyNativeBrowseCatalog')return {success:true,schema:'STUDENT_LEGACY_NATIVE_BROWSE_V1',books:[{name:'Book',bookId:'B',revisionId:'LEGACYDTO-H',sourceFacet:'LEGACY_STUDENT_BOOK_DAY',sections:[{sectionId:'S',day:1,wordCount:1}]}]};
   if(p.action==='getLegacyNativeBrowseSection')return {success:true,schema:'STUDENT_LEGACY_NATIVE_BROWSE_V1',bookId:'B',revisionId:'LEGACYDTO-H',sectionId:'S',rows:[row]};
   throw Error('UNEXPECTED_FULL_READ');
  }};
+ c.fetchJsonWithTimeout=async(url,options,timeout)=>{assert.equal(options.method,'GET');assert.equal(timeout,90000);const target=new URL(url);assert.equal(target.origin+target.pathname,'https://example.invalid/student-api');assert.equal(options.body,undefined);const p=Object.fromEntries(target.searchParams);assert.equal(p.token,'synthetic-native');return c.nativeTransport(p);};
  vm.createContext(c);vm.runInContext(injected,c);return {c,elements,calls,renders,row};
 }
 test('actual embedded pilot requests metadata then selected body, reuses body for Day search',async()=>{
@@ -28,7 +30,7 @@ test('actual embedded pilot requests metadata then selected body, reuses body fo
 });
 test('failed selected integrity does not download the legacy full table',async()=>{
  const {c,elements,calls}=fixture();await c.loadVocabBooks();elements['vocab-book-select'].value='Book';await c.loadVocabDays();elements['vocab-day-select'].value='1';
- c.apiGet=async p=>{calls.push(p.action);throw Error('BODY_INTEGRITY');};await c.showVocabList();assert.match(elements['vocab-view'].innerHTML,/BODY_INTEGRITY/);assert.equal(calls.includes('getVocabData'),false);
+ c.nativeTransport=async p=>{calls.push(p.action);throw Error('BODY_INTEGRITY');};await c.showVocabList();assert.match(elements['vocab-view'].innerHTML,/BODY_INTEGRITY/);assert.equal(calls.includes('getVocabData'),false);
 });
 test('read timing observations contain only numeric counts and action, never scope or credentials',async()=>{
  const {c,elements,calls}=fixture();let saved;

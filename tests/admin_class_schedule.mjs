@@ -9,15 +9,15 @@ function fixture(role='admin') {
  const nodes=Object.fromEntries(ids.map(id=>[id,{value:'',hidden:true,innerHTML:'',textContent:'',disabled:false}]));
  nodes['admin-class-from'].value='2026-10-05';nodes['admin-class-range'].value='week';nodes['admin-class-select'].value='C';
  const calls=[];
- const context=vm.createContext({currentUser:{role,id:'all'},studentSessionEpoch:1,document:{getElementById:id=>nodes[id]},getTodayString:()=> '2026-10-04',API_LONG_TIMEOUT_MS:90000,normalizeScheduleRange:r=>r,escapeHtml:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),sanitizeFuturePreparationSchedule:p=>p,renderScheduleDay:(d,o)=>{assert.equal(o.readOnly,true);return d.listening?.homework||'HOLD';},apiPost:async p=>{calls.push(p);if(p.action==='getStaffScheduleDirectory')return {success:true,readOnly:true,startDate:p.fromDate,classes:[{classId:'C',className:'중1',studentCount:2}]};return {success:true,readOnly:true,classId:'C',range:p.range,startDate:p.fromDate,endDate:'2026-10-11',offset:0,totalStudents:2,revision:'R',entries:[{student:{studentId:'A',name:'서창',classId:'C',className:'중1'},days:[{date:'2026-10-06',classId:'C',hasPlan:true,listening:{homework:'3회 딕테이션'}}]},{student:{studentId:'B',name:'다른 그룹',classId:'C',className:'중1'},days:[{date:'2026-10-06',classId:'C',hasPlan:true,listening:null}]}],nextOffset:2,hasMore:false};}});
+ const context=vm.createContext({URLSearchParams,SHEET_URL:'https://example.invalid/student-api',handleApiAuthFailure:r=>r,currentUser:{role,id:'all',token:'synthetic-admin'},studentSessionEpoch:1,document:{getElementById:id=>nodes[id]},getTodayString:()=> '2026-10-04',API_LONG_TIMEOUT_MS:90000,normalizeScheduleRange:r=>r,escapeHtml:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),sanitizeFuturePreparationSchedule:p=>p,renderScheduleDay:(d,o)=>{assert.equal(o.readOnly,true);return d.listening?.homework||'HOLD';},apiPost:async()=>{throw Error('UNEXPECTED_POST');},fetchJsonWithTimeout:async(url,options,timeout)=>{assert.equal(options.method,'GET');assert.equal(timeout,90000);const target=new URL(url);assert.equal(target.origin+target.pathname,'https://example.invalid/student-api');assert.equal(options.body,undefined);const p=Object.fromEntries(target.searchParams);assert.equal(p.token,'synthetic-admin');calls.push(p);if(p.action==='getStaffScheduleDirectory')return {success:true,readOnly:true,startDate:p.fromDate,classes:[{classId:'C',className:'중1',studentCount:2}]};return {success:true,readOnly:true,classId:'C',range:p.range,startDate:p.fromDate,endDate:'2026-10-11',offset:0,totalStudents:2,revision:'R',entries:[{student:{studentId:'A',name:'서창',classId:'C',className:'중1'},days:[{date:'2026-10-06',classId:'C',hasPlan:true,listening:{homework:'3회 딕테이션'}}]},{student:{studentId:'B',name:'다른 그룹',classId:'C',className:'중1'},days:[{date:'2026-10-06',classId:'C',hasPlan:true,listening:null}]}],nextOffset:2,hasMore:false};}});
  vm.runInContext(source+'\nthis.feature=AdminClassSchedule;',context);return {nodes,calls,context,feature:context.feature};
 }
 test('production scripts compile and administrator panel is explicitly hidden by default',()=>{new vm.Script(source);for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(m[1]);assert.match(html,/id="admin-class-panel"[^>]*hidden/);assert.match(html,/src="admin-class-schedule.js"/);assert.match(html,/AdminClassSchedule.reset/);assert.match(html,/return AdminClassSchedule.open/);});
 test('server-only permissions are not replaced by an all username shortcut',async()=>{for(const role of ['student','guest','teacher','']){const f=fixture(role);await f.feature.open();await f.feature.loadDirectory();await f.feature.load();assert.equal(f.calls.length,0);assert.equal(f.nodes['admin-class-panel'].hidden,true);}assert.doesNotMatch(source,/id\s*={2,3}\s*['"]all/);});
 test('administrator class directory loads without student impersonation',async()=>{const f=fixture();await f.feature.open();await f.feature.open();assert.equal(f.calls.length,1);assert.equal(f.calls[0].action,'getStaffScheduleDirectory');assert.equal(f.calls[0].studentId,undefined);});
 test('all students in selected class show distinct listening and HOLD state readonly',async()=>{const f=fixture();await f.feature.load();assert.match(f.nodes['admin-class-result'].innerHTML,/3회 딕테이션/);assert.match(f.nodes['admin-class-result'].innerHTML,/HOLD/);assert.match(f.nodes['admin-class-status'].textContent,/전체 2명.*완료/);assert.equal(f.calls[0].action,'getStaffClassLearningSchedule');assert.doesNotMatch(f.nodes['admin-class-result'].innerHTML,/<button/);});
-test('mismatched target response is never shown',async()=>{const f=fixture(),api=f.context.apiPost;f.context.apiPost=async p=>({...await api(p),classId:'OTHER'});await f.feature.load();assert.equal(f.nodes['admin-class-result'].innerHTML,'');assert.doesNotMatch(f.nodes['admin-class-status'].textContent,/확인 완료/);});
-test('no secrets, printing or write actions used by administrator module',()=>{assert.doesNotMatch(source,/localStorage|sessionStorage|\.token|\.print\(|claim|lease|saveVocab|submit|changePassword/);assert.match(html,/점수 저장·초안 저장·PDF 생성만으로는 게시되지 않습니다/);});
+test('mismatched target response is never shown',async()=>{const f=fixture(),read=f.context.fetchJsonWithTimeout;f.context.fetchJsonWithTimeout=async(...args)=>({...await read(...args),classId:'OTHER'});await f.feature.load();assert.equal(f.nodes['admin-class-result'].innerHTML,'');assert.doesNotMatch(f.nodes['admin-class-status'].textContent,/확인 완료/);});
+test('no secrets, printing or write actions used by administrator module',()=>{assert.doesNotMatch(source,/localStorage|sessionStorage|\.print\(|claim|lease|saveVocab|submit|changePassword/);assert.match(html,/점수 저장·초안 저장·PDF 생성만으로는 게시되지 않습니다/);});
 test('조회 진단은 기존 요청만 측정하고 서버 구간이 없으면 없다고 표시',async()=>{
  const f=fixture();await f.feature.load();assert.equal(f.calls.length,1);
  assert.match(f.nodes['admin-class-status'].textContent,/API 대기\(파싱 포함\): \d+ ms · 1회 · 서버 구간 계측 없음/);
@@ -26,7 +26,7 @@ test('조회 진단은 기존 요청만 측정하고 서버 구간이 없으면 
 test('읽기 시간 초과는 한국어 안내만 바꾸고 재요청·일부 결과 표시 없음',async()=>{
  for(const [name,message] of [['AbortError','aborted'],['TimeoutError','timed out'],['Error','signal is aborted without reason']]){
   const f=fixture();let calls=0;
-  f.context.apiPost=async()=>{calls++;const e=new Error(message);e.name=name;throw e;};
+  f.context.fetchJsonWithTimeout=async()=>{calls++;const e=new Error(message);e.name=name;throw e;};
   await f.feature.load();assert.equal(calls,1);
   assert.match(f.nodes['admin-class-status'].textContent,/서버 응답이 지연/);
   assert.match(f.nodes['admin-class-status'].textContent,/자동으로 재요청하지 않습니다/);
@@ -35,12 +35,12 @@ test('읽기 시간 초과는 한국어 안내만 바꾸고 재요청·일부 �
  }
 });
 test('서버 권한·정합성 오류 안내는 시간 초과로 덮어쓰지 않음',async()=>{
- const f=fixture();f.context.apiPost=async()=>{throw new Error('계획 버전이 변경됐습니다.');};
+ const f=fixture();f.context.fetchJsonWithTimeout=async()=>{throw new Error('계획 버전이 변경됐습니다.');};
  await f.feature.load();assert.equal(f.nodes['admin-class-status'].textContent,'계획 버전이 변경됐습니다.');
 });
 test('사용자가 조회 중단한 뒤 늦은 시간 초과는 현재 화면을 덮어쓰지 않음',async()=>{
  const f=fixture();let reject;
- f.context.apiPost=()=>new Promise((resolve,fail)=>{reject=fail;});
+ f.context.fetchJsonWithTimeout=()=>new Promise((resolve,fail)=>{reject=fail;});
  const pending=f.feature.load();f.feature.cancel();
  const message=f.nodes['admin-class-status'].textContent;
  const e=new Error('signal is aborted without reason');e.name='AbortError';reject(e);await pending;
@@ -53,3 +53,6 @@ test('서버 진단은 허용한 숫자 구간만 표시하고 불완전·문자
  const output=format([{waitMs:60,server:timing}]);assert.match(output,/서버 합계: 50 ms/);assert.doesNotMatch(output,/출력 금지|token/);
  for(const bad of [{...timing,totalMs:'50'},{...timing,totalMs:NaN},{...timing,totalMs:-1},{...timing,scope:'OTHER'},{scope:'ADMIN_CLASS_REQUEST'}])assert.match(format([{waitMs:60,server:bad}]),/서버 구간 계측 없음/);
 });
+
+test('administrator transport rejects non-read actions before any network request',async()=>{const f=fixture();await assert.rejects(f.context.adminClassReadonlyRequest({action:'submitPointTest'}),/ADMIN_READ_ACTION_NOT_ALLOWED/);assert.equal(f.calls.length,0);});
+test('authentication is sent only to the configured GET endpoint, never rendered',async()=>{const f=fixture();await f.feature.load();assert.equal(f.calls.length,1);assert.equal(f.calls[0].token,'synthetic-admin');assert.doesNotMatch(f.nodes['admin-class-result'].innerHTML+f.nodes['admin-class-status'].textContent,/synthetic-admin|token/);});
