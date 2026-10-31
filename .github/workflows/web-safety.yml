@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'install.html'
+      - 'student-install.js'
+      - 'student-install.css'
       - 'student-shell.css'
       - 'app-auto-update.js'
       - 'manifest.json'
@@ -33,3 +36,4 @@ jobs:
           node-version: '22'
       - name: Syntax and all portable synthetic regressions (no live API)
         run: node scripts/check-student-web.mjs
+

@@ -11,7 +11,8 @@ const excluded=new Map([
 const files=fs.readdirSync(path.join(root,'tests')).filter(name=>name.endsWith('.mjs')&&!excluded.has(name)).sort().map(name=>'tests/'+name);
 files.push('test_recording_session_relogin.mjs','test_staff_runtime_stability.mjs');
 function run(args){const result=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});if(result.error)throw result.error;if(result.status!==0)process.exit(result.status||1);}
-for(const file of ['app-auto-update.js','admin-class-schedule.js','staff-schedule-preview.js','recording/app.js','recording/sw.js','quick/app.js','quick/sw.js'])run(['--check',file]);
+for(const file of ['student-install.js','app-auto-update.js','admin-class-schedule.js','staff-schedule-preview.js','recording/app.js','recording/sw.js','quick/app.js','quick/sw.js'])run(['--check',file]);
 console.log(`Portable synthetic regression: ${files.length} modules. All tests must pass; no known-failure exemption.`);
 for(const [name,reason] of excluded)console.log(`Outside this command: ${name} — ${reason}`);
 run(['--test',...files]);
+
