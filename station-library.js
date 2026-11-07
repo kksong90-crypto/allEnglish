@@ -52,6 +52,10 @@
 
   panel.addEventListener('toggle', async () => {
     if (!panel.open || catalog || loading || !currentUser?.token) return;
+    if (['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase())) {
+      status.textContent = '전체 공개 단어장 검색은 학생 계정에서 사용할 수 있습니다.';
+      return;
+    }
     const request = generation;
     loading = true;
     status.textContent = '교재 목록을 불러오는 중입니다.';
