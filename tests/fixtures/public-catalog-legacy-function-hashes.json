@@ -1,0 +1,42 @@
+{
+  "loadVocabBooks": {
+    "start": "    async function loadVocabBooks(",
+    "end": "\n\n    async function loadVocabDays(",
+    "sha256": "5a00d5ce375fae0f64434785d8ceeef521dba3ef9e85494f57f100f9a28f1b09"
+  },
+  "makeWordKey": {
+    "start": "    function makeWordKey(",
+    "end": "\n\n    function sortWordsByOrder(",
+    "sha256": "f8c9e997c94ad356a4b2f0c50858fd316166e37f67a676e7c788e9847d423eaa"
+  },
+  "loadFavoriteFolders": {
+    "start": "    async function loadFavoriteFolders(",
+    "end": "\n\n    async function saveFavoriteFolders(",
+    "sha256": "9508568f46c6be1cd160bdcb1e730dd12e17a7df7f3411282effbc14364c7de0"
+  },
+  "saveFavoriteFolders": {
+    "start": "    async function saveFavoriteFolders(",
+    "end": "\n\n    function getCurrentFolderWords(",
+    "sha256": "77e7d5e12c8837dd2efe3cfc35f8695374607804d245782c2ed47fde2773958d"
+  },
+  "loadMyWrongNote": {
+    "start": "    async function loadMyWrongNote(",
+    "end": "\n\n    async function startServerWrongNoteTest(",
+    "sha256": "eba99fab68e25886c8700e4f822e9bc6af2e134f84d6f2bf20d7f0ff9c44a220"
+  },
+  "startServerWrongNoteTest": {
+    "start": "    async function startServerWrongNoteTest(",
+    "end": "\n\nfunction updateUserLabel(",
+    "sha256": "869cef2fa0ee019674a110e16d11bc76961ee32cf7fdb5eda2269b04168e14ed"
+  },
+  "native_and_favorite_optin": {
+    "start": "    // Read-only staged native browse. Default route remains byte-preserved.\n    if (n",
+    "end": "    window.onload =",
+    "sha256": "d2493895018c32676cf59d19fef060bd2e78e024c7179b3f0abd261aca30afe4"
+  },
+  "printMyScoreReport": {
+    "start": "function printMyScoreReport()",
+    "end": "    function showTab(",
+    "sha256": "ca63617e88f30e4d8efe38ffc22f3db996b69ba0b4759bb89af9d5300688db1f"
+  }
+}

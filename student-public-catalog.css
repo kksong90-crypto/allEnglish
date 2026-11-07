@@ -1,0 +1,10 @@
+    /* The release gate must remain hidden even when .active is restored from history. */
+    #public-catalog[hidden], [data-public-catalog-entry][hidden] { display: none !important; }
+    #public-catalog .public-catalog-controls { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
+    #public-catalog label { display: flex; flex-direction: column; gap: .3rem; }
+    #public-catalog input, #public-catalog select, #public-catalog button { padding: .7rem; min-height: 44px; }
+    #public-catalog-results { display: grid; gap: .5rem; }
+    #public-catalog .public-catalog-section { text-align: left; }
+    #public-catalog-body { overflow-x: auto; margin-top: 1rem; }
+    #public-catalog table { width: 100%; border-collapse: collapse; }
+    #public-catalog th, #public-catalog td { text-align: left; padding: .6rem; border-bottom: 1px solid var(--brand-line); overflow-wrap: anywhere; }
