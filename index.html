@@ -24,6 +24,7 @@
 
   
 
+  <link rel="stylesheet" href="student-public-catalog.css?v=20261107.1">
 </head>
 
 <body>
@@ -377,7 +378,10 @@
 </section>
 
   <!-- 단어장 -->
+  <section id="public-catalog" hidden aria-label="공개 단어 자료"></section>
+
   <section id="vocab">
+    <button type="button" class="vocab-btn secondary" data-public-catalog-entry hidden>모의고사·공개 단어 자료</button>
     <div class="section-title">📘 단어장</div>
 
     <div class="control-card">
@@ -610,6 +614,7 @@ async function fetchSheet(sheetName) {
 
     // v6.2.2: 로그인 사용자 변경과 늦게 도착한 API 응답을 구분한다.
     let studentSessionEpoch = 0;
+    let studentPublicCatalog = null;
     let myScheduleRequestSerial = 0;
     let homeScheduleRequestSerial = 0;
 
@@ -1280,6 +1285,7 @@ async function loadHomeContent(forceRefresh = false) {
 
 
     function resetUserScopedState() {
+      if (typeof studentPublicCatalog !== 'undefined' && studentPublicCatalog && studentPublicCatalog.enabled) studentPublicCatalog.reset();
       if (typeof AdminClassSchedule !== "undefined") AdminClassSchedule.reset();
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
@@ -1509,6 +1515,10 @@ async function loadHomeContent(forceRefresh = false) {
 
         if (result.token) {
           currentUser.token = result.token;
+          if (typeof studentPublicCatalog !== 'undefined' && studentPublicCatalog && studentPublicCatalog.enabled) {
+            studentPublicCatalog.reset();
+            studentPublicCatalog.onTab(getActiveTabId());
+          }
           saveUserSession(currentUser);
         }
         message.textContent = "비밀번호가 변경되었습니다.";
@@ -1716,6 +1726,7 @@ function printMyScoreReport() {
 }
     
     function showTab(tabId, options = {}) {
+      if (tabId === 'public-catalog' && (typeof studentPublicCatalog === 'undefined' || !studentPublicCatalog || !studentPublicCatalog.enabled)) return;
       const section = document.getElementById(tabId);
       if (!section) return;
 
@@ -1741,6 +1752,7 @@ function printMyScoreReport() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
       
+      if (typeof studentPublicCatalog !== 'undefined' && studentPublicCatalog && studentPublicCatalog.enabled) studentPublicCatalog.onTab(tabId, options);
       if (options.deferLoad) { updateAppBackButton(); return; }
       if (tabId === "exam") {
           loadExamTabOnce();
@@ -4693,6 +4705,27 @@ function escapeHtmlForPointRank(text) {
 }
   </script>
 
+  <script src="student-public-catalog-core.js?v=20261107.1"></script>
+  <script src="student-public-catalog.js?v=20261107.1"></script>
+  <script>
+    // Release gate: requires a verified, bound public snapshot provider before enabling.
+    // URL parameters and stored preferences cannot activate this route.
+    if (typeof StudentPublicCatalog !== 'undefined') {
+      studentPublicCatalog = StudentPublicCatalog.attach({
+        enabled: false,
+        getSession: () => currentUser && currentUser.token
+          ? {subject: currentUser.id, token: currentUser.token, epoch: studentSessionEpoch} : null,
+        activeTab: getActiveTabId,
+        showTab,
+        read: async (params, signal) => {
+          const query = new URLSearchParams(params);
+          const response = await fetch(SHEET_URL + '?' + query.toString(), {signal, cache: 'no-store'});
+          if (!response.ok) throw Error('NOT_AVAILABLE');
+          return response.json();
+        }
+      });
+    }
+  </script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
