@@ -380,6 +380,20 @@
   <section id="vocab">
     <div class="section-title">📘 단어장</div>
 
+    <details id="station-library" class="control-card">
+      <summary>전체 공개 단어장 찾기</summary>
+      <div class="control-grid">
+        <div><label class="field-label" for="station-library-query">교재명 검색</label>
+          <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
+        <div><label class="field-label" for="station-library-book">교재</label>
+          <select id="station-library-book" disabled></select></div>
+        <div><label class="field-label" for="station-library-scope">과·Day·범위</label>
+          <select id="station-library-scope" disabled></select></div>
+      </div>
+      <p id="station-library-status" role="status"></p>
+      <div id="station-library-words"></div>
+    </details>
+
     <div class="control-card">
       <div class="control-grid">
         <div>
@@ -1283,6 +1297,7 @@ async function loadHomeContent(forceRefresh = false) {
       if (typeof AdminClassSchedule !== "undefined") AdminClassSchedule.reset();
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
+      if (typeof StationLibrary !== "undefined") StationLibrary.reset();
       homeContentRequestSerial += 1;
       homeContentLoadPromise = null;
       homeContentLastVerifiedAt = 0;
@@ -4696,6 +4711,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
+  <script src="station-library.js"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>

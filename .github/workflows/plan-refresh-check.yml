@@ -1,7 +1,7 @@
 name: Published plan refresh verification
 on:
   pull_request:
-    paths: ['index.html', 'student-shell.css', 'app-auto-update.js', 'manifest.json', 'tests/**', 'scripts/check-student-web.mjs', 'icons/**', 'icon-*.png', '.github/workflows/plan-refresh-check.yml']
+    paths: ['index.html', 'station-library.js', 'student-shell.css', 'app-auto-update.js', 'manifest.json', 'tests/**', 'scripts/check-student-web.mjs', 'icons/**', 'icon-*.png', '.github/workflows/plan-refresh-check.yml']
 permissions:
   contents: read
 jobs:
@@ -17,3 +17,5 @@ jobs:
         run: node --test tests/student_score_report_snapshot.mjs tests/student_point_start_key_hotfix.mjs tests/vocab-read-load.test.mjs tests/student-shell-performance.test.mjs tests/student-read-safety.test.mjs tests/student-install-icons.test.mjs tests/student-preparation-home.test.mjs tests/app-auto-update.test.mjs tests/schedule-freshness.test.mjs tests/schedule_duplicate_warning.mjs tests/assigned_exam_practice_contract.mjs tests/login-timeout.test.mjs tests/favorite-session-safety.test.mjs tests/readonly-flights.test.mjs
       - name: Korean timezone update regression
         run: TZ=Asia/Seoul node --test tests/app-auto-update.test.mjs
+      - name: Station catalog scope and session safety
+        run: node --test tests/station-library.test.mjs
