@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.14',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0,flushing:false,writeEpoch:0};
+const APP={version:'8.2.14',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0,flushing:false,flushAgain:false,writeEpoch:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -32,7 +32,7 @@ function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|op
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
 function requireSessionLogin(message){localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
-async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);throw new Error(message)}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
+async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);const error=new Error(message);error.serverRejected=true;throw error}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
 function updateNetwork(){const online=navigator.onLine,node=$('network-state');node.textContent=online?'온라인':'오프라인';node.className='pill '+(online?'':'offline');document.querySelectorAll('.override-btn').forEach(el=>{el.disabled=!online||APP.saving.size>0})}
 function ensureConnected(){if(!apiUrl()||!token()){$('api-url').value=apiUrl();$('setup-modal').classList.add('show');return false}$('setup-modal').classList.remove('show');return true}
 async function connectServer(){const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});if(apiUrl()!==url){APP.data=null;APP.targetDate='';$('classes').innerHTML=''}localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(true);void flushQueue()}catch(error){setSync('연결 오류','error');toast(error.message)}}
@@ -69,11 +69,11 @@ function render(data){renderDates(data.candidates||[]);renderSummary(data);rende
 function renderDates(items){$('date-strip').innerHTML=items.map(item=>`<button type="button" class="date-chip ${item.date===APP.targetDate?'active':''}" onclick="selectDate('${esc(item.date)}')">${esc(item.shortLabel)}<span class="tiny">${item.studentCount}명</span></button>`).join('')}
 async function selectDate(date){if(APP.loading||APP.saving.size||date===APP.targetDate)return;await loadData(false,date)}
 function renderSummary(data){$('m-total').textContent=data.totalStudents;$('m-received').textContent=data.totalReceived;const pending=data.deadlinePassed?data.totalMissing:data.totalUnknown;$('m-pending').textContent=pending;$('m-pending-label').textContent=data.deadlinePassed?'미제출':'미확인';$('deadline-badge').textContent=data.deadlinePassed?'15시 마감 완료':`마감 ${data.deadlineAt.slice(11)}`;const notice=data.notice||{};const banner=$('notice-banner');if(!data.totalStudents){banner.className='notice-banner neutral';$('notice-title').textContent='녹음 대상 없음';$('notice-detail').textContent=data.exemptReason||'선택 날짜에는 대상이 없습니다.'}else if(notice.complete){banner.className='notice-banner complete';$('notice-title').textContent='전원 제출 완료';$('notice-detail').textContent=notice.active?'학생웹앱과 운영센터에 완료 공지가 노출 중입니다.':`완료 공지는 ${data.noticeStartAt}부터 ${data.noticeEndAt}까지 노출됩니다.`}else if(notice.active){banner.className='notice-banner missing';$('notice-title').textContent=`미제출·미확인 ${notice.missing}명`;$('notice-detail').textContent='체크 저장 성공 시 공지 명단에서 즉시 제외됩니다.'}else{banner.className='notice-banner future';$('notice-title').textContent=`확인 대기 ${notice.missing}명`;$('notice-detail').textContent=`공지는 ${data.noticeStartAt}부터 노출됩니다.`}}
-function renderClasses(classes){const root=$('classes'),empty=$('empty');root.innerHTML=classes.map(renderClass).join('');empty.hidden=classes.length>0;if(!classes.length)empty.textContent='선택 날짜에는 표시할 녹음 대상이 없습니다.'}
+function renderClasses(classes){const root=$('classes'),empty=$('empty');const pending=new Map(queued().filter(item=>item.targetDate===APP.targetDate).map(item=>[item.classId+'|'+item.studentId,item]));root.innerHTML=classes.map(cls=>renderClass(cls,pending)).join('');empty.hidden=classes.length>0;if(!classes.length)empty.textContent='선택 날짜에는 표시할 녹음 대상이 없습니다.'}
 function recordingClassScopeLabel(cls){const students=cls.students||[],scoped=students.filter(st=>Object.prototype.hasOwnProperty.call(st,'scopeSource')).length;return scoped?(scoped===students.length?'학생별 확정 범위는 아래에서 확인하세요':'일부 학생 범위 확인 필요'):(cls.vocabSummary||'단어범위 확인 필요')}
-function renderClass(cls){return `<section class="class-card" data-class-id="${esc(cls.classId)}"><div class="class-head"><div><h2>${esc(cls.className)}</h2><p>${esc(recordingClassScopeLabel(cls))}</p>${cls.canCheck?'':`<div class="open-info">확인 가능: ${esc(cls.openLabel)}</div>`}</div><div class="count">${cls.receivedCount}/${cls.students.length}</div></div><div class="student-list">${cls.students.map(st=>renderStudent(cls,st)).join('')}</div></section>`}
+function renderClass(cls,pending){return `<section class="class-card" data-class-id="${esc(cls.classId)}"><div class="class-head"><div><h2>${esc(cls.className)}</h2><p>${esc(recordingClassScopeLabel(cls))}</p>${cls.canCheck?'':`<div class="open-info">확인 가능: ${esc(cls.openLabel)}</div>`}</div><div class="count">${cls.receivedCount}/${cls.students.length}</div></div><div class="student-list">${cls.students.map(st=>renderStudent(cls,st,pending.get(cls.classId+'|'+st.studentId)??null)).join('')}</div></section>`}
 function renderStudentScope(student){if(!Object.prototype.hasOwnProperty.call(student,'scopeSource'))return '';const source=student.scopeSource,label=source==='SAVED'?'저장 당시 범위':source==='CURRENT'?'현재 확정 범위':'범위 확인 필요';const text=String(student.vocabSummary||'').trim();return `<span class="student-scope"><span class="scope-label">${esc(label)}</span> · ${esc(text||(source==='CURRENT'?'확정 단어 범위 없음':'범위 확인 필요'))}</span>`}
-function renderStudent(cls,student){const key=`${cls.classId}|${student.studentId}`,pending=pendingFor(cls.classId,student.studentId),received=pending?pending.received:student.status==='RECEIVED',missing=!pending&&student.status==='MISSING',disabled=!student.canCheck;const className=['student',received?'received':'',missing?'missing':'',disabled&&!received?'locked':''].filter(Boolean).join(' ');const state=pending?(pending.blocked?'미반영 · '+pending.blocked:'저장 대기'):received?`제출${student.savedAt?' · '+student.savedAt:''}`:(missing?'미제출 확정':(student.canCheck?'미확인':`${student.openLabel}부터`));const override=student.canAcceptBeforeDeadline&&!pending?`<button class="override-btn" type="button" onclick="acceptBeforeDeadline(event,'${esc(cls.classId)}','${esc(student.studentId)}','${esc(student.name)}')">마감 전 제출 인정</button>`:'';return `<label class="${className}" data-key="${esc(key)}"><input type="checkbox" ${received?'checked':''} ${disabled?'disabled':''} onchange="saveOne(this,'${esc(cls.classId)}','${esc(student.studentId)}')"><div class="student-main"><div class="name-line"><span class="name">${esc(student.name)}</span>${student.plannedAbsence?'<span class="badge absence">예정결석</span>':''}</div>${renderStudentScope(student)}<span class="state">${esc(state)}</span></div>${override}</label>`}
+function renderStudent(cls,student,pending=pendingFor(cls.classId,student.studentId)){const key=`${cls.classId}|${student.studentId}`,received=pending&&!pending.blocked?pending.received:student.status==='RECEIVED',missing=(!pending||pending.blocked)&&student.status==='MISSING',disabled=!student.canCheck;const className=['student',received?'received':'',missing?'missing':'',disabled&&!received?'locked':''].filter(Boolean).join(' ');const state=pending?(pending.blocked?'미반영 · '+pending.blocked:'저장 대기'):received?`제출${student.savedAt?' · '+student.savedAt:''}`:(missing?'미제출 확정':(student.canCheck?'미확인':`${student.openLabel}부터`));const override=student.canAcceptBeforeDeadline&&(!pending||pending.blocked)?`<button class="override-btn" type="button" onclick="acceptBeforeDeadline(event,'${esc(cls.classId)}','${esc(student.studentId)}','${esc(student.name)}')">마감 전 제출 인정</button>`:'';return `<label class="${className}" data-key="${esc(key)}"><input type="checkbox" ${received?'checked':''} ${disabled?'disabled':''} onchange="saveOne(this,'${esc(cls.classId)}','${esc(student.studentId)}')"><div class="student-main"><div class="name-line"><span class="name">${esc(student.name)}</span>${student.plannedAbsence?'<span class="badge absence">예정결석</span>':''}</div>${renderStudentScope(student)}<span class="state">${esc(state)}</span></div>${override}</label>`}
 function findStudent(classId,studentId){for(const cls of APP.data?.classes||[]){if(cls.classId===classId)return cls.students.find(st=>st.studentId===studentId)}return null}
 function recalcLocalClasses(){for(const cls of APP.data?.classes||[]){cls.receivedCount=cls.students.filter(st=>st.status==='RECEIVED').length;cls.missingCount=cls.students.filter(st=>st.status==='MISSING').length;cls.unknownCount=cls.students.filter(st=>st.status==='UNKNOWN').length}}
 function renderClassCounts(){const classes=new Map((APP.data?.classes||[]).map(cls=>[String(cls.classId),cls]));document.querySelectorAll('.class-card[data-class-id]').forEach(card=>{const cls=classes.get(card.dataset.classId),count=card.querySelector('.count');if(cls&&count)count.textContent=`${cls.receivedCount}/${cls.students.length}`})}
@@ -94,19 +94,23 @@ function saveOne(input,classId,studentId){
  row.classList.remove('missing');
  row.querySelector('.state').textContent='저장 대기';
  queueStatus();
- if(deadline-Date.now()<=2*QUEUE_MS)void flushQueue();
+ if(deadline-Date.now()<=2*QUEUE_MS){
+  if(APP.flushing)APP.flushAgain=true;
+  else void flushQueue();
+ }
 }
 async function flushQueue(){
  if(APP.flushing||APP.saving.size||!token()||!navigator.onLine||!queued().some(item=>!item.blocked))return;
  const url=apiUrl();
+ let completed=true,refreshDate='';
  APP.flushing=true;APP.writeEpoch++;queueStatus();
  try{
   for(const item of queued()){
-   if(url!==apiUrl()||!token()||!navigator.onLine)break;
+   if(url!==apiUrl()||!token()||!navigator.onLine){completed=false;break}
    if(item.blocked||!queued().some(entry=>entry.requestId===item.requestId))continue;
    try{
     const result=await api('opsSaveOne',item,{url,requestId:item.requestId});
-    if(url!==apiUrl())break;
+    if(url!==apiUrl()){completed=false;break}
     if(!result?.ok||result.received!==item.received)throw new Error('서버 반영을 확인하지 못했습니다.');
     if(item.targetDate===APP.targetDate&&APP.data){
      const student=findStudent(item.classId,item.studentId);
@@ -120,23 +124,32 @@ async function flushQueue(){
     }
     writeLocal('pending',queued().filter(entry=>entry.requestId!==item.requestId));
    }catch(error){
-    if(url!==apiUrl())break;
-    if(error.authRequired)break;
-    if(/마감 이후|녹음 대상이 아닙니다|확인할 수 있는 대상/.test(error.message)){
+    if(url!==apiUrl()){completed=false;break}
+    if(error.authRequired){completed=false;break}
+    if(/마감 이후|녹음 (?:확인 )?대상(?: 반| 학생)?이 아닙니다|녹음 확인이 면제됩니다|확인할 수 있는 대상/.test(error.message)){
      writeLocal('pending',queued().map(entry=>entry.requestId===item.requestId?{...entry,blocked:error.message}:entry));
+     if(item.targetDate===APP.targetDate)refreshDate=item.targetDate;
      continue;
     }
-    toast(error.message);break;
+    toast(error.message);
+    if(error.serverRejected)continue;
+    const current=queued(),retry=current.find(entry=>entry.requestId===item.requestId);
+    if(retry)writeLocal('pending',[...current.filter(entry=>entry.requestId!==item.requestId),retry]);
+    completed=false;break;
    }
   }
- }catch(_){toast('이 기기의 미저장 기록을 갱신하지 못했습니다.')}
+ }catch(_){completed=false;toast('이 기기의 미저장 기록을 갱신하지 못했습니다.')}
  finally{
   APP.flushing=false;APP.writeEpoch++;
   if(APP.data&&url===apiUrl())render(APP.data);
   queueStatus();
  }
+ const repeat=APP.flushAgain;
+ APP.flushAgain=false;
+ if(completed&&repeat&&url===apiUrl())await flushQueue();
+ if(refreshDate&&refreshDate===APP.targetDate&&url===apiUrl())await loadData(true,refreshDate);
 }
-async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.loading||APP.flushing||APP.saving.has(key))return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT');APP.saving.add(key);button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain)await verifyUncertainSave(classId,studentId,true,name);else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.saving.delete(key)}}
+async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.loading||APP.flushing||APP.saving.has(key))return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT'),pending=pendingFor(classId,studentId);APP.saving.add(key);button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});if(pending?.blocked)writeLocal('pending',queued().filter(item=>item.requestId!==pending.requestId));toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain)await verifyUncertainSave(classId,studentId,true,name);else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.saving.delete(key)}}
 async function readServerAgain(){await flushQueue();setSync('다시 읽는 중','saving');const data=await loadData(true,APP.targetDate);if(data)toast('CoreDB 상태를 다시 확인했습니다.')}
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
 async function resumeRecording(){
