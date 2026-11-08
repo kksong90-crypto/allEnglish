@@ -87,6 +87,7 @@ function saveOne(input,classId,studentId){
  const items=queued(),previous=pendingFor(classId,studentId);
  if(Date.now()>=deadline){input.checked=!input.checked;toast('15시 마감 이후 일반 체크를 변경할 수 없습니다.');return}
  const item={targetDate,classId,studentId,received:input.checked,requestId:requestId('REC_SAVE')};
+ if(typeof student.revision==='string')item.expectedRevision=student.revision;
  try{writeLocal('pending',[...items.filter(entry=>entry.requestId!==previous?.requestId),item])}
  catch(_){input.checked=!input.checked;toast('이 기기에 체크를 보관하지 못했습니다.');return}
  const row=input.closest('.student');
@@ -111,18 +112,29 @@ async function flushQueue(){
    try{
     const result=await api('opsSaveOne',item,{url,requestId:item.requestId});
     if(url!==apiUrl()){completed=false;break}
-    if(!result?.ok||result.received!==item.received)throw new Error('서버 반영을 확인하지 못했습니다.');
+    if(result?.conflict===true){
+     writeLocal('pending',queued().map(entry=>entry.requestId===item.requestId?{...entry,blocked:'서버 상태 변경 · 다시 확인'}:entry));
+     if(item.targetDate===APP.targetDate)refreshDate=item.targetDate;
+     continue;
+    }
+    if(!result?.ok||result.received!==item.received||(typeof item.expectedRevision==='string'&&typeof result.revision!=='string'))throw new Error('서버 반영을 확인하지 못했습니다.');
     if(item.targetDate===APP.targetDate&&APP.data){
      const student=findStudent(item.classId,item.studentId);
      if(student){
       Object.assign(student,{status:result.status,received:result.received,savedAt:result.received?result.savedAt:''});
+      if(typeof result.revision==='string')student.revision=result.revision;
       const row=[...document.querySelectorAll('.student[data-key]')].find(node=>node.dataset.key===item.classId+'|'+item.studentId);
       if(row)applySavedStudentScope(row,student,result);
      }
      if(result.summary)applySummary(result.summary,result.notice);
      cacheDashboard(APP.data);
     }
-    writeLocal('pending',queued().filter(entry=>entry.requestId!==item.requestId));
+    const remaining=queued().filter(entry=>entry.requestId!==item.requestId);
+    if(typeof result.revision==='string'){
+     const newer=remaining.find(entry=>entry.targetDate===item.targetDate&&entry.classId===item.classId&&entry.studentId===item.studentId);
+     if(newer&&newer.expectedRevision===item.expectedRevision)newer.expectedRevision=result.revision;
+    }
+    writeLocal('pending',remaining);
    }catch(error){
     if(url!==apiUrl()){completed=false;break}
     if(error.authRequired){completed=false;break}
