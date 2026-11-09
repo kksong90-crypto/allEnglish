@@ -28,14 +28,14 @@ function restoreDashboard(){
  queueStatus();
 }
 function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`}
-function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled)$/.test(String(action||''))}
+function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore|quickRegisterSchoolExam)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
-function requireSessionLogin(message){localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
-async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);const error=new Error(message);error.serverRejected=true;throw error}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
+function requireSessionLogin(message){resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
+async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message)&&url===apiUrl()&&body.token===token())throw requireSessionLogin(message);const error=new Error(message);error.serverRejected=true;throw error}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
 function updateNetwork(){const online=navigator.onLine,node=$('network-state');node.textContent=online?'온라인':'오프라인';node.className='pill '+(online?'':'offline');document.querySelectorAll('.override-btn').forEach(el=>{el.disabled=!online||APP.saving.size>0})}
 function ensureConnected(){if(!apiUrl()||!token()){$('api-url').value=apiUrl();$('setup-modal').classList.add('show');return false}$('setup-modal').classList.remove('show');return true}
-async function connectServer(){const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});if(apiUrl()!==url){APP.data=null;APP.targetDate='';$('classes').innerHTML=''}localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(true);void flushQueue()}catch(error){setSync('연결 오류','error');toast(error.message)}}
+async function connectServer(){const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});if(apiUrl()!==url){resetWorkspaceReads();APP.data=null;APP.targetDate='';$('classes').innerHTML=''}localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(true);void flushQueue();void loadSelectedWorkspace()}catch(error){setSync('연결 오류','error');toast(error.message)}}
 function closeSetupIfConnected(){if(apiUrl()&&token())$('setup-modal').classList.remove('show')}
 function openConnectionSettings(){closeSettings();resetSetupCopy();$('api-url').value=apiUrl();$('admin-pin').value='';$('setup-modal').classList.add('show')}
 function openSettings(){$('settings-modal').classList.add('show')}
@@ -164,6 +164,214 @@ async function flushQueue(){
 async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.loading||APP.flushing||APP.saving.has(key))return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT'),pending=pendingFor(classId,studentId);APP.saving.add(key);button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});if(pending?.blocked)writeLocal('pending',queued().filter(item=>item.requestId!==pending.requestId));toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain)await verifyUncertainSave(classId,studentId,true,name);else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.saving.delete(key)}}
 async function readServerAgain(){await flushQueue();setSync('다시 읽는 중','saving');const data=await loadData(true,APP.targetDate);if(data)toast('CoreDB 상태를 다시 확인했습니다.')}
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
+// These workspaces use the recording session and read through the existing mobile API.
+let selectedWorkspace='recording';
+let absenceRead=0,examRead=0,rosterRead=0,registrationRead=0;
+function resetWorkspaceReads(){
+ absenceRead++;examRead++;rosterRead++;registrationRead++;
+ const registration=$('exam-registration');
+ if(registration){
+  registration.hidden=true;registration.reset?.();
+  registration.elements?.group?.replaceChildren?.();
+  const status=registration.querySelector?.('[role=status]');if(status)status.textContent='';
+ }
+ $('open-exam-registration')?.setAttribute?.('aria-expanded','false');
+ $('absence-results')?.replaceChildren?.();
+ const absenceForm=$('workspace-absence-form');
+ if(absenceForm){
+  absenceForm.hidden=true;absenceForm.reset?.();
+  const status=absenceForm.querySelector?.('[role=status]');if(status)status.textContent='';
+ }
+ $('workspace-absence-student')?.replaceChildren?.();
+ $('score-results')?.replaceChildren?.();
+ const picker=$('workspace-exam');if(picker){picker.replaceChildren?.();picker.disabled=true;}
+}
+function selectWorkspace(name){
+ selectedWorkspace=name;
+ for(const button of document.querySelectorAll('[data-workspace]')){
+  const current=button.dataset.workspace===name;
+  button.setAttribute('aria-pressed',String(current));
+  button.classList.toggle('primary',current);
+  button.classList.toggle('secondary',!current);
+  $('workspace-'+button.dataset.workspace).hidden=!current;
+ }
+ void loadSelectedWorkspace();
+}
+function loadSelectedWorkspace(){
+ if(selectedWorkspace==='absence')return loadWorkspaceAbsences();
+ if(selectedWorkspace==='score')return loadWorkspaceExams();
+}
+function workspaceList(root,rows,describe,empty){
+ if(!rows.length){root.textContent=empty;return}
+ const list=document.createElement('ul');
+ for(const row of rows){
+  const item=document.createElement('li');
+  item.textContent=describe(row);list.append(item);
+ }
+ root.replaceChildren(list);
+}
+const workspaceAttempts=new WeakMap();
+async function saveWorkspaceForm(form,action,payload,accept,onSaved){
+ if(!ensureConnected()||workspaceAttempts.get(form)?.busy)return;
+ const controls=form.querySelector('fieldset'),status=form.querySelector('[role=status]');
+ const signature=JSON.stringify(payload),url=apiUrl(),session=token();
+ const previous=workspaceAttempts.get(form);
+ const id=previous?.signature===signature&&previous.url===url&&previous.session===session?previous.id:requestId('WORKSPACE');
+ workspaceAttempts.set(form,{signature,url,session,id,busy:true});
+ controls.disabled=true;status.textContent='저장 중';
+ try{
+  const result=await api(action,payload,{requestId:id});
+  if(url!==apiUrl()||session!==token()||!form.isConnected)return;
+  if(!accept(result))throw new Error('저장 응답을 확인하지 못했습니다. 목록을 다시 확인하세요.');
+  workspaceAttempts.delete(form);status.textContent='저장 완료';
+  onSaved();
+ }catch(error){
+  if(url!==apiUrl()||session!==token()||!form.isConnected)return;
+  status.textContent=error.uncertain?'응답 시간 초과 · 목록에서 반영 여부를 먼저 확인하세요.':error.message;
+ }finally{
+  const attempt=workspaceAttempts.get(form);
+  if(attempt?.id===id)attempt.busy=false;
+  controls.disabled=false;
+ }
+}
+function submitWorkspaceAbsence(event){
+ event.preventDefault();
+ const form=event.currentTarget,data=new FormData(form);
+ const studentId=$('workspace-absence-student').value,startDate=data.get('startDate');
+ const endDate=data.get('endDate')||startDate,reason=String(data.get('reason')||'').trim();
+ if(!studentId||!startDate||endDate<startDate){
+  form.querySelector('[role=status]').textContent='학생과 결석 기간을 확인하세요.';return;
+ }
+ void saveWorkspaceForm(form,'quickSaveAbsence',{studentId,startDate,endDate,reason},
+  result=>Boolean(result?.plannedAbsenceId),()=>{form.reset();void loadWorkspaceAbsences()});
+}
+async function loadWorkspaceAbsences(){
+ if(!ensureConnected())return;
+ const root=$('absence-results'),read=++absenceRead;
+ root.textContent='예정결석 목록을 불러오는 중';
+ try{
+  const data=await api('quickAbsences');
+  if(read!==absenceRead)return;
+  const picker=$('workspace-absence-student'),previous=picker.value;
+  picker.replaceChildren(new Option('학생 선택',''));
+  for(const row of data.students||[])picker.add(new Option([row.name,row.className].filter(Boolean).join(' · '),row.studentId));
+  if([...picker.options].some(option=>option.value===previous))picker.value=previous;
+  $('workspace-absence-form').hidden=!(data.students||[]).length;
+  workspaceList(root,data.rows||[],row=>[row.studentName,row.className,
+   row.startDate===row.endDate?row.startDate:row.startDate+' ~ '+row.endDate,
+   row.reason].filter(Boolean).join(' · '),'등록된 예정결석이 없습니다.');
+ }catch(error){if(read===absenceRead)root.textContent=error.message}
+}
+async function loadWorkspaceExams(preferredExamId){
+ if(!ensureConnected())return;
+ const picker=$('workspace-exam'),root=$('score-results'),read=++examRead;
+ const previous=typeof preferredExamId==='string'?preferredExamId:picker.value;
+ rosterRead++;picker.disabled=true;root.textContent='학교시험 목록을 불러오는 중';
+ try{
+  const data=await api('quickExamList',previous?{includeExamId:previous}:{});
+  if(read!==examRead)return;
+  picker.replaceChildren();
+  for(const row of data.rows||[]){
+   picker.add(new Option(row.name+' · '+row.startDate,row.examId));
+  }
+  if(!picker.options.length){root.textContent='등록된 학교시험이 없습니다.';return}
+  if([...picker.options].some(option=>option.value===previous))picker.value=previous;
+  picker.disabled=false;await loadWorkspaceRoster();
+ }catch(error){if(read===examRead)root.textContent=error.message}
+}
+async function loadWorkspaceRoster(){
+ const examId=$('workspace-exam').value;
+ if(!examId||!ensureConnected())return;
+ const root=$('score-results'),read=++rosterRead;
+ root.textContent='시험 명단을 불러오는 중';
+ try{
+  const data=await api('quickExamRoster',{examId});
+  if(read!==rosterRead)return;
+  renderWorkspaceScores(root,data.rows||[],examId);
+ }catch(error){if(read===rosterRead)root.textContent=error.message}
+}
+function toggleExamRegistration(){
+ const form=$('exam-registration'),button=$('open-exam-registration');
+ form.hidden=!form.hidden;
+ button.setAttribute('aria-expanded',String(!form.hidden));
+ if(!form.hidden&&!form.elements.startDate.value){
+  form.elements.startDate.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
+  void loadExamRegistrationOptions();
+ }
+}
+async function loadExamRegistrationOptions(){
+ const form=$('exam-registration'),date=form.elements.startDate.value;
+ const group=form.elements.group,submit=form.querySelector('[type=submit]'),status=form.querySelector('[role=status]');
+ const ticket=++registrationRead;
+ group.replaceChildren(new Option('학교·학년 선택',''));submit.disabled=true;
+ if(!date||!ensureConnected())return;
+ status.textContent='대상 학교와 학년을 확인 중';
+ try{
+  const result=await api('quickExamRegistrationOptions',{startDate:date});
+  if(ticket!==registrationRead)return;
+  for(const row of result.rows||[]){
+   group.add(new Option(row.schoolName+' · '+row.course+row.grade+' · '+row.total+'명',JSON.stringify([row.schoolId,row.course,row.grade])));
+  }
+  submit.disabled=group.options.length<2;
+  status.textContent=submit.disabled?'시험일에 해당하는 재원생이 없습니다.':'';
+ }catch(error){if(ticket===registrationRead)status.textContent=error.message}
+}
+function submitExamRegistration(event){
+ event.preventDefault();
+ const form=event.currentTarget,data=new FormData(form);
+ const group=data.get('group');
+ if(!group)return;
+ const [schoolId,course,grade]=JSON.parse(group);
+ const payload={schoolId,course,grade,startDate:data.get('startDate'),semester:data.get('semester'),examType:data.get('examType')};
+ let saved;
+ void saveWorkspaceForm(form,'quickRegisterSchoolExam',payload,result=>{
+  if(typeof result?.examId!=='string'||!result.examId)return false;
+  saved=result;return true;
+ },()=>{
+  form.querySelector('[role=status]').textContent=saved.existing?'기존 시험을 열었습니다 · '+saved.total+'명':'시험 등록 완료 · '+saved.total+'명';
+  void loadWorkspaceExams(saved.examId);
+ });
+}
+function renderWorkspaceScores(root,rows,examId){
+ workspaceList(root,rows,row=>{
+  const state=row.targetStatus==='ABSENT'?'결시':row.targetStatus==='REVIEW'?'대상 확인 필요':
+   row.existing&&row.rawScore!==''&&row.rawScore!=null?String(row.rawScore)+'점':'미입력';
+  return [row.name,row.className,state].filter(Boolean).join(' · ');
+ },'이 시험에 등록된 학생이 없습니다.');
+ if(!rows.length)return;
+ rows.forEach((row,index)=>{
+  if(row.existing||row.targetStatus!=='TARGET')return;
+  const item=root.firstElementChild.children[index],form=document.createElement('form');
+  form.innerHTML='<fieldset><label class="field">점수<input name="score" inputmode="decimal" required></label><button class="btn secondary" type="submit">저장</button></fieldset><span role="status"></span>';
+  const field=form.elements.score;
+  field.setAttribute('aria-label',row.name+' 점수');
+  form.addEventListener('submit',event=>{
+   event.preventDefault();
+   if($('workspace-exam').value!==examId)return;
+   const score=field.value.trim(),status=form.querySelector('[role=status]');
+   if(!/^\d{1,3}(?:\.\d{1,2})?$/.test(score)||Number(score)>100){
+    status.textContent='0~100점, 소수점 둘째 자리까지 입력하세요.';return;
+   }
+   const payload={examId,studentId:row.studentId,mode:'SCORE',rawScore:Number(score),allowEdit:false};
+   void saveWorkspaceForm(form,'quickSaveScore',payload,
+    result=>result?.examId===examId&&result.studentId===row.studentId&&result.rawScore!==''&&result.rawScore!=null&&Number(result.rawScore)===payload.rawScore,
+    ()=>{item.textContent=[row.name,row.className,score+'점 · 저장 완료'].filter(Boolean).join(' · ')});
+  });
+  item.append(form);
+ });
+}
+for(const button of document.querySelectorAll('[data-workspace]')){
+ button.addEventListener?.('click',()=>selectWorkspace(button.dataset.workspace));
+}
+$('open-exam-registration')?.addEventListener?.('click',toggleExamRegistration);
+const registrationForm=$('exam-registration');
+registrationForm?.elements?.startDate?.addEventListener?.('change',loadExamRegistrationOptions);
+registrationForm?.addEventListener?.('submit',submitExamRegistration);
+$('workspace-absence-form')?.addEventListener?.('submit',submitWorkspaceAbsence);
+$('reload-absences')?.addEventListener?.('click',loadWorkspaceAbsences);
+$('reload-exams')?.addEventListener?.('click',loadWorkspaceExams);
+$('workspace-exam')?.addEventListener?.('change',loadWorkspaceRoster);
+
 async function resumeRecording(){
  updateNetwork();
  await flushQueue();
