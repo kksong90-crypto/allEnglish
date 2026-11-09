@@ -63,13 +63,23 @@
   </section>
   <section id="workspace-absence" aria-label="예정결석" hidden>
     <h2>예정결석</h2>
-    <p>조회용 검증판</p>
+    <form id="workspace-absence-form" hidden>
+      <fieldset>
+        <legend>예정결석 등록</legend>
+        <label class="field">학생<select id="workspace-absence-student" required></select></label>
+        <label class="field">시작일<input name="startDate" type="date" required></label>
+        <label class="field">종료일<input name="endDate" type="date"></label>
+        <label class="field">사유<input name="reason" maxlength="200"></label>
+        <button class="btn primary" type="submit">등록</button>
+      </fieldset>
+      <p role="status"></p>
+    </form>
     <button class="btn secondary" id="reload-absences" type="button">목록 다시 읽기</button>
     <div id="absence-results" aria-live="polite"></div>
   </section>
   <section id="workspace-score" aria-label="학교시험 성적" hidden>
     <h2>학교시험 성적</h2>
-    <p>조회용 검증판</p>
+    <p>기존 시험의 미입력 점수를 저장할 수 있습니다.</p>
     <button class="btn secondary" id="reload-exams" type="button">시험 목록 다시 읽기</button>
     <label class="field">학교시험<select id="workspace-exam" disabled></select></label>
     <div id="score-results" aria-live="polite"></div>
