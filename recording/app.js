@@ -28,7 +28,7 @@ function restoreDashboard(){
  queueStatus();
 }
 function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`}
-function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore)$/.test(String(action||''))}
+function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore|quickRegisterSchoolExam)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
 function requireSessionLogin(message){resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
@@ -166,9 +166,14 @@ async function readServerAgain(){await flushQueue();setSync('다시 읽는 중',
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
 // These workspaces use the recording session and read through the existing mobile API.
 let selectedWorkspace='recording';
-let absenceRead=0,examRead=0,rosterRead=0;
+let absenceRead=0,examRead=0,rosterRead=0,registrationRead=0;
 function resetWorkspaceReads(){
- absenceRead++;examRead++;rosterRead++;
+ absenceRead++;examRead++;rosterRead++;registrationRead++;
+ const registration=$('exam-registration');
+ registration.hidden=true;registration.reset();
+ registration.elements.group.replaceChildren();
+ registration.querySelector('[role=status]').textContent='';
+ $('open-exam-registration').setAttribute('aria-expanded','false');
  $('absence-results').replaceChildren();
  const absenceForm=$('workspace-absence-form');
  absenceForm.hidden=true;absenceForm.reset();absenceForm.querySelector('[role=status]').textContent='';
@@ -252,13 +257,13 @@ async function loadWorkspaceAbsences(){
    row.reason].filter(Boolean).join(' · '),'등록된 예정결석이 없습니다.');
  }catch(error){if(read===absenceRead)root.textContent=error.message}
 }
-async function loadWorkspaceExams(){
+async function loadWorkspaceExams(preferredExamId){
  if(!ensureConnected())return;
  const picker=$('workspace-exam'),root=$('score-results'),read=++examRead;
- const previous=picker.value;
+ const previous=typeof preferredExamId==='string'?preferredExamId:picker.value;
  rosterRead++;picker.disabled=true;root.textContent='학교시험 목록을 불러오는 중';
  try{
-  const data=await api('quickExamList');
+  const data=await api('quickExamList',previous?{includeExamId:previous}:{});
   if(read!==examRead)return;
   picker.replaceChildren();
   for(const row of data.rows||[]){
@@ -279,6 +284,48 @@ async function loadWorkspaceRoster(){
   if(read!==rosterRead)return;
   renderWorkspaceScores(root,data.rows||[],examId);
  }catch(error){if(read===rosterRead)root.textContent=error.message}
+}
+function toggleExamRegistration(){
+ const form=$('exam-registration'),button=$('open-exam-registration');
+ form.hidden=!form.hidden;
+ button.setAttribute('aria-expanded',String(!form.hidden));
+ if(!form.hidden&&!form.elements.startDate.value){
+  form.elements.startDate.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date());
+  void loadExamRegistrationOptions();
+ }
+}
+async function loadExamRegistrationOptions(){
+ const form=$('exam-registration'),date=form.elements.startDate.value;
+ const group=form.elements.group,submit=form.querySelector('[type=submit]'),status=form.querySelector('[role=status]');
+ const ticket=++registrationRead;
+ group.replaceChildren(new Option('학교·학년 선택',''));submit.disabled=true;
+ if(!date||!ensureConnected())return;
+ status.textContent='대상 학교와 학년을 확인 중';
+ try{
+  const result=await api('quickExamRegistrationOptions',{startDate:date});
+  if(ticket!==registrationRead)return;
+  for(const row of result.rows||[]){
+   group.add(new Option(row.schoolName+' · '+row.course+row.grade+' · '+row.total+'명',JSON.stringify([row.schoolId,row.course,row.grade])));
+  }
+  submit.disabled=group.options.length<2;
+  status.textContent=submit.disabled?'시험일에 해당하는 재원생이 없습니다.':'';
+ }catch(error){if(ticket===registrationRead)status.textContent=error.message}
+}
+function submitExamRegistration(event){
+ event.preventDefault();
+ const form=event.currentTarget,data=new FormData(form);
+ const group=data.get('group');
+ if(!group)return;
+ const [schoolId,course,grade]=JSON.parse(group);
+ const payload={schoolId,course,grade,startDate:data.get('startDate'),semester:data.get('semester'),examType:data.get('examType')};
+ let saved;
+ void saveWorkspaceForm(form,'quickRegisterSchoolExam',payload,result=>{
+  if(typeof result?.examId!=='string'||!result.examId)return false;
+  saved=result;return true;
+ },()=>{
+  form.querySelector('[role=status]').textContent=saved.existing?'기존 시험을 열었습니다 · '+saved.total+'명':'시험 등록 완료 · '+saved.total+'명';
+  void loadWorkspaceExams(saved.examId);
+ });
 }
 function renderWorkspaceScores(root,rows,examId){
  workspaceList(root,rows,row=>{
@@ -311,6 +358,9 @@ function renderWorkspaceScores(root,rows,examId){
 for(const button of document.querySelectorAll('[data-workspace]')){
  button.addEventListener('click',()=>selectWorkspace(button.dataset.workspace));
 }
+$('open-exam-registration').addEventListener('click',toggleExamRegistration);
+$('exam-registration').elements.startDate.addEventListener('change',loadExamRegistrationOptions);
+$('exam-registration').addEventListener('submit',submitExamRegistration);
 $('workspace-absence-form').addEventListener('submit',submitWorkspaceAbsence);
 $('reload-absences').addEventListener('click',loadWorkspaceAbsences);
 $('reload-exams').addEventListener('click',loadWorkspaceExams);
