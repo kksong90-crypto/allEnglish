@@ -28,7 +28,7 @@ function restoreDashboard(){
  queueStatus();
 }
 function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`}
-function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled)$/.test(String(action||''))}
+function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
 function requireSessionLogin(message){resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
@@ -170,6 +170,9 @@ let absenceRead=0,examRead=0,rosterRead=0;
 function resetWorkspaceReads(){
  absenceRead++;examRead++;rosterRead++;
  $('absence-results').replaceChildren();
+ const absenceForm=$('workspace-absence-form');
+ absenceForm.hidden=true;absenceForm.reset();absenceForm.querySelector('[role=status]').textContent='';
+ $('workspace-absence-student').replaceChildren();
  $('score-results').replaceChildren();
  const picker=$('workspace-exam');picker.replaceChildren();picker.disabled=true;
 }
@@ -197,6 +200,41 @@ function workspaceList(root,rows,describe,empty){
  }
  root.replaceChildren(list);
 }
+const workspaceAttempts=new WeakMap();
+async function saveWorkspaceForm(form,action,payload,accept,onSaved){
+ if(!ensureConnected()||workspaceAttempts.get(form)?.busy)return;
+ const controls=form.querySelector('fieldset'),status=form.querySelector('[role=status]');
+ const signature=JSON.stringify(payload),url=apiUrl(),session=token();
+ const previous=workspaceAttempts.get(form);
+ const id=previous?.signature===signature&&previous.url===url&&previous.session===session?previous.id:requestId('WORKSPACE');
+ workspaceAttempts.set(form,{signature,url,session,id,busy:true});
+ controls.disabled=true;status.textContent='저장 중';
+ try{
+  const result=await api(action,payload,{requestId:id});
+  if(url!==apiUrl()||session!==token()||!form.isConnected)return;
+  if(!accept(result))throw new Error('저장 응답을 확인하지 못했습니다. 목록을 다시 확인하세요.');
+  workspaceAttempts.delete(form);status.textContent='저장 완료';
+  onSaved();
+ }catch(error){
+  if(url!==apiUrl()||session!==token()||!form.isConnected)return;
+  status.textContent=error.uncertain?'응답 시간 초과 · 목록에서 반영 여부를 먼저 확인하세요.':error.message;
+ }finally{
+  const attempt=workspaceAttempts.get(form);
+  if(attempt?.id===id)attempt.busy=false;
+  controls.disabled=false;
+ }
+}
+function submitWorkspaceAbsence(event){
+ event.preventDefault();
+ const form=event.currentTarget,data=new FormData(form);
+ const studentId=$('workspace-absence-student').value,startDate=data.get('startDate');
+ const endDate=data.get('endDate')||startDate,reason=String(data.get('reason')||'').trim();
+ if(!studentId||!startDate||endDate<startDate){
+  form.querySelector('[role=status]').textContent='학생과 결석 기간을 확인하세요.';return;
+ }
+ void saveWorkspaceForm(form,'quickSaveAbsence',{studentId,startDate,endDate,reason},
+  result=>Boolean(result?.plannedAbsenceId),()=>{form.reset();void loadWorkspaceAbsences()});
+}
 async function loadWorkspaceAbsences(){
  if(!ensureConnected())return;
  const root=$('absence-results'),read=++absenceRead;
@@ -204,6 +242,11 @@ async function loadWorkspaceAbsences(){
  try{
   const data=await api('quickAbsences');
   if(read!==absenceRead)return;
+  const picker=$('workspace-absence-student'),previous=picker.value;
+  picker.replaceChildren(new Option('학생 선택',''));
+  for(const row of data.students||[])picker.add(new Option([row.name,row.className].filter(Boolean).join(' · '),row.studentId));
+  if([...picker.options].some(option=>option.value===previous))picker.value=previous;
+  $('workspace-absence-form').hidden=!(data.students||[]).length;
   workspaceList(root,data.rows||[],row=>[row.studentName,row.className,
    row.startDate===row.endDate?row.startDate:row.startDate+' ~ '+row.endDate,
    row.reason].filter(Boolean).join(' · '),'등록된 예정결석이 없습니다.');
@@ -234,16 +277,41 @@ async function loadWorkspaceRoster(){
  try{
   const data=await api('quickExamRoster',{examId});
   if(read!==rosterRead)return;
-  workspaceList(root,data.rows||[],row=>{
-   const state=row.targetStatus==='ABSENT'?'결시':row.targetStatus==='REVIEW'?'대상 확인 필요':
-    row.existing&&row.rawScore!==''&&row.rawScore!=null?String(row.rawScore)+'점':'미입력';
-   return [row.name,row.className,state].filter(Boolean).join(' · ');
-  },'이 시험에 등록된 학생이 없습니다.');
+  renderWorkspaceScores(root,data.rows||[],examId);
  }catch(error){if(read===rosterRead)root.textContent=error.message}
+}
+function renderWorkspaceScores(root,rows,examId){
+ workspaceList(root,rows,row=>{
+  const state=row.targetStatus==='ABSENT'?'결시':row.targetStatus==='REVIEW'?'대상 확인 필요':
+   row.existing&&row.rawScore!==''&&row.rawScore!=null?String(row.rawScore)+'점':'미입력';
+  return [row.name,row.className,state].filter(Boolean).join(' · ');
+ },'이 시험에 등록된 학생이 없습니다.');
+ if(!rows.length)return;
+ rows.forEach((row,index)=>{
+  if(row.existing||row.targetStatus!=='TARGET')return;
+  const item=root.firstElementChild.children[index],form=document.createElement('form');
+  form.innerHTML='<fieldset><label class="field">점수<input name="score" inputmode="decimal" required></label><button class="btn secondary" type="submit">저장</button></fieldset><span role="status"></span>';
+  const field=form.elements.score;
+  field.setAttribute('aria-label',row.name+' 점수');
+  form.addEventListener('submit',event=>{
+   event.preventDefault();
+   if($('workspace-exam').value!==examId)return;
+   const score=field.value.trim(),status=form.querySelector('[role=status]');
+   if(!/^\d{1,3}(?:\.\d{1,2})?$/.test(score)||Number(score)>100){
+    status.textContent='0~100점, 소수점 둘째 자리까지 입력하세요.';return;
+   }
+   const payload={examId,studentId:row.studentId,mode:'SCORE',rawScore:Number(score),allowEdit:false};
+   void saveWorkspaceForm(form,'quickSaveScore',payload,
+    result=>result?.examId===examId&&result.studentId===row.studentId&&result.rawScore!==''&&result.rawScore!=null&&Number(result.rawScore)===payload.rawScore,
+    ()=>{item.textContent=[row.name,row.className,score+'점 · 저장 완료'].filter(Boolean).join(' · ')});
+  });
+  item.append(form);
+ });
 }
 for(const button of document.querySelectorAll('[data-workspace]')){
  button.addEventListener('click',()=>selectWorkspace(button.dataset.workspace));
 }
+$('workspace-absence-form').addEventListener('submit',submitWorkspaceAbsence);
 $('reload-absences').addEventListener('click',loadWorkspaceAbsences);
 $('reload-exams').addEventListener('click',loadWorkspaceExams);
 $('workspace-exam').addEventListener('change',loadWorkspaceRoster);
