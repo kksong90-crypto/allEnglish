@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#173e35">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="allbarun-recording-version" content="8.2.13-STUDENT-SCOPE">
+  <meta name="allbarun-recording-version" content="8.2.14-MOBILE-QUEUE">
   <title>All바른 녹음체크</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
@@ -22,13 +22,20 @@
     </div>
     <div class="head-actions">
       <span id="network-state" class="pill">온라인</span>
-      <span id="sync-state" class="pill">준비</span>
+      <span id="sync-state" class="pill" aria-live="polite">준비</span>
+      <button class="btn secondary" type="button" onclick="flushQueue()">지금 저장</button>
       <button class="icon" type="button" onclick="openSettings()">설정</button>
     </div>
   </div>
 </header>
 
 <main>
+  <nav aria-label="업무 선택" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+    <button class="btn primary" type="button" data-workspace="recording" aria-pressed="true" aria-controls="workspace-recording">녹음체크</button>
+    <button class="btn secondary" type="button" data-workspace="absence" aria-pressed="false" aria-controls="workspace-absence">예정결석</button>
+    <button class="btn secondary" type="button" data-workspace="score" aria-pressed="false" aria-controls="workspace-score">학교시험 성적</button>
+  </nav>
+  <section id="workspace-recording" aria-label="녹음체크">
   <div id="safety-banner" class="safety-banner">
     <b>CoreDB 확정 저장 방식</b>
     <span>서버 저장이 성공한 학생만 체크 상태가 확정됩니다.</span>
@@ -53,9 +60,45 @@
   <div id="classes" aria-live="polite"></div>
   <div id="empty" class="empty" hidden></div>
 
+  </section>
+  <section id="workspace-absence" aria-label="예정결석" hidden>
+    <h2>예정결석</h2>
+    <form id="workspace-absence-form" hidden>
+      <fieldset>
+        <legend>예정결석 등록</legend>
+        <label class="field">학생<select id="workspace-absence-student" required></select></label>
+        <label class="field">시작일<input name="startDate" type="date" required></label>
+        <label class="field">종료일<input name="endDate" type="date"></label>
+        <label class="field">사유<input name="reason" maxlength="200"></label>
+        <button class="btn primary" type="submit">등록</button>
+      </fieldset>
+      <p role="status"></p>
+    </form>
+    <button class="btn secondary" id="reload-absences" type="button">목록 다시 읽기</button>
+    <div id="absence-results" aria-live="polite"></div>
+  </section>
+  <section id="workspace-score" aria-label="학교시험 성적" hidden>
+    <h2>학교시험 성적</h2>
+    <button class="btn primary" id="open-exam-registration" type="button" aria-controls="exam-registration" aria-expanded="false">새 시험 등록</button>
+    <form id="exam-registration" hidden>
+      <fieldset>
+        <legend>학교시험 등록 · 영어</legend>
+        <label class="field">시험일<input name="startDate" type="date" required></label>
+        <label class="field">학교·학년<select name="group" required></select></label>
+        <label class="field">학기<select name="semester" required><option value="">선택</option><option>1학기</option><option>2학기</option></select></label>
+        <label class="field">시험 종류<select name="examType" required><option value="">선택</option><option>중간</option><option>기말</option></select></label>
+        <button class="btn primary" type="submit" disabled>시험과 대상자 등록</button>
+      </fieldset>
+      <p role="status"></p>
+    </form>
+    <button class="btn secondary" id="reload-exams" type="button">시험 목록 다시 읽기</button>
+    <label class="field">학교시험<select id="workspace-exam" disabled></select></label>
+    <div id="score-results" aria-live="polite"></div>
+  </section>
+
   <footer>
     <span id="authoritative-read">서버 확인 전</span>
-    <span>v8.2.13</span>
+    <span>v8.2.13 · 통합 STAGING</span>
   </footer>
 </main>
 
