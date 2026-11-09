@@ -170,16 +170,21 @@ let absenceRead=0,examRead=0,rosterRead=0,registrationRead=0;
 function resetWorkspaceReads(){
  absenceRead++;examRead++;rosterRead++;registrationRead++;
  const registration=$('exam-registration');
- registration.hidden=true;registration.reset();
- registration.elements.group.replaceChildren();
- registration.querySelector('[role=status]').textContent='';
- $('open-exam-registration').setAttribute('aria-expanded','false');
- $('absence-results').replaceChildren();
+ if(registration){
+  registration.hidden=true;registration.reset?.();
+  registration.elements?.group?.replaceChildren?.();
+  const status=registration.querySelector?.('[role=status]');if(status)status.textContent='';
+ }
+ $('open-exam-registration')?.setAttribute?.('aria-expanded','false');
+ $('absence-results')?.replaceChildren?.();
  const absenceForm=$('workspace-absence-form');
- absenceForm.hidden=true;absenceForm.reset();absenceForm.querySelector('[role=status]').textContent='';
- $('workspace-absence-student').replaceChildren();
- $('score-results').replaceChildren();
- const picker=$('workspace-exam');picker.replaceChildren();picker.disabled=true;
+ if(absenceForm){
+  absenceForm.hidden=true;absenceForm.reset?.();
+  const status=absenceForm.querySelector?.('[role=status]');if(status)status.textContent='';
+ }
+ $('workspace-absence-student')?.replaceChildren?.();
+ $('score-results')?.replaceChildren?.();
+ const picker=$('workspace-exam');if(picker){picker.replaceChildren?.();picker.disabled=true;}
 }
 function selectWorkspace(name){
  selectedWorkspace=name;
@@ -356,15 +361,16 @@ function renderWorkspaceScores(root,rows,examId){
  });
 }
 for(const button of document.querySelectorAll('[data-workspace]')){
- button.addEventListener('click',()=>selectWorkspace(button.dataset.workspace));
+ button.addEventListener?.('click',()=>selectWorkspace(button.dataset.workspace));
 }
-$('open-exam-registration').addEventListener('click',toggleExamRegistration);
-$('exam-registration').elements.startDate.addEventListener('change',loadExamRegistrationOptions);
-$('exam-registration').addEventListener('submit',submitExamRegistration);
-$('workspace-absence-form').addEventListener('submit',submitWorkspaceAbsence);
-$('reload-absences').addEventListener('click',loadWorkspaceAbsences);
-$('reload-exams').addEventListener('click',loadWorkspaceExams);
-$('workspace-exam').addEventListener('change',loadWorkspaceRoster);
+$('open-exam-registration')?.addEventListener?.('click',toggleExamRegistration);
+const registrationForm=$('exam-registration');
+registrationForm?.elements?.startDate?.addEventListener?.('change',loadExamRegistrationOptions);
+registrationForm?.addEventListener?.('submit',submitExamRegistration);
+$('workspace-absence-form')?.addEventListener?.('submit',submitWorkspaceAbsence);
+$('reload-absences')?.addEventListener?.('click',loadWorkspaceAbsences);
+$('reload-exams')?.addEventListener?.('click',loadWorkspaceExams);
+$('workspace-exam')?.addEventListener?.('change',loadWorkspaceRoster);
 
 async function resumeRecording(){
  updateNetwork();
