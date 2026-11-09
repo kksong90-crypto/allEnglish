@@ -79,7 +79,18 @@
   </section>
   <section id="workspace-score" aria-label="학교시험 성적" hidden>
     <h2>학교시험 성적</h2>
-    <p>기존 시험의 미입력 점수를 저장할 수 있습니다.</p>
+    <button class="btn primary" id="open-exam-registration" type="button" aria-controls="exam-registration" aria-expanded="false">새 시험 등록</button>
+    <form id="exam-registration" hidden>
+      <fieldset>
+        <legend>학교시험 등록 · 영어</legend>
+        <label class="field">시험일<input name="startDate" type="date" required></label>
+        <label class="field">학교·학년<select name="group" required></select></label>
+        <label class="field">학기<select name="semester" required><option value="">선택</option><option>1학기</option><option>2학기</option></select></label>
+        <label class="field">시험 종류<select name="examType" required><option value="">선택</option><option>중간</option><option>기말</option></select></label>
+        <button class="btn primary" type="submit" disabled>시험과 대상자 등록</button>
+      </fieldset>
+      <p role="status"></p>
+    </form>
     <button class="btn secondary" id="reload-exams" type="button">시험 목록 다시 읽기</button>
     <label class="field">학교시험<select id="workspace-exam" disabled></select></label>
     <div id="score-results" aria-live="polite"></div>
