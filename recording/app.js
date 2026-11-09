@@ -31,11 +31,11 @@ function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().
 function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
-function requireSessionLogin(message){localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
-async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);const error=new Error(message);error.serverRejected=true;throw error}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
+function requireSessionLogin(message){resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);localStorage.removeItem(localKey('dashboard'));const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
+async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message)&&url===apiUrl()&&body.token===token())throw requireSessionLogin(message);const error=new Error(message);error.serverRejected=true;throw error}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
 function updateNetwork(){const online=navigator.onLine,node=$('network-state');node.textContent=online?'온라인':'오프라인';node.className='pill '+(online?'':'offline');document.querySelectorAll('.override-btn').forEach(el=>{el.disabled=!online||APP.saving.size>0})}
 function ensureConnected(){if(!apiUrl()||!token()){$('api-url').value=apiUrl();$('setup-modal').classList.add('show');return false}$('setup-modal').classList.remove('show');return true}
-async function connectServer(){const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});if(apiUrl()!==url){APP.data=null;APP.targetDate='';$('classes').innerHTML=''}localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(true);void flushQueue()}catch(error){setSync('연결 오류','error');toast(error.message)}}
+async function connectServer(){const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});if(apiUrl()!==url){resetWorkspaceReads();APP.data=null;APP.targetDate='';$('classes').innerHTML=''}localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(true);void flushQueue();void loadSelectedWorkspace()}catch(error){setSync('연결 오류','error');toast(error.message)}}
 function closeSetupIfConnected(){if(apiUrl()&&token())$('setup-modal').classList.remove('show')}
 function openConnectionSettings(){closeSettings();resetSetupCopy();$('api-url').value=apiUrl();$('admin-pin').value='';$('setup-modal').classList.add('show')}
 function openSettings(){$('settings-modal').classList.add('show')}
@@ -164,6 +164,90 @@ async function flushQueue(){
 async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.loading||APP.flushing||APP.saving.has(key))return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT'),pending=pendingFor(classId,studentId);APP.saving.add(key);button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});if(pending?.blocked)writeLocal('pending',queued().filter(item=>item.requestId!==pending.requestId));toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain)await verifyUncertainSave(classId,studentId,true,name);else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.saving.delete(key)}}
 async function readServerAgain(){await flushQueue();setSync('다시 읽는 중','saving');const data=await loadData(true,APP.targetDate);if(data)toast('CoreDB 상태를 다시 확인했습니다.')}
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
+// These workspaces use the recording session and read through the existing mobile API.
+let selectedWorkspace='recording';
+let absenceRead=0,examRead=0,rosterRead=0;
+function resetWorkspaceReads(){
+ absenceRead++;examRead++;rosterRead++;
+ $('absence-results').replaceChildren();
+ $('score-results').replaceChildren();
+ const picker=$('workspace-exam');picker.replaceChildren();picker.disabled=true;
+}
+function selectWorkspace(name){
+ selectedWorkspace=name;
+ for(const button of document.querySelectorAll('[data-workspace]')){
+  const current=button.dataset.workspace===name;
+  button.setAttribute('aria-pressed',String(current));
+  button.classList.toggle('primary',current);
+  button.classList.toggle('secondary',!current);
+  $('workspace-'+button.dataset.workspace).hidden=!current;
+ }
+ void loadSelectedWorkspace();
+}
+function loadSelectedWorkspace(){
+ if(selectedWorkspace==='absence')return loadWorkspaceAbsences();
+ if(selectedWorkspace==='score')return loadWorkspaceExams();
+}
+function workspaceList(root,rows,describe,empty){
+ if(!rows.length){root.textContent=empty;return}
+ const list=document.createElement('ul');
+ for(const row of rows){
+  const item=document.createElement('li');
+  item.textContent=describe(row);list.append(item);
+ }
+ root.replaceChildren(list);
+}
+async function loadWorkspaceAbsences(){
+ if(!ensureConnected())return;
+ const root=$('absence-results'),read=++absenceRead;
+ root.textContent='예정결석 목록을 불러오는 중';
+ try{
+  const data=await api('quickAbsences');
+  if(read!==absenceRead)return;
+  workspaceList(root,data.rows||[],row=>[row.studentName,row.className,
+   row.startDate===row.endDate?row.startDate:row.startDate+' ~ '+row.endDate,
+   row.reason].filter(Boolean).join(' · '),'등록된 예정결석이 없습니다.');
+ }catch(error){if(read===absenceRead)root.textContent=error.message}
+}
+async function loadWorkspaceExams(){
+ if(!ensureConnected())return;
+ const picker=$('workspace-exam'),root=$('score-results'),read=++examRead;
+ const previous=picker.value;
+ rosterRead++;picker.disabled=true;root.textContent='학교시험 목록을 불러오는 중';
+ try{
+  const data=await api('quickExamList');
+  if(read!==examRead)return;
+  picker.replaceChildren();
+  for(const row of data.rows||[]){
+   picker.add(new Option(row.name+' · '+row.startDate,row.examId));
+  }
+  if(!picker.options.length){root.textContent='등록된 학교시험이 없습니다.';return}
+  if([...picker.options].some(option=>option.value===previous))picker.value=previous;
+  picker.disabled=false;await loadWorkspaceRoster();
+ }catch(error){if(read===examRead)root.textContent=error.message}
+}
+async function loadWorkspaceRoster(){
+ const examId=$('workspace-exam').value;
+ if(!examId||!ensureConnected())return;
+ const root=$('score-results'),read=++rosterRead;
+ root.textContent='시험 명단을 불러오는 중';
+ try{
+  const data=await api('quickExamRoster',{examId});
+  if(read!==rosterRead)return;
+  workspaceList(root,data.rows||[],row=>{
+   const state=row.targetStatus==='ABSENT'?'결시':row.targetStatus==='REVIEW'?'대상 확인 필요':
+    row.existing&&row.rawScore!==''&&row.rawScore!=null?String(row.rawScore)+'점':'미입력';
+   return [row.name,row.className,state].filter(Boolean).join(' · ');
+  },'이 시험에 등록된 학생이 없습니다.');
+ }catch(error){if(read===rosterRead)root.textContent=error.message}
+}
+for(const button of document.querySelectorAll('[data-workspace]')){
+ button.addEventListener('click',()=>selectWorkspace(button.dataset.workspace));
+}
+$('reload-absences').addEventListener('click',loadWorkspaceAbsences);
+$('reload-exams').addEventListener('click',loadWorkspaceExams);
+$('workspace-exam').addEventListener('change',loadWorkspaceRoster);
+
 async function resumeRecording(){
  updateNetwork();
  await flushQueue();
