@@ -1,10 +1,10 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import {test} from 'node:test';
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
-const line=name=>source.split(/\r?\n/).find(l=>l.startsWith('async function '+name+'('));
+const line=name=>name==='saveOne'?source.slice(source.indexOf('async function saveOne('),source.indexOf('async function acceptBeforeDeadline(')):source.split(/\r?\n/).find(l=>l.startsWith('async function '+name+'('));
 function harness({loading=false,saving=[]}={}){
  const calls=[],APP={loading,saving:new Set(saving),targetDate:'2026-10-06',data:{targetDate:'2026-10-06',classes:[]}},student={name:'Synthetic',received:false,canCheck:true};
  let resolve;const response=new Promise(r=>resolve=r);const state={textContent:''},row={querySelector:()=>state,classList:{add(){},remove(){},toggle(){}}},input={checked:true,isConnected:true,closest:()=>row};
- const ctx={APP,Date,Error,navigator:{onLine:true},ensureConnected:()=>true,setSync(){},toast(){},render(){},renderError(){},updateNetwork(){},confirm:()=>true,requestId:()=> 'SYNTHETIC',findStudent:()=>student,applySummary(){},api:async(action,payload)=>{calls.push({action,payload});return response;}};
+ const ctx={APP,Date,Error,navigator:{onLine:true},ensureConnected:()=>true,clearDashboardCache(){},setSync(){},toast(){},render(){},renderError(){},updateNetwork(){},confirm:()=>true,requestId:()=> 'SYNTHETIC',findStudent:()=>student,applySummary(){},api:async(action,payload)=>{calls.push({action,payload});return response;}};
  Object.assign(ctx,{performance,renderReadTiming(){},$:()=>({textContent:''})});
  vm.createContext(ctx);vm.runInContext(['loadData','selectDate','saveOne','verifyUncertainSave','acceptBeforeDeadline'].map(line).join('\n'),ctx);
  return {ctx,APP,calls,input,resolve,event:{preventDefault(){},stopPropagation(){},currentTarget:{disabled:false}}};
