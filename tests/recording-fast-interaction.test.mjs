@@ -8,7 +8,7 @@ const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf
 test('recording restores a server-confirmed screen before starting background refresh',()=>{
   const startup="if(ensureConnected()){restoreDashboardCache();void loadData(false,'');}";
   assert.ok(source.includes(startup));
-  assert.ok(source.indexOf('restoreDashboardCache()')<source.lastIndexOf('void loadData(false,'')'));
+  assert.ok(source.indexOf('restoreDashboardCache()')<source.lastIndexOf("void loadData(false,'')"));
   assert.match(source,/cached\.apiUrl!==apiUrl\(\)/);
   assert.match(source,/saveDashboardCache\(data\)/);
 });
