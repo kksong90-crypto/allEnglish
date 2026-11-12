@@ -351,6 +351,11 @@ $('reload-absences')?.addEventListener?.('click',loadWorkspaceAbsences);
 $('reload-exams')?.addEventListener?.('click',loadWorkspaceExams);
 $('workspace-exam')?.addEventListener?.('change',loadWorkspaceRoster);
 
+function initialRecordingTargetDate(now=Date.now()){
+ const day=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date(value));
+ return APP.targetDate&&APP.lastLoaded&&day(APP.lastLoaded)===day(now)?APP.targetDate:'';
+}
+
 async function refreshRecording(){
  if(document.hidden||!navigator.onLine||!apiUrl()||!token())return;
  if(APP.loading||APP.saving.size||APP.accepting){
@@ -370,4 +375,4 @@ document.addEventListener('visibilitychange',()=>{
 });
 if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},60000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
-updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,'');}
+updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}

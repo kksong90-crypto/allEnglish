@@ -6,9 +6,9 @@ import {test} from 'node:test';
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 
 test('recording restores a server-confirmed screen before starting background refresh',()=>{
-  const startup="if(ensureConnected()){restoreDashboardCache();void loadData(false,'');}";
+  const startup="if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}";
   assert.ok(source.includes(startup));
-  assert.ok(source.indexOf('restoreDashboardCache()')<source.lastIndexOf("void loadData(false,'')"));
+  assert.ok(source.indexOf('restoreDashboardCache()')<source.lastIndexOf("void loadData(false,initialRecordingTargetDate())"));
   assert.match(source,/cached\.apiUrl!==apiUrl\(\)/);
   assert.match(source,/saveDashboardCache\(data\)/);
 });
@@ -76,4 +76,19 @@ test('secondary workspaces stay lazy and cannot block recording startup',()=>{
   assert.ok(body.includes("selectedWorkspace==='absence'"));
   assert.ok(body.includes("selectedWorkspace==='score'"));
   assert.ok(!body.includes("selectedWorkspace==='recording'"));
+});
+
+function startupTarget(app,now){
+ const ctx={APP:app,Date,Intl};vm.createContext(ctx);
+ vm.runInContext(source.slice(source.indexOf('function initialRecordingTargetDate('),source.indexOf('async function refreshRecording(')),ctx);
+ return ctx.initialRecordingTargetDate(Date.parse(now));
+}
+test('reload retains the selected recording date within the same Korean day',()=>{
+ assert.equal(startupTarget({targetDate:'2026-11-16',lastLoaded:Date.parse('2026-11-12T18:41:00+09:00')},'2026-11-12T18:42:00+09:00'),'2026-11-16');
+});
+test('crossing Korean midnight returns to the server default even within the cache lifetime',()=>{
+ assert.equal(startupTarget({targetDate:'2026-11-12',lastLoaded:Date.parse('2026-11-12T23:59:00+09:00')},'2026-11-13T00:01:00+09:00'),'');
+});
+test('a fresh start without a restored screen requests the server default',()=>{
+ assert.equal(startupTarget({targetDate:'',lastLoaded:0},'2026-11-12T18:42:00+09:00'),'');
 });
