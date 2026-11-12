@@ -13,8 +13,9 @@ test('recording restores a server-confirmed screen before starting background re
   assert.match(source,/saveDashboardCache\(data\)/);
 });
 
-function harness(){
-  const students={A:{received:false,canCheck:true},B:{received:false,canCheck:true}};
+function harness(count=2){
+  const names=count===2?['A','B']:Array.from({length:count},(_,i)=>'S'+i);
+  const students=Object.fromEntries(names.map(name=>[name,{received:false,canCheck:true}]));
   const calls=[], pending={}, APP={data:{totalReceived:0},saving:new Set(),targetDate:'2026-11-10'};
   const ctx={APP,findStudent:(_,id)=>students[id],requestId:()=> 'test',
     navigator:{onLine:true},setSync(){},toast(){},applySavedStudentScope(){},clearDashboardCache(){},
@@ -29,8 +30,8 @@ function harness(){
   const input=()=>{const state={textContent:''};return {checked:true,state,isConnected:true,closest:()=>({
     querySelector:()=>state,classList:{add(){},remove(){},toggle(){}}
   })}};
-  const first=input(), second=input();
-  return {APP,calls,pending,first,second,start:()=>[ctx.saveOne(first,'C','A'),ctx.saveOne(second,'C','B')]};
+  const inputs=names.map(input),[first,second]=inputs;
+  return {APP,calls,pending,first,second,inputs,names,start:()=>names.map((name,i)=>ctx.saveOne(inputs[i],'C',name))};
 }
 
 test('rapid checks show immediately and send the second request only after the first response',async()=>{
@@ -56,6 +57,16 @@ test('one failed check cannot subtract a different confirmed check',async()=>{
   assert.equal(h.APP.data.totalReceived,1);
   assert.equal(h.first.checked,true);
   assert.equal(h.second.checked,false);
+});
+
+test('thirty rapid checks remain visible and all thirty are confirmed without overlapping writes',async()=>{
+ const h=harness(30),writes=h.start();
+ assert.equal(h.APP.saving.size,30);assert.ok(h.inputs.every(input=>input.checked));
+ for(let i=0;i<30;i++){
+  await Promise.resolve();assert.equal(h.calls.length,i+1);assert.equal(h.calls[i],h.names[i]);
+  h.pending[h.names[i]].resolve({status:'RECEIVED',received:true,summary:{received:i+1}});await writes[i];
+ }
+ assert.equal(h.APP.data.totalReceived,30);assert.equal(h.APP.saving.size,0);assert.ok(h.inputs.every(input=>input.checked&&!input.disabled));
 });
 
 test('an uncertain save pauses queued writes and rereads the same date once',async()=>{
@@ -92,3 +103,4 @@ test('crossing Korean midnight returns to the server default even within the cac
 test('a fresh start without a restored screen requests the server default',()=>{
  assert.equal(startupTarget({targetDate:'',lastLoaded:0},'2026-11-12T18:42:00+09:00'),'');
 });
+
