@@ -87,7 +87,7 @@ function createRecordingJournal(storage){
 }
 function recordingJournal(){return createRecordingJournal(localStorage)}
 function recordingSession(){return token().split('.')[0]}
-function pendingRecordingChecks(){try{return recordingJournal().list(apiUrl()).items}catch(_){return[]}}
+function pendingRecordingChecks(){try{return apiUrl()?recordingJournal().list(apiUrl()).items:[]}catch(_){return[]}}
 function classifyRecordingAttempt(a,scope,date,student,blocked=false){
  if(blocked||a.apiUrl!==scope.apiUrl||a.targetDate!==date||!student)return'WAIT';
  if(student.received===a.received)return'CONFIRMED';
@@ -99,6 +99,7 @@ function retainRecordingAttempt(a,state){try{recordingJournal().put({...a,state}
 function removeRecordingAttempt(a){try{recordingJournal().remove(a);return true}catch(_){toast('저장은 확인했지만 기기의 보관 정보를 정리하지 못했습니다.');return false}}
 function renderRecordingRecovery(){
  const panel=$('recording-recovery');if(!panel)return;
+ if(!apiUrl()){panel.hidden=true;return}
  let journal;try{journal=recordingJournal().list(apiUrl())}catch(_){panel.hidden=false;panel.textContent='이 기기에 체크를 보관할 수 없습니다. 브라우저 저장 설정을 확인하세요.';return}
  panel.replaceChildren();panel.hidden=!journal.items.length&&!journal.damaged;if(panel.hidden)return;
  const title=document.createElement('b');title.textContent=`이 기기에 보관된 체크 ${journal.items.length}건`;panel.append(title);
@@ -472,4 +473,5 @@ document.addEventListener('visibilitychange',()=>{
 if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},60000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
 updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}
+renderRecordingRecovery();
 
