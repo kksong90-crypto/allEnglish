@@ -2,6 +2,7 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {journalContext} from './recording-journal-harness.mjs';
 
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 
@@ -17,7 +18,7 @@ function harness(count=2){
   const names=count===2?['A','B']:Array.from({length:count},(_,i)=>'S'+i);
   const students=Object.fromEntries(names.map(name=>[name,{received:false,canCheck:true}]));
   const calls=[], pending={}, APP={data:{totalReceived:0},saving:new Set(),targetDate:'2026-11-10'};
-  const ctx={APP,findStudent:(_,id)=>students[id],requestId:()=> 'test',
+  const ctx={...journalContext(),APP,findStudent:(_,id)=>students[id],requestId:()=> 'REC_SAVE_'+Math.random().toString(16).slice(2),
     navigator:{onLine:true},setSync(){},toast(){},applySavedStudentScope(){},clearDashboardCache(){},
     loadData:async (...args)=>{calls.push(args);return null;},
     applySummary(summary){APP.data.totalReceived=summary.received;},

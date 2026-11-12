@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {journalContext} from './recording-journal-harness.mjs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
@@ -6,7 +7,7 @@ const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf
 function harness(){
  const old={targetDate:'2026-11-16',classes:[]},fresh={targetDate:'2026-11-16',classes:[],marker:'stale-response'};
  let resolve,resolveRefresh,onSaved;const pending=new Promise(r=>resolve=r),nextRead=new Promise(r=>resolveRefresh=r),renders=[],cached=[],refreshes=[],APP={targetDate:old.targetDate,data:old,saving:new Set()};let requests=0;
- const ctx={APP,performance,ensureConnected:()=>true,setSync(){},toast(){},clearDashboardCache(){},updateNetwork(){},renderError(){},renderReadTiming(){},
+ const ctx={...journalContext(),APP,performance,ensureConnected:()=>true,setSync(){},toast(){},clearDashboardCache(){},updateNetwork(){},renderError(){},renderReadTiming(){},
   render:data=>renders.push(data),saveDashboardCache:data=>cached.push(data),api:()=>{if(!requests++)return pending;refreshes.push('refresh');return nextRead;},
   document:{hidden:false},navigator:{onLine:true},apiUrl:()=> 'SYNTHETIC_API',token:()=> 'SYNTHETIC_SESSION',
   FormData:class{get(k){return {startDate:'2026-11-16',endDate:'2026-11-16',reason:'synthetic'}[k]||''}},

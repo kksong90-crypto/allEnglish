@@ -2,13 +2,14 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {journalContext} from './recording-journal-harness.mjs';
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 function harness(result){
  const student={received:false,status:'UNKNOWN',canCheck:true,revision:'READ_REVISION'};
  const reads=[],writes=[],summaries=[],messages=[],APP={data:{},targetDate:'2026-11-16',saving:new Set()};
  const state={textContent:'미확인'},row={querySelector:()=>state,classList:{add(){},remove(){},toggle(){}}};
  const input={checked:true,isConnected:true,closest:()=>row};
- const ctx={APP,navigator:{onLine:true},findStudent:()=>student,requestId:()=> 'SYNTHETIC_REQUEST',clearDashboardCache(){},
+ const ctx={...journalContext(),APP,navigator:{onLine:true},findStudent:()=>student,requestId:()=> 'REC_SAVE_'+Math.random().toString(16).slice(2),clearDashboardCache(){},
   setSync(){},toast:m=>messages.push(m),applySavedStudentScope(){},applySummary:s=>summaries.push(s),
   api:async(_action,payload)=>{writes.push(payload);return result;},loadData:async(...args)=>{reads.push(args);return null;}};
  vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('async function saveOne('),source.indexOf('async function acceptBeforeDeadline(')),ctx);
