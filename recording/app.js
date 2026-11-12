@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.14',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.15',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -26,11 +26,11 @@ function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().
 function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore|quickRegisterSchoolExam)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
-function requireSessionLogin(message){clearDashboardCache();APP.preview=true;$('classes').innerHTML='';APP.data=null;resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
+function requireSessionLogin(message){clearDashboardCache();APP.readEpoch=(APP.readEpoch||0)+1;APP.preview=true;$('classes').innerHTML='';APP.data=null;resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
 async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController();let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);let definitive=false;try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}definitive=true;if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);throw new Error(message)}return json.data}catch(error){if(error?.name==='AbortError'){const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}if(write&&!definitive)error.uncertain=true;throw error}finally{clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
 function updateNetwork(){const online=navigator.onLine,node=$('network-state');node.textContent=online?'온라인':'오프라인';node.className='pill '+(online?'':'offline');document.querySelectorAll('input[type=checkbox],.override-btn').forEach(el=>{if(!online)el.disabled=true})}
 function ensureConnected(){if(!apiUrl()||!token()){$('api-url').value=apiUrl();$('setup-modal').classList.add('show');return false}$('setup-modal').classList.remove('show');return true}
-async function connectServer(){if(APP.loading||APP.saving.size){toast('진행 중인 작업이 끝난 뒤 연결을 변경하세요.');return}const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});clearDashboardCache();resetWorkspaceReads();APP.preview=true;APP.data=null;$('classes').innerHTML='';localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(false);void loadSelectedWorkspace()}catch(error){setSync('연결 오류','error');toast(error.message)}}
+async function connectServer(){if(APP.loading||APP.saving.size){toast('진행 중인 작업이 끝난 뒤 연결을 변경하세요.');return}const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});clearDashboardCache();APP.readEpoch=(APP.readEpoch||0)+1;resetWorkspaceReads();APP.preview=true;APP.data=null;$('classes').innerHTML='';localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(false);void loadSelectedWorkspace()}catch(error){setSync('연결 오류','error');toast(error.message)}}
 function closeSetupIfConnected(){if(apiUrl()&&token())$('setup-modal').classList.remove('show')}
 function openConnectionSettings(){closeSettings();resetSetupCopy();$('api-url').value=apiUrl();$('admin-pin').value='';$('setup-modal').classList.add('show')}
 function openSettings(){$('settings-modal').classList.add('show')}
@@ -58,7 +58,8 @@ function renderReadTiming(data,elapsedMs,error){
  }
  node.textContent=lines.join('\n');
 }
-async function loadData(force=false,targetDate=APP.targetDate,verifyPending=false){if(!ensureConnected()||APP.loading||(APP.saving.size&&!(verifyPending&&APP.saving.size===1)))return null;APP.loading=true;const readStarted=performance.now();setSync('서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate,force,readOnly:true,readOnlyCandidateCache:true},{onSlow:()=>setSync('조회 지연 · 기존 화면 유지','error')});if(!data||!/^\d{4}-\d{2}-\d{2}$/.test(data.targetDate)||(targetDate&&data.targetDate!==targetDate))throw new Error('요청한 날짜와 응답 날짜가 다릅니다. 기존 화면을 유지합니다.');APP.preview=false;APP.needsRead=false;APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();render(data);if(typeof saveDashboardCache==='function')saveDashboardCache(data);renderReadTiming(data,performance.now()-readStarted,false);setSync('저장 준비','');return data}catch(error){renderReadTiming(null,performance.now()-readStarted,true);if(error.authRequired){toast('세션이 만료되었습니다. 기존 PIN으로 다시 로그인하세요.')}else if(APP.data){setSync('조회 지연 · 기존 화면 유지','error');toast(error.message)}else{renderError(error);setSync('오류','error')}return null}finally{APP.loading=false;updateNetwork()}}
+function invalidateRecordingRead(){APP.readEpoch=(APP.readEpoch||0)+1;APP.needsRead=true;APP.refreshPending=true;clearDashboardCache();}
+async function loadData(force=false,targetDate=APP.targetDate,verifyPending=false){if(!ensureConnected()||APP.loading||(APP.saving.size&&!(verifyPending&&APP.saving.size===1)))return null;APP.loading=true;const readEpoch=APP.readEpoch||0;const readStarted=performance.now();setSync('서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate,force,readOnly:true,readOnlyCandidateCache:true},{onSlow:()=>setSync('조회 지연 · 기존 화면 유지','error')});if(readEpoch!==(APP.readEpoch||0))return null;if(!data||!/^\d{4}-\d{2}-\d{2}$/.test(data.targetDate)||(targetDate&&data.targetDate!==targetDate))throw new Error('요청한 날짜와 응답 날짜가 다릅니다. 기존 화면을 유지합니다.');APP.preview=false;APP.needsRead=false;APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();render(data);if(typeof saveDashboardCache==='function')saveDashboardCache(data);renderReadTiming(data,performance.now()-readStarted,false);setSync('저장 준비','');return data}catch(error){renderReadTiming(null,performance.now()-readStarted,true);if(error.authRequired){toast('세션이 만료되었습니다. 기존 PIN으로 다시 로그인하세요.')}else if(APP.data){setSync('조회 지연 · 기존 화면 유지','error');toast(error.message)}else{renderError(error);setSync('오류','error')}return null}finally{APP.loading=false;updateNetwork();if(APP.refreshPending&&!APP.saving.size&&!APP.accepting&&typeof refreshRecording==='function')void refreshRecording()}}
 function renderError(error){const banner=$('notice-banner');banner.className='notice-banner error';$('notice-title').textContent='불러오기 실패';$('notice-detail').textContent=error.message;$('classes').innerHTML='';$('empty').hidden=false;$('empty').textContent='서버 데이터를 확인하지 못했습니다. 설정에서 연결 상태를 확인하세요.'}
 function render(data){renderDates(data.candidates||[]);renderSummary(data);renderClasses(data.classes||[]);$('now-label').textContent=`${data.targetLabel} · 서버 ${data.lastAuthoritativeReadAt}`;$('authoritative-read').textContent=`CoreDB 최종 확인 ${data.lastAuthoritativeReadAt} · ${data.sourceOfTruth}`}
 function renderDates(items){$('date-strip').innerHTML=items.map(item=>`<button type="button" class="date-chip ${item.date===APP.targetDate?'active':''}" onclick="selectDate('${esc(item.date)}')">${esc(item.shortLabel)}<span class="tiny">${item.studentCount}명</span></button>`).join('')}
@@ -82,6 +83,7 @@ async function saveOne(input,classId,studentId){
   return;
  }
  const desired=input.checked,date=APP.targetDate,id=requestId('REC_SAVE');
+ const revision=typeof student.revision==='string'?{expectedRevision:student.revision}:{};
  const row=input.closest('.student'),state=row.querySelector('.state');
  const before=state.textContent;
  APP.saving.add(key);
@@ -98,11 +100,17 @@ async function saveOne(input,classId,studentId){
     throw new Error('서버 상태 확인 후 이 학생을 다시 체크하세요.');
    }
    state.textContent=desired?'제출 · 저장 중':'미확인 · 저장 중';
-   const result=await api('opsSaveOne',{targetDate:date,classId,studentId,received:desired,requestId:id},
+   const result=await api('opsSaveOne',{targetDate:date,classId,studentId,received:desired,requestId:id,...revision},
     {requestId:id,onSlow:()=>{state.textContent='서버 저장 확인 중…'}});
    if(APP.preview)return;
+   if(result?.conflict){const error=new Error('다른 화면에서 이 학생의 체크가 변경되었습니다. 최신 상태를 다시 확인합니다.');error.conflict=true;throw error;}
+   if(!result||result.ok===false||result.received!==desired||result.status!==(desired?'RECEIVED':'UNKNOWN')||!result.summary||
+      (result.targetDate&&result.targetDate!==date)||(result.classId&&result.classId!==classId)||(result.studentId&&result.studentId!==studentId)){
+    const error=new Error('저장 응답이 요청과 일치하지 않아 서버 상태를 다시 확인합니다.');error.uncertain=true;throw error;
+   }
    student.status=result.status;
    student.received=result.received;
+   if(typeof result.revision==='string')student.revision=result.revision;
    student.savedAt=result.received?result.savedAt:'';
    applySavedStudentScope(row,student,result);
    row.classList.toggle('received',result.received);
@@ -113,10 +121,11 @@ async function saveOne(input,classId,studentId){
   }catch(error){
    row.classList.add('error');
    input.checked=student.received;
-   if(error.uncertain){
+   if(error.uncertain||error.conflict){
     APP.needsRead=true;
-    state.textContent='저장 결과 미확인';
+    state.textContent=error.conflict?'다른 화면의 변경 확인 중':'저장 결과 미확인';
     setSync('저장 결과 확인 필요','error');
+    if(error.conflict)toast(error.message);
    }else{
     state.textContent=before;
     setSync(APP.preview?'로그인 필요':'저장 실패','error');
@@ -222,7 +231,7 @@ function submitWorkspaceAbsence(event){
   form.querySelector('[role=status]').textContent='학생과 결석 기간을 확인하세요.';return;
  }
  void saveWorkspaceForm(form,'quickSaveAbsence',{studentId,startDate,endDate,reason},
-  result=>Boolean(result?.plannedAbsenceId),result=>{form.reset();if(result.noticeRefreshPending)toast('예정결석 저장 완료 · 녹음 공지 갱신을 확인하세요.');clearDashboardCache();APP.needsRead=true;void loadWorkspaceAbsences();void loadData(false,APP.targetDate)});
+  result=>Boolean(result?.plannedAbsenceId),result=>{form.reset();if(result.noticeRefreshPending)toast('예정결석 저장 완료 · 녹음 공지 갱신을 확인하세요.');invalidateRecordingRead();void loadWorkspaceAbsences();void refreshRecording()});
 }
 async function loadWorkspaceAbsences(){
  if(!ensureConnected())return;
@@ -376,3 +385,4 @@ document.addEventListener('visibilitychange',()=>{
 if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},60000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
 updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}
+
