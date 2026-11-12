@@ -130,6 +130,8 @@ async function saveOne(input,classId,studentId){
   if(APP.needsRead&&!APP.saving.size&&!APP.preview){
    const latest=await loadData(true,date);
    if(latest)setSync('서버 상태 재확인 완료','');
+  }else if(APP.refreshPending&&!APP.saving.size&&typeof refreshRecording==='function'){
+   await refreshRecording();
   }
  };
  const queued=(APP.writeQueue||Promise.resolve()).then(write);
@@ -137,7 +139,7 @@ async function saveOne(input,classId,studentId){
  return queued;
 }
 
-async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.preview||APP.needsRead||APP.loading||APP.saving.size)return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT');APP.saving.add(key);APP.accepting=true;clearDashboardCache();button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain){APP.needsRead=true;await verifyUncertainSave(classId,studentId,true,name);}else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.accepting=false;APP.saving.delete(key)}}
+async function acceptBeforeDeadline(event,classId,studentId,name){event.preventDefault();event.stopPropagation();const key=`${classId}|${studentId}`;if(APP.preview||APP.needsRead||APP.loading||APP.saving.size)return;if(!confirm(`${name} 학생이 15시 전에 실제 제출한 것을 확인했습니까?\n이 작업은 마감 후 예외 인정으로 기록됩니다.`))return;const button=event.currentTarget,id=requestId('REC_ACCEPT');APP.saving.add(key);APP.accepting=true;clearDashboardCache();button.disabled=true;setSync('예외 인정 저장 중','saving');try{const result=await api('opsAcceptBeforeDeadline',{targetDate:APP.targetDate,classId,studentId,requestId:id},{requestId:id,onSlow:()=>setSync('예외 인정 확인 중','saving')});toast(`${name} 마감 전 제출 인정 완료`);applySummary(result.summary,result.notice);await loadData(true,APP.targetDate,true)}catch(error){if(error.uncertain){APP.needsRead=true;await verifyUncertainSave(classId,studentId,true,name);}else{setSync('저장 실패','error');toast(error.message);button.disabled=false}}finally{APP.accepting=false;APP.saving.delete(key);if(APP.refreshPending&&typeof refreshRecording==='function')void refreshRecording()}}
 async function readServerAgain(){setSync('다시 읽는 중','saving');const data=await loadData(true,APP.targetDate);if(data)toast('CoreDB 상태를 다시 확인했습니다.')}
 async function runAudit(){const out=$('audit-result');out.textContent='진단 중…';try{const result=await api('opsAuditDate',{targetDate:APP.targetDate});out.textContent=JSON.stringify(result,null,2)}catch(error){out.textContent='진단 실패: '+error.message}}
 // These workspaces use the recording session and read through the existing mobile API.
@@ -349,6 +351,23 @@ $('reload-absences')?.addEventListener?.('click',loadWorkspaceAbsences);
 $('reload-exams')?.addEventListener?.('click',loadWorkspaceExams);
 $('workspace-exam')?.addEventListener?.('change',loadWorkspaceRoster);
 
-window.addEventListener('online',()=>{updateNetwork();loadData(false,APP.preview?'':APP.targetDate)});window.addEventListener('offline',updateNetwork);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-APP.lastLoaded>180000)loadData(false,'')});
+async function refreshRecording(){
+ if(document.hidden||!navigator.onLine||!apiUrl()||!token())return;
+ if(APP.loading||APP.saving.size||APP.accepting){
+  APP.refreshPending=true;
+  return;
+ }
+ APP.refreshPending=false;
+ const day=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul'}).format(new Date(value));
+ const crossedDay=APP.lastLoaded&&day(APP.lastLoaded)!==day(Date.now());
+ await loadData(Boolean(APP.needsRead),APP.preview||crossedDay?'':APP.targetDate);
+}
+window.addEventListener('online',()=>{updateNetwork();void refreshRecording()});
+window.addEventListener('offline',updateNetwork);
+window.addEventListener('pageshow',event=>{if(event.persisted)void refreshRecording()});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)void refreshRecording();
+});
+if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},60000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
 updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,'');}
