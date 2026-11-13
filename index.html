@@ -607,6 +607,7 @@ async function fetchSheet(sheetName) {
     let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
     let currentTestMeta = null;
     let assignedPracticeRequestSerial = 0;
+    let assignedPracticeState = null;
     let testAlreadySaved = false;
     let currentTabId = "home";
     let appTabHistory = [];
@@ -1346,6 +1347,7 @@ async function loadHomeContent(forceRefresh = false) {
       wrongWords = [];
       currentTestMeta = null;
       assignedPracticeRequestSerial += 1;
+      assignedPracticeState = null;
       const practiceTarget = document.getElementById("practice-view");
       if (practiceTarget) practiceTarget.innerHTML = '<div class="card">학습일정에서 연습할 시험범위를 다시 선택하세요.</div>';
       serverWrongWords = [];
@@ -1745,6 +1747,17 @@ function printMyScoreReport() {
       if (!section) return;
 
       const previousTab = getActiveTabId();
+      // Leaving a private practice discards its unsaved answers and releases any update hold.
+      if (previousTab === "practice" && tabId !== "practice") {
+        assignedPracticeState = null;
+        assignedPracticeRequestSerial += 1;
+        if (currentTestMeta?.targetId === "practice-view") {
+          currentTestMeta = null;
+          testAlreadySaved = true;
+        }
+        const practiceView = document.getElementById("practice-view");
+        if (practiceView) practiceView.innerHTML = '<div class="card">학습일정에서 시험범위 연습을 다시 시작할 수 있습니다.</div>';
+      }
 
       if (!options.skipHistory && previousTab && previousTab !== tabId) {
         appTabHistory.push(previousTab);
@@ -2141,17 +2154,11 @@ async function startAssignedVocaPractice(testPlanId, button) {
         String(question.bookId || ""), answers.join("|"), String(question.vocabWordId || "")];
     });
     if (rows.some(row => !row)) throw new Error("시험범위 문항이 일부 누락되었습니다. 최신 학습일정을 확인해 주세요.");
-    const today = String(result.planDate || "") === getTodayString();
-    renderTest(rows, {
-      mode: "meaning",
-      modeLabel: today ? "오늘 단어시험 사전 연습" : "배정 시험범위 사전 연습",
-      targetId: "practice-view",
-      book: "[시험범위]",
-      day: String(result.planDate || "배정 계획"),
-      source: "ASSIGNED_TEST_PLAN",
-      testPlanId: planId,
-      skipSave: true
-    });
+    assignedPracticeState = {
+      planId, rows, planDate: String(result.planDate || ""), epoch,
+      token: currentUser.token, mode: "", study: null, finished: true
+    };
+    renderAssignedPracticeMenu();
   } catch (error) {
     if (!current()) return;
     target.innerHTML = '<div class="card">' + escapeHtml(error?.message || "연습을 시작하지 못했습니다.") +
@@ -2161,6 +2168,247 @@ async function startAssignedVocaPractice(testPlanId, button) {
     if (button) { button.disabled = false; button.textContent = originalText; }
   }
 }
+
+/* Isolated in-memory practice. It never calls saveVocabResult or awards points. */
+function isAssignedPracticeCurrent() {
+  return !!assignedPracticeState &&
+    assignedPracticeState.epoch === studentSessionEpoch &&
+    assignedPracticeState.token === currentUser?.token &&
+    getActiveTabId() === "practice";
+}
+function isActivePracticeDraft() {
+  return isAssignedPracticeCurrent() &&
+    !assignedPracticeState.finished &&
+    ["card", "recall", "spell", "mock"].includes(assignedPracticeState.mode);
+}
+function assignedPracticeHeader() {
+  if (!isAssignedPracticeCurrent()) return "";
+  const data = assignedPracticeState;
+  const options = [["card", "암기 카드"], ["recall", "리콜"], ["spell", "스펠링"], ["mock", "실전 TEST"]];
+  return '<div class="practice-head"><div class="practice-kicker">ALLBARUN · EXAM PRACTICE</div>' +
+    '<h3>시험 전 단어 연습</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
+    ' · 확정된 시험범위 ' + data.rows.length + '문항</p>' +
+    '<p class="practice-scope-note">개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    '<div class="practice-modes" role="group" aria-label="시험 전 연습 방식">' +
+    options.map(([value, label]) =>
+      '<button type="button" class="practice-mode ' + (data.mode === value ? 'active' : '') +
+      '" onclick="assignedPracticeChooseMode(\'' + value + '\')">' + label + '</button>'
+    ).join("") + '</div></div>';
+}
+function renderAssignedPracticeMenu() {
+  if (!isAssignedPracticeCurrent()) return;
+  assignedPracticeState.mode = "";
+  assignedPracticeState.finished = true;
+  assignedPracticeState.study = null;
+  const target = document.getElementById("practice-view");
+  if (!target) return;
+  target.innerHTML = assignedPracticeHeader() +
+    '<div class="practice-panel"><strong>오늘 시험 준비 방식 선택</strong>' +
+    '<p>단어를 아직 외우지 못했다면 암기 카드부터, 어느 정도 외웠다면 스펠링이나 실전 TEST를 선택하세요.</p>' +
+    '<p>리콜은 뜻이 서로 겹치지 않는 문제에 한하여 객관식으로 연습합니다.</p>' +
+    '<button type="button" class="vocab-btn secondary" onclick="showTab(\'home\')">학습일정으로 돌아가기</button></div>';
+}
+function assignedPracticeAnswerText(row) {
+  return [row?.[2],row?.[6]].filter(hasVocabText).map(String).join("|");
+}
+function assignedPracticeRecallChoices(index) {
+  const state = assignedPracticeState;
+  if (!state) return null;
+  const question = state.rows[index];
+  if (!question || !question[2]) return null;
+  // Prompts shared by two different words can have more than one correct meaning.
+  if (state.rows.some((other, i) =>
+    i !== index && normalizeAnswer(other[3]) === normalizeAnswer(question[3]) &&
+    normalizeAnswer(other[2]) !== normalizeAnswer(question[2]))) return null;
+  const correct = String(question[2]);
+  const seen = new Set([normalizeAnswer(correct)]);
+  const others = shuffleArray(state.rows.filter((other,i) =>
+    i !== index && normalizeAnswer(other[3]) !== normalizeAnswer(question[3])))
+    .map(other => String(other[2]))
+    .filter(value => {
+      const normalized = normalizeAnswer(value);
+      if (!normalized || seen.has(normalized) ||
+          isAnswerCorrect(value, assignedPracticeAnswerText(question))) return false;
+      seen.add(normalized);
+      return true;
+    });
+  if (others.length < 3) return null;
+  return shuffleArray([correct, ...others.slice(0,3)]);
+}
+function assignedPracticeChooseMode(mode) {
+  if (!isAssignedPracticeCurrent() || !["card","recall","spell","mock"].includes(mode)) return;
+  const state = assignedPracticeState;
+  // Clear any previous mock draft; other word tests are unaffected.
+  if (currentTestMeta?.targetId === "practice-view") {
+    currentTestMeta = null;
+    testAlreadySaved = true;
+  }
+  state.mode = mode;
+  state.finished = false;
+  if (mode === "mock") {
+    state.study = null;
+    renderTest([...state.rows], {
+      mode: "meaning", modeLabel: "학원 단어시험 실전 모의연습",
+      targetId: "practice-view", source: "ASSIGNED_TEST_PLAN",
+      book: "[시험범위]", day: state.planDate || "배정 계획",
+      testPlanId: state.planId, skipSave: true
+    });
+    document.getElementById("practice-view")
+      .insertAdjacentHTML("afterbegin", assignedPracticeHeader());
+    return;
+  }
+  const indices = state.rows.map((_,i)=>i);
+  const choiceMap = new Map();
+  const eligible = mode === "recall" ? indices.filter(index => {
+    const choices = assignedPracticeRecallChoices(index);
+    if (!choices) return false;
+    choiceMap.set(index, choices);
+    return true;
+  }) : indices;
+  if (!eligible.length) {
+    state.finished = true;
+    state.study = null;
+    document.getElementById("practice-view").innerHTML = assignedPracticeHeader() +
+      '<div class="practice-panel">이 시험범위는 중복된 뜻이나 보기 수 때문에 객관식 리콜을 안전하게 구성할 수 없습니다. 스펠링 연습을 이용하세요.</div>';
+    return;
+  }
+  state.study = {
+    queue: eligible, total: eligible.length, completed:0,
+    seen: new Map(), needsReview: new Set(), misses:0,
+    revealed:false, feedback:null, choiceMap
+  };
+  renderAssignedPracticeStudy();
+}
+function assignedPracticeCurrentIndex() {
+  return assignedPracticeState?.study?.queue?.[0];
+}
+function assignedPracticeRenderFinish() {
+  const study = assignedPracticeState.study;
+  assignedPracticeState.finished = true;
+  const note = study.needsReview.size ? '<p>아직 어려운 단어 ' + study.needsReview.size +
+    '개는 스펠링 연습이나 실전 TEST에서 다시 확인하세요.</p>' :
+    '<p>이 연습을 마쳤습니다. 실제 시험 준비 상태는 실전 TEST로 확인하세요.</p>';
+  return assignedPracticeHeader() + '<div class="practice-panel practice-finished"><h3>이번 연습 완료</h3>' +
+    '<p>연습한 단어 ' + study.total + '개 · 오답 ' + study.misses + '회</p>' + note +
+    '<button class="vocab-btn" type="button" onclick="assignedPracticeChooseMode(\'mock\')">실전 TEST 풀기</button> ' +
+    '<button class="vocab-btn secondary" type="button" onclick="assignedPracticeChooseMode(\'' +
+    assignedPracticeState.mode + '\')">이 방식 다시 연습</button></div>';
+}
+function renderAssignedPracticeStudy() {
+  if (!isAssignedPracticeCurrent()) return;
+  const state = assignedPracticeState, study = state.study;
+  if (!study) return;
+  const target = document.getElementById("practice-view");
+  if (!study.queue.length) {
+    target.innerHTML = assignedPracticeRenderFinish();
+    return;
+  }
+  const index = assignedPracticeCurrentIndex(), row=state.rows[index];
+  const number = study.completed+1, total = study.total;
+  const heading = state.mode === "card" ? "01 · 암기 카드" :
+    state.mode === "recall" ? "02 · 객관식 리콜" : "03 · 스펠링 연습";
+  const instruction = state.mode === "card" ? "영어 단어를 보고 뜻을 먼저 떠올리세요." :
+    "한국어 뜻에 해당하는 영어 단어를 기억하세요.";
+  let content = '<div class="practice-panel"><div class="practice-topline"><b>' + heading +
+    '</b><span>' + number + ' / ' + total + '</span></div>' +
+    '<div class="practice-progress"><div style="width:' +
+    Math.round((study.completed/Math.max(1,total))*100) + '%"></div></div>' +
+    '<p class="practice-instruction">' + instruction + '</p>' +
+    '<div class="practice-prompt">' + escapeHtml(state.mode === "card" ? row[2] : row[3]) + '</div>';
+  if (state.mode === "card") {
+    content += study.revealed
+      ? '<div class="practice-reveal">' + escapeHtml(row[3]) + '</div><div class="practice-actions">' +
+        '<button type="button" class="vocab-btn secondary" onclick="assignedPracticeRate(false)">다시 보기</button>' +
+        '<button type="button" class="vocab-btn" onclick="assignedPracticeRate(true)">기억했어요</button></div>'
+      : '<button type="button" class="vocab-btn" onclick="assignedPracticeReveal()">뜻 확인하기</button>';
+  } else if (state.mode === "recall") {
+    const options = study.choiceMap.get(index) || [];
+    content += '<div class="practice-options">' + options.map((value,i) => {
+      const graded = study.feedback !== null;
+      const right = isAnswerCorrect(value,assignedPracticeAnswerText(row));
+      const cls = graded ? (right ? ' correct' : study.feedback.choice===i ? ' wrong' : '') : '';
+      return '<button type="button" class="practice-choice' + cls + '" ' +
+        (graded ? 'disabled' : '') + ' onclick="assignedPracticePick(' + i + ')">' +
+        escapeHtml(value) + '</button>';
+    }).join("") + '</div>';
+  } else if (state.mode === "spell" && study.feedback === null) {
+    content += '<label class="practice-instruction" for="practice-spell-input">영어 스펠링 직접 입력</label>' +
+      '<input id="practice-spell-input" type="text" autocomplete="off" autocorrect="off" ' +
+      'autocapitalize="none" spellcheck="false" placeholder="영어 단어 입력" ' +
+      'onkeydown="if(event.key===\'Enter\'){event.preventDefault();assignedPracticeSubmitSpelling();}">' +
+      '<button type="button" class="vocab-btn" onclick="assignedPracticeSubmitSpelling()">정답 확인</button>';
+  }
+  if (study.feedback !== null) {
+    const correct = study.feedback.correct;
+    content += '<div class="practice-feedback ' + (correct ? 'correct' : 'wrong') +
+      '" role="status">' + (correct ? '정답입니다.' :
+      '정답은 ' + escapeHtml(String(row[2])) +
+        '입니다. 틀린 단어는 뒤에서 다시 확인합니다.') + '</div>' +
+      '<button type="button" class="vocab-btn" onclick="assignedPracticeNext()">다음 단어</button>';
+  }
+  target.innerHTML = assignedPracticeHeader() + content + '</div>';
+}
+function assignedPracticeReveal() {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "card" ||
+      !assignedPracticeState.study?.queue.length) return;
+  assignedPracticeState.study.revealed = true;
+  renderAssignedPracticeStudy();
+}
+function assignedPracticeRate(remembered) {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "card") return;
+  const study = assignedPracticeState.study;
+  if (!study?.queue.length || !study.revealed) return;
+  const index = study.queue.shift(), seen = study.seen.get(index) || 0;
+  if (!remembered) {
+    study.misses++;
+    if (seen < 1) study.queue.push(index);
+    study.needsReview.add(index);
+  } else study.needsReview.delete(index);
+  study.seen.set(index,seen+1);
+  study.completed++;
+  study.revealed = false;
+  renderAssignedPracticeStudy();
+}
+function assignedPracticePick(optionIndex) {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "recall") return;
+  const study = assignedPracticeState.study;
+  if (!study?.queue.length || study.feedback !== null) return;
+  const index = assignedPracticeCurrentIndex();
+  const options = study.choiceMap.get(index) || [];
+  if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) return;
+  const correct = isAnswerCorrect(options[optionIndex],
+    assignedPracticeAnswerText(assignedPracticeState.rows[index]));
+  study.feedback = {choice:optionIndex,correct};
+  renderAssignedPracticeStudy();
+}
+function assignedPracticeSubmitSpelling() {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "spell") return;
+  const study = assignedPracticeState.study;
+  if (!study?.queue.length || study.feedback !== null) return;
+  const input = document.getElementById("practice-spell-input");
+  const value = String(input?.value || "").trim();
+  const correct = isAnswerCorrect(value,assignedPracticeAnswerText(
+    assignedPracticeState.rows[assignedPracticeCurrentIndex()]));
+  study.feedback = {value,correct};
+  renderAssignedPracticeStudy();
+}
+function assignedPracticeNext() {
+  if (!isAssignedPracticeCurrent() || !["recall","spell"].includes(assignedPracticeState.mode)) return;
+  const study = assignedPracticeState.study;
+  if (!study?.queue.length || study.feedback === null) return;
+  const index=study.queue.shift(), correct=study.feedback.correct;
+  const seen=study.seen.get(index)||0;
+  if (!correct) {
+    study.misses++;
+    if (seen < 1) study.queue.push(index);
+    study.needsReview.add(index);
+  } else study.needsReview.delete(index);
+  study.seen.set(index,seen+1);
+  study.completed++;
+  study.feedback=null;
+  renderAssignedPracticeStudy();
+}
+
 function renderMySchedule(payload) {
   const target = document.getElementById("exam-table");
   const summary = document.getElementById("schedule-summary-view");
@@ -3482,6 +3730,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       testAlreadySaved = false;
       currentTestMeta = meta;
       const practiceMode = meta.targetId === "practice-view";
+      if (practiceMode && assignedPracticeState) assignedPracticeState.finished = false;
 
       let html = `
         <div class="card test-header-card">
@@ -3588,8 +3837,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       resultTarget.innerHTML = resultHtml;
       resultTarget.scrollIntoView({ behavior: "smooth" });
 
-      if (currentTestMeta?.skipSave) testAlreadySaved = true;
-      else saveResultToServer(correctCount, score);
+      if (currentTestMeta?.skipSave) {
+        testAlreadySaved = true;
+        if (currentTestMeta?.targetId === "practice-view" && assignedPracticeState) assignedPracticeState.finished = true;
+      } else saveResultToServer(correctCount, score);
     }
 
     function renderPracticeRetryHtml() {
@@ -4360,7 +4611,7 @@ function renderPointResult(result) {
     });
 
     document.addEventListener("paste", function(e) {
-      if (e.target?.id && (e.target.id.startsWith("answer-") || e.target.id.startsWith("practice-answer-"))) {
+      if (e.target?.id && (e.target.id.startsWith("answer-") || e.target.id.startsWith("practice-answer-") || e.target.id === "practice-spell-input")) {
         e.preventDefault();
         alert("단어시험에서는 붙여넣기를 사용할 수 없습니다.");
       }
