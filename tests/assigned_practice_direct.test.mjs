@@ -361,3 +361,33 @@ test('malformed Student API contract fails closed without misleading practice sc
     assert.equal(calls(v,'submitPointTest').length,0,label);
   }
 });
+
+
+test('Station spelling parity: preparatory practice does not ignore internal spaces or hyphens', async () => {
+  const v=virtualStudent({backend:mockBackend()});
+  await v.boot();
+  const row=['[시험범위]','Day 30','apple','사과',1,'BOOK','apple|APPLES','W1'];
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect(" apple ", ["x","x","apple","사과",1,"BOOK","apple|APPLES","W1"])'),true);
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect("APPLES", ["x","x","apple","사과",1,"BOOK","apple|APPLES","W1"])'),true);
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect("a p p l e", ["x","x","apple","사과",1,"BOOK","apple","W1"])'),false);
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect("wellbeing", ["x","x","well-being","뜻",1,"BOOK","well-being","W2"])'),false);
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect("infrontof", ["x","x","in front of","뜻",1,"BOOK","in front of","W3"])'),false);
+  assert.equal(v.read('isAssignedPracticeSpellingCorrect("IN   FRONT   OF", ["x","x","in front of","뜻",1,"BOOK","in front of","W3"])'),true);
+  // The original flexible function is deliberately NOT changed for other modes.
+  assert.equal(v.read('isAnswerCorrect("a p p l e","apple")'),true);
+});
+
+test('simulated school practice grades spaced-out spelling as wrong without saving', async()=>{
+  const v=virtualStudent({backend:mockBackend()});
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('mock');
+  v.node('practice-answer-0').value='a p p l e';
+  v.node('practice-answer-1').value='banana';
+  v.node('practice-result').scrollIntoView=()=>{};
+  v.context.gradeVocabTest();
+  assert.match(v.node('practice-result').innerHTML,/1개 정답 · 오답 1개/);
+  assert.equal(v.read('wrongWords.length'),1);
+  assert.equal(calls(v,'saveVocabResult').length,0);
+  assert.equal(calls(v,'submitPointTest').length,0);
+});
