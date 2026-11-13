@@ -32,7 +32,7 @@ for (const file of files) {
     assert.match(source, /action: "getAssignedVocaPracticeQuestions",\s*testPlanId: planId/);
     assert.doesNotMatch(source, /getAssignedVocaPracticeQuestions[\s\S]{0,300}(rangesJson|sourceRangesJson)/);
     assert.match(source, /skipSave: true/);
-    assert.match(source, /if \(currentTestMeta\?\.skipSave\) testAlreadySaved = true;\s*else saveResultToServer/);
+    assert.match(source, /if \(currentTestMeta\?\.skipSave\) \{[\s\S]{0,260}testAlreadySaved = true;[\s\S]{0,260}\} else saveResultToServer/);
     assert.match(source, /skipSave: Boolean\(priorMeta\.skipSave\)/);
   });
 }
