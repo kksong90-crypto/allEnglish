@@ -2236,6 +2236,19 @@ function renderAssignedPracticeMenu() {
 function assignedPracticeAnswerText(row) {
   return [row?.[2],row?.[6]].filter(hasVocabText).map(String).join("|");
 }
+// Match Station's spelling comparison for preparatory practice only.
+// Station Code.gs vocaApiNormalizeAnswer_: NFC, trim, lowercase, collapse spaces.
+// Keep the legacy flexible isAnswerCorrect() unchanged for unrelated screens.
+function assignedPracticeNormalizeSpelling(value) {
+  return String(value ?? "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function isAssignedPracticeSpellingCorrect(userAnswer, row) {
+  const actual = assignedPracticeNormalizeSpelling(userAnswer);
+  if (!actual) return false;
+  const choices = String(assignedPracticeAnswerText(row)).split("|")
+    .map(assignedPracticeNormalizeSpelling).filter(Boolean);
+  return choices.some(expected => expected === actual);
+}
 function assignedPracticeRecallChoices(index) {
   const state = assignedPracticeState;
   if (!state) return null;
@@ -2253,7 +2266,7 @@ function assignedPracticeRecallChoices(index) {
     .filter(value => {
       const normalized = normalizeAnswer(value);
       if (!normalized || seen.has(normalized) ||
-          isAnswerCorrect(value, assignedPracticeAnswerText(question))) return false;
+          isAssignedPracticeSpellingCorrect(value, question)) return false;
       seen.add(normalized);
       return true;
     });
@@ -2368,7 +2381,7 @@ function renderAssignedPracticeStudy() {
     const options = study.choiceMap.get(index) || [];
     content += '<div class="practice-options">' + options.map((value,i) => {
       const graded = study.feedback !== null;
-      const right = isAnswerCorrect(value,assignedPracticeAnswerText(row));
+      const right = isAssignedPracticeSpellingCorrect(value,row);
       const cls = graded ? (right ? ' correct' : study.feedback.choice===i ? ' wrong' : '') : '';
       return '<button type="button" class="practice-choice' + cls + '" ' +
         (graded ? 'disabled' : '') + ' onclick="assignedPracticePick(' + i + ')">' +
@@ -2419,8 +2432,8 @@ function assignedPracticePick(optionIndex) {
   const index = assignedPracticeCurrentIndex();
   const options = study.choiceMap.get(index) || [];
   if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) return;
-  const correct = isAnswerCorrect(options[optionIndex],
-    assignedPracticeAnswerText(assignedPracticeState.rows[index]));
+  const correct = isAssignedPracticeSpellingCorrect(options[optionIndex],
+    assignedPracticeState.rows[index]);
   study.feedback = {choice:optionIndex,correct};
   renderAssignedPracticeStudy();
 }
@@ -2430,8 +2443,8 @@ function assignedPracticeSubmitSpelling() {
   if (!study?.queue.length || study.feedback !== null) return;
   const input = document.getElementById("practice-spell-input");
   const value = String(input?.value || "").trim();
-  const correct = isAnswerCorrect(value,assignedPracticeAnswerText(
-    assignedPracticeState.rows[assignedPracticeCurrentIndex()]));
+  const correct = isAssignedPracticeSpellingCorrect(value,
+    assignedPracticeState.rows[assignedPracticeCurrentIndex()]);
   study.feedback = {value,correct};
   renderAssignedPracticeStudy();
 }
@@ -3821,7 +3834,9 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         const meaning = row[3];
         const input = document.getElementById(`${inputPrefix}${index}`);
         const userAnswer = input ? input.value : "";
-        const isCorrect = isAnswerCorrect(userAnswer, correctAnswer);
+        const isCorrect = currentTestMeta?.targetId === "practice-view" && currentTestMeta?.skipSave
+          ? isAssignedPracticeSpellingCorrect(userAnswer, row)
+          : isAnswerCorrect(userAnswer, correctAnswer);
 
         if (isCorrect) {
           correctCount++;
