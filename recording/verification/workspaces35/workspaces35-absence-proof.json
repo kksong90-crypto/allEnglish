@@ -1,0 +1,10 @@
+{
+  "reason": "통합35 검증전용 20261114",
+  "opsInitialVisible": true,
+  "afterRegisterRecordingTargets": 1,
+  "afterOpsCancelRecordingTargets": 2,
+  "opsReopenedUpcoming": 0,
+  "opsReopenedCancelled": 5,
+  "examId": "EXAM_0C78C596479453F632AE19B6",
+  "invalid101Rejected": true
+}
