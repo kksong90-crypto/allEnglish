@@ -462,7 +462,6 @@
 
   <!-- 포인트 -->
   <section id="practice">
-    <div class="section-title">📝 시험 전 단어 연습</div>
     <div id="practice-view"><div class="card">홈 또는 학습일정에서 배정된 시험범위 연습을 시작하세요. 개인 연습은 공식 시험 성적에 반영되지 않습니다.</div></div>
   </section>
 
@@ -2280,7 +2279,7 @@ function assignedPracticeChooseMode(mode) {
     });
     document.getElementById("practice-view")
       .insertAdjacentHTML("afterbegin", assignedPracticeHeader() +
-        '<p class="practice-contract-note">연습 문항 수·문제 순서는 실제 학원 시험과 다를 수 있습니다.</p>');
+        '<p class="practice-contract-note">스펠링 중심 사전 연습이며 실제 시험의 문항 유형·수·순서는 다를 수 있습니다.</p>');
     return;
   }
   const indices = state.rows.map((_,i)=>i);
@@ -3834,30 +3833,27 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
       let resultHtml = `
         <div class="card score-card">
-          <b>채점 결과</b><br><br>
+          <b>채점 결과</b>
           <div class="score-number">${score}점</div>
           <div class="score-sub">${currentVocabWords.length}문제 중 ${correctCount}개 정답 · 오답 ${wrongWords.length}개</div>
           <div class="score-bar"><div class="score-bar-fill" style="width:${score}%"></div></div>
           <div id="save-result-status" class="notice-small">${currentTestMeta?.skipSave ? "개인 연습 결과는 성적·오답노트에 저장되지 않습니다." : "결과 저장 중..."}</div>
         </div>
-
-        <table>
-          <tr>
-            <th>뜻</th>
-            <th>내 답</th>
-            <th>정답</th>
-            <th>결과</th>
-          </tr>
-          ${resultRows}
-        </table>
       `;
-
-      if (wrongWords.length > 0) {
-        resultHtml += currentTestMeta?.skipSave ? renderPracticeRetryHtml() : renderWrongNoteHtml();
-      }
-
-      if (currentTestMeta?.skipSave && currentTestMeta?.testPlanId && currentTestMeta?.targetId === "practice-view") {
-        resultHtml += '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="startAssignedVocaPractice(currentTestMeta.testPlanId)">이 범위 다시 연습하기</button></div>';
+      const resultTable = `<table><tr><th>뜻</th><th>내 답</th><th>정답</th><th>결과</th></tr>${resultRows}</table>`;
+      if (currentTestMeta?.skipSave && currentTestMeta?.targetId === "practice-view") {
+        // Primary next actions precede the optional answer breakdown on mobile.
+        if (wrongWords.length > 0) resultHtml += renderPracticeRetryHtml();
+        if (currentTestMeta.testPlanId) {
+          resultHtml += '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="startAssignedVocaPractice(currentTestMeta.testPlanId)">이 범위 다시 연습하기</button></div>';
+        }
+        resultHtml += '<details class="practice-answer-details"><summary>내 답과 정답 전체 확인</summary>' +
+          resultTable + '</details>';
+      } else {
+        resultHtml += resultTable;
+        if (wrongWords.length > 0) {
+          resultHtml += currentTestMeta?.skipSave ? renderPracticeRetryHtml() : renderWrongNoteHtml();
+        }
       }
       const resultTarget = document.getElementById(currentTestMeta?.targetId === "practice-view" ? "practice-result" : "vocab-result");
       resultTarget.innerHTML = resultHtml;
