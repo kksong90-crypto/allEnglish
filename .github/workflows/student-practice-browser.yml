@@ -1,0 +1,35 @@
+name: Student practice mobile browser verification
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'student-shell.css'
+      - 'browser-tests/**'
+      - '.github/workflows/student-practice-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser test package
+        run: npm --prefix browser-tests install --no-audit --no-fund
+      - name: Install headless Chromium and WebKit engines
+        working-directory: browser-tests
+        run: npx playwright install --with-deps chromium webkit
+      - name: Android-sized Chromium and desktop browser flow
+        run: node browser-tests/assigned-practice.browser.mjs chromium
+      - name: iPhone-sized WebKit browser flow
+        run: node browser-tests/assigned-practice.browser.mjs webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: practice-browser-synthetic-screenshots
+          path: browser-tests/artifacts/
+          retention-days: 7

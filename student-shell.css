@@ -4346,3 +4346,79 @@ body.dark .retest-admin-memo {
     .admin-student-schedule { border: 1px solid var(--brand-line); border-radius: 12px; padding: 12px; margin-top: 10px; }
     .admin-student-schedule summary { cursor: pointer; font-weight: 800; }
   
+
+/* Student assigned practice modes: scoped to #practice only. */
+#practice .practice-head{margin:0 0 14px;padding:18px 16px;border-radius:18px;background:var(--brand-dark,#1d435e);color:#fff}
+#practice .practice-head h3{margin:3px 0 4px;font-size:1.35rem;line-height:1.3;color:#fff}
+#practice .practice-head p{font-size:.86rem;margin:2px 0 6px;line-height:1.5;color:#e1ebf5}
+#practice .practice-kicker{font-size:.67rem;letter-spacing:.09em;font-weight:800;opacity:.86}
+#practice .practice-head .practice-scope-note{font-size:.73rem;color:#e4e9ed}
+#practice .practice-modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:14px}
+#practice .practice-mode{border:1px solid #8caabd;border-radius:10px;background:#31596e;color:#f2f6f8;font:inherit;font-size:.77rem;font-weight:800;padding:12px 3px;cursor:pointer;min-height:44px;white-space:nowrap}
+#practice .practice-mode.active{background:#fff;color:#174b65;border-color:#fff}
+#practice .practice-mode:focus-visible,#practice .practice-choice:focus-visible{outline:3px solid #6cafdc;outline-offset:2px}
+#practice .practice-panel{background:var(--card-bg,#fff);border:1px solid var(--brand-line,#d8e5e1);border-radius:18px;padding:18px 16px;line-height:1.55;margin:0 0 12px}
+#practice .practice-panel h3{margin:0 0 10px}
+#practice .practice-panel>p{font-size:.89rem}
+#practice .practice-topline{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.88rem}
+#practice .practice-progress{height:7px;border-radius:9px;background:#e9edf2;margin:12px 0 17px;overflow:hidden}
+#practice .practice-progress>div{height:100%;background:#3786b7;border-radius:9px;max-width:100%;transition:width .2s}
+#practice .practice-instruction{color:var(--brand-muted,#607788);font-size:.84rem;display:block}
+#practice .practice-prompt{font-weight:850;font-size:clamp(1.45rem,6vw,2.1rem);line-height:1.35;text-align:center;overflow-wrap:anywhere;margin:20px 0}
+#practice .practice-reveal{border-radius:12px;background:#e9f3ff;color:#164b7b;font-weight:800;text-align:center;font-size:1.5rem;padding:18px 8px;margin:16px 0}
+#practice .practice-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+#practice .practice-options{display:grid;gap:8px;margin:17px 0}
+#practice .practice-choice{border:1px solid #bacbda;border-radius:10px;background:#f6f9fc;color:#203f57;padding:12px 14px;min-height:45px;cursor:pointer;text-align:left;font:inherit;font-size:1rem;font-weight:700}
+#practice .practice-choice.correct{border-color:#76b792;background:#e2f4ea;color:#11592f}
+#practice .practice-choice.wrong{border-color:#dfa39a;background:#fff0ed;color:#a1342b}
+#practice .practice-choice:disabled{cursor:default}
+#practice #practice-spell-input{width:100%;border:1px solid #aebfcd;border-radius:11px;padding:13px 12px;font-size:1.13rem;min-height:47px;margin:9px 0 14px;background:var(--card-bg,#fff);color:inherit}
+#practice .practice-feedback{padding:12px 13px;border-radius:10px;font-weight:700;font-size:.88rem;margin:14px 0}
+#practice .practice-feedback.correct{color:#14613a;background:#e3f4e8}
+#practice .practice-feedback.wrong{color:#96392f;background:#fff0ed}
+#practice .practice-finished{padding:24px 18px}
+#practice .vocab-question{margin-bottom:10px}
+body.dark #practice .practice-panel{background:#1d2b2a;color:#eef8f6;border-color:#425e56}
+body.dark #practice .practice-mode{background:#2c5150;color:#edf7f4}
+body.dark #practice .practice-mode.active{background:#e8f2f7;color:#164764}
+body.dark #practice .practice-choice{background:#263b38;color:#edf8f5;border-color:#597168}
+body.dark #practice .practice-choice.correct{background:#24573a;color:#e4fff0}
+body.dark #practice .practice-choice.wrong{background:#5c2e2b;color:#ffe1da}
+body.dark #practice .practice-reveal{background:#1b4e67;color:#ebf6ff}
+@media(max-width:360px){
+  #practice .practice-panel{padding:15px 12px}
+  #practice .practice-head{padding:15px 12px}
+  #practice .practice-mode{font-size:.69rem;padding:11px 1px}
+}
+
+
+/* Compact pre-exam rehearsal; other vocabulary and score screens stay untouched. */
+#practice{padding-top:.35rem}
+#practice .card{white-space:normal;line-height:1.42;margin:10px 0;padding:14px}
+#practice .test-header-card br{display:none}
+#practice .test-header-card>b{display:block;font-size:1.02rem!important;margin:8px 0 4px}
+#practice .vocab-question{white-space:normal;border:1px solid var(--brand-line,#d8e5e1);box-shadow:none;padding:12px 13px;margin:8px 0;border-radius:12px}
+#practice .vocab-question b{font-size:1rem;line-height:1.4;margin:0 0 8px}
+#practice .vocab-question input[type="text"]{display:block;width:100%;min-width:0;min-height:44px;font-size:1rem;padding:10px 12px;margin:3px 0 0;border-radius:10px}
+#practice .test-action-bar{padding:7px 0 5px}
+#practice .score-card{white-space:normal;padding:14px;text-align:left}
+#practice .score-card>b{display:block;font-size:.87rem;margin-bottom:3px}
+#practice .score-number{font-size:1.75rem;line-height:1.1}
+#practice .score-sub{font-size:.87rem;margin:4px 0}
+#practice .score-bar{height:8px;margin:10px 0 5px}
+#practice .score-card .notice-small{display:block;font-size:.78rem;margin-top:6px}
+#practice .practice-contract-note{font-size:.76rem;line-height:1.45;color:var(--brand-muted,#63736c);margin:8px 3px}
+#practice .practice-answer-details{border:1px solid var(--brand-line,#d8e5e1);border-radius:12px;background:var(--card-bg,#fff);padding:9px 12px;margin-top:10px;overflow-x:auto}
+#practice .practice-answer-details summary{cursor:pointer;font-size:.92rem;font-weight:800;padding:9px 4px;min-height:44px}
+#practice .practice-answer-details table{width:100%;min-width:420px;font-size:.82rem}
+#practice .practice-answer-details th,#practice .practice-answer-details td{font-size:.82rem;padding:8px 6px;word-break:break-word}
+#practice .button-row{gap:7px;margin:9px 0}
+#practice .button-row>.vocab-btn{min-height:44px}
+body.dark #practice .practice-answer-details{background:#1d2b2a;border-color:#425e56}
+@media(max-width:480px){#practice .practice-head{padding:13px 12px;margin-bottom:10px}#practice .practice-head h3{font-size:1.15rem}#practice .practice-head p{font-size:.79rem}#practice .practice-mode{font-size:.73rem;min-height:44px}}
+
+
+/* Focus on the current assigned test; other tabs retain the original navigation. */
+body:has(#practice.active) .top-user-bar,
+body:has(#practice.active) .bottom-nav{display:none!important}
+body:has(#practice.active) #practice{padding-bottom:1.5rem}
