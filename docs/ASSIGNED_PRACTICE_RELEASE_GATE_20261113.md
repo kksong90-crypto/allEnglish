@@ -50,3 +50,12 @@
 
 ## 최신 합성 검사 이후 주의
 추가한 API 방어는 `testPlanId`·출제 방향이 응답에 제공될 경우 일치 여부를 검증하고, 동일 단어 ID 중복/200개 초과 문항을 차단한다. 서버가 이 메타데이터를 제공하지 않는다면 클라이언트 코드만으로 전체 배정 문항 수와 서버측 인가를 확정할 수 없다.
+
+
+## 추가 계약 검증: 정확한 스펠링 판정 (2026-11-13)
+- Station `apps-script-api/Code.gs`의 `vocaApiNormalizeAnswer_`은 NFC 정규화→앞뒤 공백 제거→소문자화→연속 공백을 한 칸으로 처리한다. 단어 내부 공백이나 하이픈을 임의 제거하지 않는다.
+- 기존 학생웹앱 공통 `isAnswerCorrect`는 일부 공백/기호를 추가로 허용할 수 있어 개인 사전연습에 그대로 적용하면 공식 Station보다 관대하게 채점할 위험이 있다.
+- PR #57의 **개인 연습 전용** `isAssignedPracticeSpellingCorrect`로 동일 단어 및 API 허용답 목록을 Station 방식으로 비교한다. 기존 전체 단어장·포인트·공식 기록의 공통 채점 로직은 변경하지 않는다.
+- 합성 테스트: `apple`에 `a p p l e`는 오답, `in front of`에 `infrontof`는 오답, 연속 공백·대소문자 차이는 허용, 서버에서 제공한 별칭은 인정, 개인 연습 점수만 변경됨을 확인.
+- 보안 계약 교차검증: Station 서버는 `student.practice.assigned`를 별도로 허용하고 HMAC 서명으로 내부 학교 시험범위의 접근 권한을 확인한다. 클라이언트는 직접 Station 범위를 제출하지 않고 Student API에 `testPlanId`만 전달해야 한다.
+- Station `vocaApiStudentPracticeQuestions_` 응답은 `count`, `mode`, `storagePolicy`, `questions`를 포함하고 `limit` 상한이 200문항이다. 서버는 상한 적용 후 `count`를 생성하므로 `count`만으로 실제 배정 범위가 200개 초과인지 확인할 수 없다. 시험 범위 원본과 대조하는 G1 실서버 검증을 유지한다.
