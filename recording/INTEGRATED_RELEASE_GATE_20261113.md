@@ -1,7 +1,7 @@
 # 녹음 중심 통합 앱 실사용 전환 기준
-최신 확인: 2026-11-13 23:36 KST.
+최신 확인: STAGING34 배포와 공개 화면 재실행 검증 완료 (11/13 작업 후속).
 
-현재 격리 배포는 immutable33 / UI8.2.21 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보를 격리33에는 배포했으며 실제 운영에는 반영하지 않았다.
+현재 격리 배포는 immutable34 / UI8.2.21 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보를 격리34에는 배포했으며 실제 운영에는 반영하지 않았다.
 
 최종 목표는 휴대전화에서 빠르게 연속 체크하고 잠금·통신 지연·재접속 뒤에도 입력을 잃지 않으며, 같은 앱에서 예정결석과 학교시험 생성·점수 입력을 운영센터/CoreDB와 일치시키는 것이다.
 
@@ -32,7 +32,7 @@ STAGING 관련154검사와 운영 후보의 새11검사/기존4스위트는 서�
 
 [Google 실제 검증 영수증과 남은 조건](https://github.com/kksong90-crypto/allbarun-recording-api/blob/858f31fb8c396cd751aa5363ab2742dfc1fcd017/release-candidate/GOOGLE_VALIDATION_20261113.md)
 
-## 현재: STAGING33 배포·명단 조회 개선 (23:36)
+## 이전: STAGING33 배포·명단 조회 개선 (23:36)
 
 운영 개인 정책을 보존한 후보에서 강제 조회를 기존8.697/7.225/7.372초 → 새1.829/1.444/1.490초로 단축했다. 같은 조건에서 순서를 교차한3쌍이며 시간/측정값을 제외한 전체 응답이 같았다. 평균 약79.6% 단축이다. 과거 공개 STAGING32의13표 모델 대비80%라는 뜻은 아니다. 실제 휴대전화 전체 시작 시간이나 운영 DB 성능으로 일반화하지 않는다.
 
@@ -43,3 +43,11 @@ STAGING 관련154검사와 운영 후보의 새11검사/기존4스위트는 서�
 현재 편집기와 공개 배포는33이며 임시 probe는 없다. 롤백은 STAGING32다. 운영38은 변경하지 않았다. 후보 manifest의 Sheets v4 선언도 운영에는 미적용이다. 코드 검사26/26, 원본 경계와 배포용 전체 소스 일치 검증 완료. 저장 확정3~6초의 잔여 비용, 실제 반 규모, 실물 휴대전화 잠금/OS 종료 복구가 남는다.
 
 [새 실측·구조·검증 기록](https://github.com/kksong90-crypto/allbarun-recording-api/blob/4061fec49838d5b08d8eac6d47adf9f2d733e05e/release-candidate/READ_MODEL_ACCEPTANCE_20261113.md)
+
+## 현재: STAGING34 묶음 저장 공지 조회 개선
+
+Google 배포 기록은34 / 2026-11-14 00:13 KST다. 실제4쌍 표본에서 두 학생 묶음 저장 평균5.541→4.707초, 공지 단계1.483→1.118초였다.3쌍은 빨랐고1쌍은 느렸다. 변경하지 않은 대상 계산/감사 시간도 달라 전체15.1%를 코드 효과만으로 보장하지 않는다. 단건 API 비교는 개선이 확인되지 않아 기존 단건 공지와 단건/묶음 감사 함수를 유지했다. 느려진 전체 감사 행 읽기 실험은 제외했다.
+
+채택한 변경은 묶음 API에서 공지 값/헤더를 같은 native snapshot으로 읽는 부분뿐이다. 체크 원본/CAS/개인 범위/공지 쓰기/감사는 생략하지 않는다. 명단 조회17표 모델은 유지한다. 공개34에서 두 학생 연속 해제/재체크와 재실행 후2/2 보존 확인, 별도 DB RECEIVED76/56·기존 범위 확인, 검사29/29 통과. 임시 비교 함수는 배포에 없다.
+
+현재 편집기·공개 배포34, 되돌림33, 운영38은 변경하지 않았다. [실측・채택/제외 내역](https://github.com/kksong90-crypto/allbarun-recording-api/blob/623ca46807cb0660d03d9ad371fdbb3005d75acc/release-candidate/SAVE_PATH_ACCEPTANCE_20261113.md). 실제 반 규모와 실물 휴대전화 복구 검증은 여전히 남아 있다.
