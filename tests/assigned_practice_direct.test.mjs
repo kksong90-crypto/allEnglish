@@ -63,7 +63,7 @@ test('practice goes directly to its own view; legacy full vocabulary read is not
   assert.ok(v.node('practice-answer-0'));
   assert.ok(v.node('practice-answer-1'));
   assert.match(v.node('practice-view').innerHTML, /배정 범위 주관식 모의연습/);
-  assert.match(v.node('practice-view').innerHTML, /문항 수·문제 순서는 실제 학원 시험과 다를 수 있습니다/);
+  assert.match(v.node('practice-view').innerHTML, /스펠링 중심 사전 연습이며 실제 시험의 문항 유형·수·순서는 다를 수 있습니다/);
   assert.match(v.node('practice-view').innerHTML, /시험 전 개인 연습/);
   assert.equal(v.node('answer-0'), null);
 });
