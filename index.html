@@ -1831,10 +1831,16 @@ updateAppBackButton();
         return;
       }
 
-      const previousTab = appTabHistory.pop();
+      const previousTab = appTabHistory.length ? appTabHistory[appTabHistory.length - 1] : null;
 
       if (previousTab && document.getElementById(previousTab)) {
         showTab(previousTab, { skipHistory: true });
+        // The user may reject leaving a typed personal practice. Keep the old
+        // back-stack entry and URL until navigation has really happened.
+        if (getActiveTabId() !== previousTab) return;
+        appTabHistory.pop();
+        saveAppTabHistory();
+        updateAppBackButton();
         if (!options.fromBrowserBack) {
           setBrowserHistoryState(previousTab, "replace");
         }
@@ -1843,6 +1849,7 @@ updateAppBackButton();
 
       if (currentTabId !== "home" && document.getElementById("home")) {
         showTab("home", { skipHistory: true });
+        if (getActiveTabId() !== "home") return;
         if (!options.fromBrowserBack) {
           setBrowserHistoryState("home", "replace");
         }
