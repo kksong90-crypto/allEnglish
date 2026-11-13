@@ -111,6 +111,10 @@ async function testViewport(browser,name,viewport,isMobile,base){
     await page.locator('#home-learning-content button[data-test-plan-id]').click();
     await page.locator('#practice-view .practice-mode').first().waitFor();
     assert.equal(await page.locator('#practice-view .practice-mode').count(),4);
+    assert.equal(await page.locator('.bottom-nav').evaluate(el=>getComputedStyle(el).display),'none',
+      name+' focused practice must hide the redundant bottom navigation');
+    assert.equal(await page.locator('.top-user-bar').evaluate(el=>getComputedStyle(el).display),'none',
+      name+' focused practice must hide account buttons while typing');
     assert.equal(logs.filter(x=>x.action==='getVocabData').length,0,
       name+' practice must not load whole vocabulary table');
     const widths=await page.locator('#practice-view .practice-mode').evaluateAll(elements=>
@@ -166,6 +170,8 @@ async function testViewport(browser,name,viewport,isMobile,base){
     // Page view change is safe after completed private practice.
     await page.evaluate(()=>showTab('home'));
     assert.equal(await page.locator('section#home.active').count(),1);
+    if(isMobile) assert.notEqual(await page.locator('.bottom-nav').evaluate(el=>getComputedStyle(el).display),'none',
+      name+' bottom navigation must return after leaving focused practice');
     assert.ok(!unexpected.length,name+' uncaught exceptions: '+unexpected.join('; '));
     console.log('BROWSER PASS: '+name+' '+viewport.width+'x'+viewport.height+
       '; 4 modes, immediate correction, draft protection, official writes 0.');
