@@ -40,7 +40,7 @@ test('home offers practice only for a server-connected plan; duplicate and missi
   assert.doesNotMatch(v.context.renderHomeVocabTask(item({ vocaScopeState: 'DUPLICATE' })), /연습하기/);
   assert.doesNotMatch(v.context.renderHomeVocabTask(item({ sourceRanges: [] })), /연습하기/);
   assert.doesNotMatch(v.context.renderHomeVocabTask(item({ testPlanId: '' })), /연습하기/);
-  v.context.currentUser.role = 'teacher';
+  v.read('currentUser').role = 'teacher';
   assert.doesNotMatch(v.context.renderHomeVocabTask(item()), /연습하기/);
 });
 
