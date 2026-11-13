@@ -4416,3 +4416,9 @@ body.dark #practice .practice-reveal{background:#1b4e67;color:#ebf6ff}
 #practice .button-row>.vocab-btn{min-height:44px}
 body.dark #practice .practice-answer-details{background:#1d2b2a;border-color:#425e56}
 @media(max-width:480px){#practice .practice-head{padding:13px 12px;margin-bottom:10px}#practice .practice-head h3{font-size:1.15rem}#practice .practice-head p{font-size:.79rem}#practice .practice-mode{font-size:.73rem;min-height:44px}}
+
+
+/* Focus on the current assigned test; other tabs retain the original navigation. */
+body:has(#practice.active) .top-user-bar,
+body:has(#practice.active) .bottom-nav{display:none!important}
+body:has(#practice.active) #practice{padding-bottom:1.5rem}
