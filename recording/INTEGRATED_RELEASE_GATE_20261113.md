@@ -1,7 +1,7 @@
 # 녹음 중심 통합 앱 실사용 전환 기준
-최신 확인: STAGING35 유지, 격리 운영센터 취소 목록 지연 수정·실제 UI 확인 완료 (2026-11-14).
+최신 확인: STAGING36 / UI8.2.23, 복귀 조회 개선 배포·실제 저장/복원과 운영6파일 재대조 완료 (2026-11-14).
 
-현재 격리 배포는 immutable35 / UI8.2.22 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보 서버를 격리34에 배포했고35에서는 화면만 갱신했으며 실제 운영에는 반영하지 않았다.
+현재 격리 배포는 immutable36 / UI8.2.23 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보 서버를 격리34에 배포했고35에서는 화면만 갱신했으며 실제 운영에는 반영하지 않았다.
 
 최종 목표는 휴대전화에서 빠르게 연속 체크하고 잠금·통신 지연·재접속 뒤에도 입력을 잃지 않으며, 같은 앱에서 예정결석과 학교시험 생성·점수 입력을 운영센터/CoreDB와 일치시키는 것이다.
 
@@ -71,3 +71,6 @@ Google 배포 기록은34 / 2026-11-14 00:13 KST다. 실제4쌍 표본에서 두
 
 취소 저장 후 전체 대시보드를 기다리던 순서를 제거했다. 실제 격리 운영센터 /dev에서 대시보드2건 조회 중에도 취소 행 제외·다가옴1→0·취소5→6, 검색 유지·이력 보존·재취소 차단을 확인했다. 새12/12·관련37/37 통과. 검증 결석 CANCELLED/version2·통합 녹음2/2 복원. 실제 Index.html만 최소 수정했고 운영 /exec와 녹음 STAGING35는 그대로다. [원인·수정·실증·되돌림](https://github.com/kksong90-crypto/allbarun-operations-vnext/blob/0b38f0e8ce710db095b28d569090906f2cef4e8a/docs/operations/ABSENCE_CANCEL_FEEDBACK_20261114.md). 앞선 세 업무 검증에서 남긴 취소 목록 지연 항목은 격리 환경에서 해결했다.
 
+## 현재: STAGING36 복귀 조회 교체
+
+복귀 시15초 이상 된 명단 조회만 취소하고 새로 읽는다. 저장 요청·보관 입력은 유지한다. 화면132/132·서버29/29, 실제 공개36의 체크 해제/복원·다른 탭/복귀 후2/2 확인. 되돌림35. [구현·검증·운영 전환 남은 조건](RESUME_READ_ACCEPTANCE_20261114.md). 운영6파일은 모두 기존 기준과 일치했고 기존 URL ping도 성공했으나 활성 배포 번호 재조회는 Google 배포 관리 로딩 문제로 미확인이다. 운영38이라는 기존 기록과 이번 읽기 결과를 구분한다. 실물 휴대전화 OS 검증·운영 반영 별도 확인은 남아 있다.
