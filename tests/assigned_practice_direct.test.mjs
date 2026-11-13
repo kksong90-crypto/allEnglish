@@ -314,3 +314,26 @@ test('repeatedly missed spelling is not trapped in an endless retry cycle', asyn
   assert.match(v.node('practice-view').innerHTML,/아직 어려운 단어 1개/);
   assert.equal(calls(v,'saveVocabResult').length,0);
 });
+
+
+test('mobile back preserves tab history and typed answers when exit is canceled', async()=>{
+  const v=virtualStudent({backend:mockBackend()});
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('mock');
+  v.node('practice-answer-0').value='app';
+  const before=v.read('appTabHistory.length');
+  let promptCount=0;
+  v.context.confirm=()=>{promptCount++;return false;};
+  v.context.goBackInApp();
+  assert.equal(promptCount,1);
+  assert.equal(v.read('getActiveTabId()'),'practice');
+  assert.equal(v.read('appTabHistory.length'),before);
+  assert.equal(v.node('practice-answer-0').value,'app');
+  v.context.confirm=()=>true;
+  v.context.goBackInApp();
+  assert.equal(v.read('getActiveTabId()'),'home');
+  assert.equal(v.read('appTabHistory.length'),Math.max(0,before-1));
+  assert.equal(v.read('assignedPracticeState'),null);
+  assert.equal(calls(v,'saveVocabResult').length,0);
+});
