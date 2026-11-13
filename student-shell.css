@@ -4390,3 +4390,29 @@ body.dark #practice .practice-reveal{background:#1b4e67;color:#ebf6ff}
   #practice .practice-head{padding:15px 12px}
   #practice .practice-mode{font-size:.69rem;padding:11px 1px}
 }
+
+
+/* Compact pre-exam rehearsal; other vocabulary and score screens stay untouched. */
+#practice{padding-top:.35rem}
+#practice .card{white-space:normal;line-height:1.42;margin:10px 0;padding:14px}
+#practice .test-header-card br{display:none}
+#practice .test-header-card>b{display:block;font-size:1.02rem!important;margin:8px 0 4px}
+#practice .vocab-question{white-space:normal;border:1px solid var(--brand-line,#d8e5e1);box-shadow:none;padding:12px 13px;margin:8px 0;border-radius:12px}
+#practice .vocab-question b{font-size:1rem;line-height:1.4;margin:0 0 8px}
+#practice .vocab-question input[type="text"]{display:block;width:100%;min-width:0;min-height:44px;font-size:1rem;padding:10px 12px;margin:3px 0 0;border-radius:10px}
+#practice .test-action-bar{padding:7px 0 5px}
+#practice .score-card{white-space:normal;padding:14px;text-align:left}
+#practice .score-card>b{display:block;font-size:.87rem;margin-bottom:3px}
+#practice .score-number{font-size:1.75rem;line-height:1.1}
+#practice .score-sub{font-size:.87rem;margin:4px 0}
+#practice .score-bar{height:8px;margin:10px 0 5px}
+#practice .score-card .notice-small{display:block;font-size:.78rem;margin-top:6px}
+#practice .practice-contract-note{font-size:.76rem;line-height:1.45;color:var(--brand-muted,#63736c);margin:8px 3px}
+#practice .practice-answer-details{border:1px solid var(--brand-line,#d8e5e1);border-radius:12px;background:var(--card-bg,#fff);padding:9px 12px;margin-top:10px;overflow-x:auto}
+#practice .practice-answer-details summary{cursor:pointer;font-size:.92rem;font-weight:800;padding:9px 4px;min-height:44px}
+#practice .practice-answer-details table{width:100%;min-width:420px;font-size:.82rem}
+#practice .practice-answer-details th,#practice .practice-answer-details td{font-size:.82rem;padding:8px 6px;word-break:break-word}
+#practice .button-row{gap:7px;margin:9px 0}
+#practice .button-row>.vocab-btn{min-height:44px}
+body.dark #practice .practice-answer-details{background:#1d2b2a;border-color:#425e56}
+@media(max-width:480px){#practice .practice-head{padding:13px 12px;margin-bottom:10px}#practice .practice-head h3{font-size:1.15rem}#practice .practice-head p{font-size:.79rem}#practice .practice-mode{font-size:.73rem;min-height:44px}}
