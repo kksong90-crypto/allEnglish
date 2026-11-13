@@ -152,7 +152,7 @@ async function testViewport(browser,name,viewport,isMobile,base){
 
     await page.locator('#practice-answer-0').fill('inevitable');
     assert.equal(await page.locator('#practice-answer-0').inputValue(),'inevitable');
-    assert.match(await page.locator('#practice-view').innerText(),/문항 수·문제 순서는 실제 학원 시험과 다를 수 있습니다/);
+    assert.match(await page.locator('#practice-view').innerText(),/스펠링 중심 사전 연습이며 실제 시험의 문항 유형·수·순서는 다를 수 있습니다/);
     await page.locator('#practice-view button').filter({hasText:'채점하기'}).click();
     assert.match(await page.locator('#practice-result').innerText(),/1개 정답/);
     assert.equal(logs.filter(x=>['saveVocabResult','submitPointTest'].includes(x.action)).length,0);
