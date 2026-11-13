@@ -40,6 +40,7 @@ function renderReadTiming(data,elapsedMs,error){
  const ms=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?`${Math.round(value)} ms`:'미제공';
  const timing=data?.serverTiming;
  const lines=[`브라우저 대기: ${ms(elapsedMs)}`,error?'결과: 조회 실패 (서버 단계 시간 미확인)':'결과: 조회 성공'];
+ if(!error)lines.push(data?.projectionReadModel===true?'조회 방식: 전용 묶음 조회':data?.projectionFallbackReason?'조회 방식: 기존 조회 · 복귀 사유 '+String(data.projectionFallbackReason):'조회 방식: 기존 조회');
  if(!error&&timing){
   lines.push('아래 수치는 응답 생성 시점의 서버 측정값입니다. 캐시 응답이면 이번 요청 처리 시간이 아닙니다.',`서버 합계: ${ms(timing.totalMs)}`,`후보 날짜: ${ms(timing.candidateMs)}`,`대상 범위: ${ms(timing.targetSnapshotMs)}`,`제출 조회: ${ms(timing.checksMs)}`,`화면 자료 조합: ${ms(timing.assembleMs)}`,`보정 처리: ${ms(timing.catchUpMs)}`,`후보 캐시: ${timing.candidateCacheHit===true?'사용':timing.candidateCacheHit===false?'미사용':'미제공'}`);
   const prefetch=timing.candidatePrefetchTiming;
