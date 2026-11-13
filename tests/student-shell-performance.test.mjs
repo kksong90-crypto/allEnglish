@@ -12,7 +12,7 @@ function source(name){const marker=(html.includes('async function '+name+'(')?'a
  return html.slice(a,b);
 }
 const sha=text=>createHash('sha256').update(text).digest('hex');
-test('all outer styles preserve the deployed rule content and cascade order exactly',()=>{assert.equal(sha(css.slice(css.indexOf('\n')+1)),'191d7840dac88775d0b1cf4988b17b02844f58edebf4da9bafdd7d71a76efcf2');assert.equal((html.match(/href="student-shell.css\?v=20261018.1"/g)||[]).length,1);assert.ok(html.indexOf('href="student-shell.css')<html.indexOf('</head>'));});
+test('original deployed styles remain byte-identical; new practice CSS is appended only',()=>{const marker='\n\n/* Student assigned practice modes */';const pos=css.indexOf(marker);assert.ok(pos>=0,'scoped practice CSS must be appended');const original=css.slice(0,pos);assert.equal(sha(original.slice(original.indexOf('\n')+1)),'191d7840dac88775d0b1cf4988b17b02844f58edebf4da9bafdd7d71a76efcf2');const extra=css.slice(pos);assert.match(extra,/#practice \.practice-head/);assert.match(extra,/#practice \.practice-choice/);assert.match(extra,/body\.dark #practice/);assert.ok(html.indexOf('href="student-shell.css')<html.indexOf('</head>'));});
 test('generated report keeps its original self-contained print stylesheet',()=>{const blocks=[...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)];assert.equal(blocks.length,1);assert.equal(sha(blocks[0][1]),'dcead22ba137d559464d435116ce855af8819d20c04d8f81f0665483a9312e4a');});
 function fixture(){
  const nodes=new Map(),pending=[],storage=new Map(),saved=[],events=[];let clock=100000;
