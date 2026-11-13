@@ -62,7 +62,8 @@ test('practice goes directly to its own view; legacy full vocabulary read is not
   v.context.assignedPracticeChooseMode('mock');
   assert.ok(v.node('practice-answer-0'));
   assert.ok(v.node('practice-answer-1'));
-  assert.match(v.node('practice-view').innerHTML, /학원 단어시험 실전 모의연습/);
+  assert.match(v.node('practice-view').innerHTML, /배정 범위 주관식 모의연습/);
+  assert.match(v.node('practice-view').innerHTML, /문항 수·문제 순서는 실제 학원 시험과 다를 수 있습니다/);
   assert.match(v.node('practice-view').innerHTML, /시험 전 개인 연습/);
   assert.equal(v.node('answer-0'), null);
 });
@@ -207,4 +208,109 @@ test('switching from an unfinished mock to cards drops the mock result owner', a
   v.context.showTab('home');
   assert.equal(v.read('assignedPracticeState'), null);
   assert.equal(v.read('isActivePracticeDraft()'), false);
+});
+
+
+test('discard confirmation protects a partially typed mock when switching modes', async () => {
+  const v = virtualStudent({ backend: mockBackend() });
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('mock');
+  const first = v.node('practice-answer-0');
+  first.value = 'app';
+  v.context.confirm = () => false;
+  v.context.assignedPracticeChooseMode('card');
+  assert.equal(v.read('assignedPracticeState.mode'), 'mock');
+  assert.equal(v.node('practice-answer-0').value, 'app');
+  assert.equal(v.read('currentTestMeta.skipSave'), true);
+  v.context.confirm = () => true;
+  v.context.assignedPracticeChooseMode('card');
+  assert.equal(v.read('assignedPracticeState.mode'), 'card');
+  assert.equal(v.node('practice-answer-0'), null);
+  assert.equal(calls(v,'saveVocabResult').length,0);
+});
+
+test('home navigation does not silently discard unfinished spelling or mock input', async () => {
+  const v = virtualStudent({ backend: mockBackend() });
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('spell');
+  v.node('practice-spell-input').value = 'ap';
+  let prompts = 0;
+  v.context.confirm = () => { prompts++; return false; };
+  v.context.showTab('home');
+  assert.equal(prompts,1);
+  assert.equal(v.read('getActiveTabId()'),'practice');
+  assert.equal(v.node('practice-spell-input').value,'ap');
+  v.context.confirm = () => true;
+  v.context.showTab('home');
+  assert.equal(v.read('getActiveTabId()'),'home');
+  assert.equal(v.read('assignedPracticeState'),null);
+  assert.equal(calls(v,'saveVocabResult').length,0);
+});
+
+test('changing modes without typed answers requires no confirmation', async () => {
+  const v = virtualStudent({ backend: mockBackend() });
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('mock');
+  let prompts=0;
+  v.context.confirm = () => { prompts++; return false; };
+  v.context.assignedPracticeChooseMode('card');
+  assert.equal(prompts,0);
+  assert.equal(v.read('assignedPracticeState.mode'),'card');
+  assert.equal(calls(v,'saveVocabResult').length,0);
+});
+
+test('an ambiguous Korean meaning prevents unsafe recall while spelling stays available', async () => {
+  const backend = mockBackend();
+  backend.practiceResult.questions = [
+    {questionNo:1,prompt:'유지하다',acceptedAnswers:['maintain'],sourceLabel:'Day 30'},
+    {questionNo:2,prompt:'유지하다',acceptedAnswers:['preserve'],sourceLabel:'Day 30'},
+    {questionNo:3,prompt:'평가하다',acceptedAnswers:['evaluate'],sourceLabel:'Day 30'},
+    {questionNo:4,prompt:'중단하다',acceptedAnswers:['interrupt'],sourceLabel:'Day 30'},
+    {questionNo:5,prompt:'확인하다',acceptedAnswers:['confirm'],sourceLabel:'Day 30'}
+  ];
+  const v=virtualStudent({backend});
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('recall');
+  const eligible=v.read('assignedPracticeState.study.queue');
+  assert.equal(eligible.includes(0),false);
+  assert.equal(eligible.includes(1),false);
+  assert.ok(eligible.includes(2));
+  v.context.assignedPracticeChooseMode('spell');
+  assert.equal(v.read('assignedPracticeState.study.total'),5);
+});
+
+test('spelling accepts the server-supplied alternate answer', async()=>{
+  const backend=mockBackend();
+  backend.practiceResult.questions=[{questionNo:1,prompt:'장점',acceptedAnswers:['advantage','benefit'],sourceLabel:'Day 30'}];
+  const v=virtualStudent({backend});
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('spell');
+  v.node('practice-spell-input').value='benefit';
+  v.context.assignedPracticeSubmitSpelling();
+  assert.equal(v.read('assignedPracticeState.study.feedback.correct'),true);
+  assert.equal(calls(v,'saveVocabResult').length,0);
+});
+
+test('repeatedly missed spelling is not trapped in an endless retry cycle', async()=>{
+  const backend=mockBackend();
+  backend.practiceResult.questions=[{questionNo:1,prompt:'사과',acceptedAnswers:['apple'],sourceLabel:'Day 30'}];
+  const v=virtualStudent({backend});
+  await v.boot();
+  await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+  v.context.assignedPracticeChooseMode('spell');
+  for(let i=0;i<2;i++){
+    v.node('practice-spell-input').value='wrong';
+    v.context.assignedPracticeSubmitSpelling();
+    v.context.assignedPracticeNext();
+  }
+  assert.equal(v.read('assignedPracticeState.finished'),true);
+  assert.equal(v.read('assignedPracticeState.study.queue.length'),0);
+  assert.equal(v.read('assignedPracticeState.study.needsReview.size'),1);
+  assert.match(v.node('practice-view').innerHTML,/아직 어려운 단어 1개/);
+  assert.equal(calls(v,'saveVocabResult').length,0);
 });
