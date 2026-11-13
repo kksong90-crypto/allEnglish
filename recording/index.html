@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#173e35">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="allbarun-recording-version" content="8.2.20-BACKGROUND-CHECKS">
+  <meta name="allbarun-recording-version" content="8.2.21-QUICK-ROSTER">
   <title>All바른 녹음체크</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
@@ -29,33 +29,35 @@
 </header>
 
 <main>
-  <nav aria-label="업무 선택" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+  <nav class="workspace-nav" aria-label="업무 선택">
     <button class="btn primary" type="button" data-workspace="recording" aria-pressed="true" aria-controls="workspace-recording">녹음체크</button>
     <button class="btn secondary" type="button" data-workspace="absence" aria-pressed="false" aria-controls="workspace-absence">예정결석</button>
     <button class="btn secondary" type="button" data-workspace="score" aria-pressed="false" aria-controls="workspace-score">학교시험 성적</button>
   </nav>
   <section id="workspace-recording" aria-label="녹음체크">
-  <div id="safety-banner" class="safety-banner">
-    <span>체크하면 자동으로 저장됩니다.</span>
-  </div>
-
   <section id="recording-recovery" class="recording-recovery" aria-label="보관된 체크 복구" aria-live="polite" hidden></section>
-
   <nav id="date-strip" class="date-strip" aria-label="녹음 대상 날짜"></nav>
 
+  <section class="recording-overview" aria-label="녹음 제출 현황">
+    <div class="statusbar">
+      <div class="metric"><span>대상</span><b id="m-total">-</b></div>
+      <div class="metric"><span>제출</span><b id="m-received">-</b></div>
+      <div class="metric"><span id="m-pending-label">미확인</span><b id="m-pending">-</b></div>
+    </div>
+    <div id="recording-progress" class="recording-progress" role="progressbar" aria-label="녹음 제출 완료율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+  </section>
   <section id="notice-banner" class="notice-banner neutral">
-    <div>
-      <b id="notice-title">공지 상태 확인 중</b>
-      <span id="notice-detail">선택 날짜의 서버 상태를 읽고 있습니다.</span>
+    <div class="notice-copy">
+      <b id="notice-title">명단을 불러오고 있습니다.</b>
+      <details class="notice-details"><summary>공지 안내</summary><span id="notice-detail">선택 날짜의 서버 상태를 확인하고 있습니다.</span></details>
     </div>
     <span id="deadline-badge" class="deadline-badge">-</span>
   </section>
-
-  <div class="statusbar">
-    <div class="metric"><span>대상</span><b id="m-total">-</b></div>
-    <div class="metric"><span>제출</span><b id="m-received">-</b></div>
-    <div class="metric"><span id="m-pending-label">남음</span><b id="m-pending">-</b></div>
+  <div class="recording-tools">
+    <label class="recording-search"><span class="sr-only">학생 또는 반 검색</span><input id="recording-search" type="search" placeholder="학생·반 이름 검색" autocomplete="off"></label>
+    <button id="pending-only" class="filter-chip" type="button" aria-pressed="false">미확인만</button>
   </div>
+  <p id="roster-filter-status" class="filter-status" role="status" hidden></p>
 
   <div id="classes" aria-live="polite"></div>
   <div id="empty" class="empty" hidden></div>
@@ -98,7 +100,7 @@
 
   <footer>
     <span id="authoritative-read">서버 확인 전</span>
-    <span>v8.2.20</span>
+    <span>v8.2.21</span>
   </footer>
 </main>
 

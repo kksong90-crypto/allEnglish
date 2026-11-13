@@ -14,3 +14,65 @@ main{max-width:900px;margin:auto;padding:13px 13px 85px}.safety-banner{display:f
 
 /* Keep save/connectivity state visible on phones; ordinary saves must not expand a recovery panel. */
 @media(max-width:560px){#sync-state{display:inline-block;max-width:110px;overflow:hidden;text-overflow:ellipsis;font-size:11px;padding:6px 8px;min-width:0}#network-state.offline{display:inline-block;font-size:11px;padding:6px 8px}.head-actions{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:52%}.head-actions .icon{flex-shrink:0}.safety-banner{padding:8px 12px;font-size:12px}.safety-banner span{margin:0}}
+
+/* Compact work surface; filtering preserves the existing rows and pending input. */
+:root{--shadow:0 3px 14px rgba(23,62,53,.045)}
+main{padding-top:12px;max-width:960px}
+.workspace-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:5px;background:#e2eae5;border:1px solid #d6e1da;border-radius:16px;margin-bottom:8px}
+.workspace-nav .btn{min-height:44px;padding:10px 6px;font-size:14px;border:0;border-radius:11px;background:transparent;white-space:nowrap}
+.workspace-nav .btn.primary{background:var(--main);color:#fff;box-shadow:0 2px 5px #173e3514}
+.workspace-nav .btn.secondary{color:#53685c}
+.date-strip{padding:8px 0 12px;gap:7px}
+.date-chip{min-height:42px;padding:8px 12px;font-size:13px}
+.recording-overview{background:#fff;border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.recording-overview .statusbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:0;padding:12px 4px}
+.recording-overview .metric{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-right:1px solid #e7eee9;border-radius:0;padding:0;background:none;box-shadow:none}
+.recording-overview .metric:last-child{border-right:0}
+.recording-overview .metric span{font-size:12px}
+.recording-overview .metric b{font-size:22px;line-height:1.2}
+.recording-progress{height:4px;background:linear-gradient(to right,#2c7953 var(--completion,0%),#e7eee9 var(--completion,0%))}
+.notice-banner{box-shadow:none;border:0;border-radius:11px;padding:10px 12px;margin:8px 0 12px;align-items:flex-start}
+.notice-banner b{font-size:13px}
+.notice-copy{min-width:0;flex:1}
+.notice-details{font-size:11px;color:var(--muted);margin-top:3px}
+.notice-details summary{cursor:pointer;width:fit-content}
+.notice-details span{line-height:1.55;font-size:11px!important}
+.deadline-badge{font-size:11px;padding:5px 7px}
+.recording-tools{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.recording-search{flex:1;min-width:0}
+.recording-search input{appearance:none;-webkit-appearance:none;width:100%;min-height:44px;border:1px solid #cad8cf;border-radius:12px;padding:10px 12px;background:#fff;color:var(--main);font-size:14px}
+.recording-search input:focus{outline:2px solid #54976f55;outline-offset:1px;border-color:#55926d}
+.filter-chip{min-height:44px;flex-shrink:0;border:1px solid #cad8cf;border-radius:12px;background:#fff;color:#53685c;font-size:13px;font-weight:750;padding:9px 12px}
+.filter-chip[aria-pressed=true]{color:#fff;background:var(--main2);border-color:var(--main2)}
+.filter-status{font-size:12px;color:var(--muted);margin:5px 3px 10px;line-height:1.5}
+#classes [hidden],#roster-filter-status[hidden]{display:none!important}
+.class-card{margin:10px 0;border-radius:15px}
+.class-head{padding:11px 13px;background:#fff}
+.class-head h2{font-size:16px;line-height:1.4}
+.class-head p{font-size:11px;margin-top:3px}
+.class-head .count{font-size:13px;padding:4px 8px;background:#edf4ee;border-radius:8px}
+.student{padding:11px 13px;min-height:70px;gap:12px;cursor:pointer;transition:background .1s}
+.student:active{background:#eaf4ee}
+.student .name{font-size:16px;font-weight:800}
+.student .state{font-size:11px}
+.student input[type=checkbox]{appearance:none;-webkit-appearance:none;width:25px;height:25px;border:2px solid #b8c9bc;border-radius:7px;background:#fff;display:grid;place-content:center;margin:0}
+.student input[type=checkbox]:checked{background:var(--main2);border-color:var(--main2)}
+.student input[type=checkbox]:checked:after{content:'✓';color:#fff;font-size:18px;line-height:1;font-weight:900}
+.student input[type=checkbox]:focus-visible{outline:3px solid #88b99d;outline-offset:3px}
+.student input[type=checkbox]:disabled{opacity:.45}
+.student.pending{outline:0;box-shadow:inset 3px 0 0 #4c9168;background:#f0f7f2}
+.student.pending input:disabled{opacity:1}
+.student.pending .state{color:#36704b}
+.student.error{box-shadow:inset 3px 0 0 var(--bad)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+main>section:not(#workspace-recording)>h2{font-size:18px;margin:18px 0 12px}
+fieldset{min-width:0;margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+legend{padding:0 6px;font-size:13px;font-weight:750}
+label.field{display:grid;gap:6px;font-size:13px;font-weight:650}
+.field input,.field select{box-sizing:border-box;min-width:0;max-width:100%;width:100%;min-height:44px;border:1px solid #bfcec3;border-radius:10px;background:#fff;color:var(--main);padding:10px 11px;font:inherit}
+#absence-results ul,#score-results ul{padding:0;list-style:none}
+#absence-results li,#score-results li{padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;margin:8px 0;font-size:14px;line-height:1.55}
+#score-results form fieldset{display:flex;gap:8px;align-items:end;margin:10px 0 0;padding:0;border:0}
+#score-results form .field{flex:1;margin:0}
+@media(max-width:560px){main{padding:10px 12px 55px}.workspace-nav .btn{font-size:13px}.head h1{font-size:17px}.recording-overview .metric{gap:6px}.recording-overview .metric b{font-size:21px}.notice-banner{gap:8px}.class-head{padding:10px 12px}.student{padding:11px 12px}.student-list{grid-template-columns:1fr}.student:nth-child(odd){border-right:0}.notice-copy{min-width:0}}
+@media(prefers-reduced-motion:reduce){.student{transition:none}}

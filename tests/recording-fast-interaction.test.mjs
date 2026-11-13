@@ -10,7 +10,7 @@ test('recording restores a server-confirmed screen before starting background re
   const startup="if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}";
   assert.ok(source.includes(startup));
   assert.ok(source.indexOf('restoreDashboardCache()')<source.lastIndexOf("void loadData(false,initialRecordingTargetDate())"));
-  assert.match(source,/cached\.apiUrl!==apiUrl\(\)/);
+  assert.match(source,/cached\.apiUrl===apiUrl\(\)/);
   assert.match(source,/saveDashboardCache\(data\)/);
 });
 
@@ -104,4 +104,5 @@ test('crossing Korean midnight returns to the server default even within the cac
 test('a fresh start without a restored screen requests the server default',()=>{
  assert.equal(startupTarget({targetDate:'',lastLoaded:0},'2026-11-12T18:42:00+09:00'),'');
 });
+
 

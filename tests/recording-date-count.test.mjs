@@ -5,7 +5,7 @@ import {test} from 'node:test';
 
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 function display(data){
-  const nodes=new Map(),ctx={APP:{targetDate:data.targetDate},$:(id)=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);},esc:String,renderSummary(){},renderClasses(){},renderRecordingRecovery(){}};
+  const nodes=new Map(),ctx={APP:{targetDate:data.targetDate},$:(id)=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id);},esc:String,renderSummary(){},renderClasses(){},renderRecordingRecovery(){},applyRecordingFilters(){}};
   vm.createContext(ctx);
   vm.runInContext(source.split(/\r?\n/).filter(line=>/^function (render|renderDates)\(/.test(line)).join('\n'),ctx);
   ctx.render(data);
@@ -25,3 +25,4 @@ test('a fully exempt selected date displays zero rather than a cached positive c
 test('missing or invalid authoritative totals preserve the candidate count',()=>{
   for(const total of [undefined,null,'2',-1,NaN])assert.match(display(data(total,1)),/11\/16<span class="tiny">1명/);
 });
+
