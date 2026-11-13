@@ -2152,7 +2152,24 @@ async function startAssignedVocaPractice(testPlanId, button) {
     if (result?.success !== true) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
     const questions = Array.isArray(result.questions) ? result.questions : [];
     if (!questions.length) throw new Error("이 계획에 연습할 시험범위 단어가 없습니다.");
+    // The backend owns plan identity and answer aliases. Refuse unexpected
+    // or conflicting metadata instead of silently presenting a different test.
+    if (result.testPlanId && String(result.testPlanId) !== planId) {
+      throw new Error("시험범위 계획이 변경되었습니다. 학습일정을 새로 확인해 주세요.");
+    }
+    if (result.mode && String(result.mode).toUpperCase() !== "MEANING_TO_WORD") {
+      throw new Error("시험범위 연습 유형이 일치하지 않습니다.");
+    }
+    if (questions.length > 200) throw new Error("시험범위 문항 수가 허용 범위를 초과했습니다.");
+    const identities = new Set();
+    let duplicated = false;
     const rows = questions.map(question => {
+      const wordId = String(question?.vocabWordId || "").trim();
+      if (wordId) {
+        const wordKey = JSON.stringify([String(question?.bookId || ""), wordId]);
+        if (identities.has(wordKey)) duplicated = true;
+        identities.add(wordKey);
+      }
       const answers = (Array.isArray(question?.acceptedAnswers) ? question.acceptedAnswers : [])
         .map(value => String(value ?? "").trim()).filter(Boolean);
       if (!answers.length || !String(question?.prompt || "").trim()) return null;
@@ -2161,6 +2178,7 @@ async function startAssignedVocaPractice(testPlanId, button) {
         String(question.bookId || ""), answers.join("|"), String(question.vocabWordId || "")];
     });
     if (rows.some(row => !row)) throw new Error("시험범위 문항이 일부 누락되었습니다. 최신 학습일정을 확인해 주세요.");
+    if (duplicated) throw new Error("시험범위 문항이 중복되어 있습니다. 학습일정을 다시 확인해 주세요.");
     assignedPracticeState = {
       planId, rows, planDate: String(result.planDate || ""), epoch,
       token: currentUser.token, mode: "", study: null, finished: true
