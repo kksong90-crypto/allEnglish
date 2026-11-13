@@ -1747,8 +1747,9 @@ function printMyScoreReport() {
       if (!section) return;
 
       const previousTab = getActiveTabId();
-      // Leaving a private practice discards its unsaved answers and releases any update hold.
+      // Guard typed answers before abandoning a private practice.
       if (previousTab === "practice" && tabId !== "practice") {
+        if (!confirmAssignedPracticeExit()) return;
         assignedPracticeState = null;
         assignedPracticeRequestSerial += 1;
         if (currentTestMeta?.targetId === "practice-view") {
@@ -2235,8 +2236,25 @@ function assignedPracticeRecallChoices(index) {
   if (others.length < 3) return null;
   return shuffleArray([correct, ...others.slice(0,3)]);
 }
+function assignedPracticeHasUnsavedInput() {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.finished) return false;
+  const state = assignedPracticeState;
+  if (state.mode === "mock" && currentTestMeta?.targetId === "practice-view" && !testAlreadySaved) {
+    return [...document.querySelectorAll('input[id^="practice-answer-"]')]
+      .some(input => String(input.value || "").trim() !== "");
+  }
+  if (state.mode === "spell" && state.study?.feedback === null) {
+    return String(document.getElementById("practice-spell-input")?.value || "").trim() !== "";
+  }
+  return false;
+}
+function confirmAssignedPracticeExit() {
+  return !assignedPracticeHasUnsavedInput() ||
+    confirm("작성 중인 답안은 저장되지 않습니다. 이동하시겠습니까?");
+}
 function assignedPracticeChooseMode(mode) {
   if (!isAssignedPracticeCurrent() || !["card","recall","spell","mock"].includes(mode)) return;
+  if (!confirmAssignedPracticeExit()) return;
   const state = assignedPracticeState;
   // Clear any previous mock draft; other word tests are unaffected.
   if (currentTestMeta?.targetId === "practice-view") {
@@ -2248,13 +2266,14 @@ function assignedPracticeChooseMode(mode) {
   if (mode === "mock") {
     state.study = null;
     renderTest([...state.rows], {
-      mode: "meaning", modeLabel: "학원 단어시험 실전 모의연습",
+      mode: "meaning", modeLabel: "배정 범위 주관식 모의연습",
       targetId: "practice-view", source: "ASSIGNED_TEST_PLAN",
       book: "[시험범위]", day: state.planDate || "배정 계획",
       testPlanId: state.planId, skipSave: true
     });
     document.getElementById("practice-view")
-      .insertAdjacentHTML("afterbegin", assignedPracticeHeader());
+      .insertAdjacentHTML("afterbegin", assignedPracticeHeader() +
+        '<p class="practice-contract-note">연습 문항 수·문제 순서는 실제 학원 시험과 다를 수 있습니다.</p>');
     return;
   }
   const indices = state.rows.map((_,i)=>i);
