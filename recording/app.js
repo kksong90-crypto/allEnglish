@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.18',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.19',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -23,7 +23,7 @@ function restoreDashboardCache(){
  return true;
 }
 function requestId(prefix='REC'){return`${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`}
-function isWriteAction(action){return /^(?:opsSaveOne|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore|quickRegisterSchoolExam)$/.test(String(action||''))}
+function isWriteAction(action){return /^(?:opsSaveOne|opsSaveBatch|opsAcceptBeforeDeadline|opsPublishDate|setClassEnabled|quickSaveAbsence|quickSaveScore|quickRegisterSchoolExam)$/.test(String(action||''))}
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
 function requireSessionLogin(message){clearDashboardCache();APP.readEpoch=(APP.readEpoch||0)+1;APP.preview=true;$('classes').innerHTML='';APP.data=null;resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
@@ -149,6 +149,37 @@ async function recoverRecordingChecks(){
  }finally{APP.recovering=false;renderRecordingRecovery()}
 }
 
+// Serialize network batches while preserving a distinct promise and journal per student.
+function createRecordingBatchTransport(send,{delayMs=120,max=30,canSend=()=>true}={}){
+ const queue=[];let active=false,timer=null;
+ function schedule(){if(!active&&!timer&&queue.length)timer=setTimeout(()=>{timer=null;void flush()},delayMs)}
+ async function flush(){
+  if(active||!queue.length)return;active=true;
+  const date=queue[0].payload.targetDate,jobs=[];
+  while(queue.length&&jobs.length<max&&queue[0].payload.targetDate===date)jobs.push(queue.shift());
+  try{
+   if(!jobs.every(job=>canSend(job.context))){const error=new Error('서버 확인 후 보관된 체크를 복구합니다.');error.deferred=true;throw error}
+   const response=await send(date,jobs.map(job=>job.payload),()=>jobs.forEach(job=>job.onSlow?.()));
+   const results=response?.results;
+   if(!response||response.ok!==true||response.targetDate!==date||!Array.isArray(results)||results.length!==jobs.length)throw new Error('묶음 저장 응답이 요청과 일치하지 않습니다.');
+   const map=new Map();
+   for(const result of results){if(!result||map.has(result.requestId))throw new Error('중복된 저장 응답입니다.');map.set(result.requestId,result)}
+   // Validate the complete envelope before settling any individual write.
+   for(const job of jobs){const result=map.get(job.payload.requestId);if(!result||result.targetDate!==date||result.classId!==job.payload.classId||result.studentId!==job.payload.studentId)throw new Error('학생별 저장 응답이 요청과 일치하지 않습니다.')}
+   for(const job of jobs){const result=map.get(job.payload.requestId);if(result.error&&!result.conflict){job.reject(new Error(result.error.message||'학생 체크를 저장하지 못했습니다.'))}else job.resolve(result)}
+  }catch(error){if(!error.deferred)error.uncertain=true;for(const job of jobs)job.reject(error)}
+  finally{active=false;schedule()}
+ }
+ return (payload,{context,onSlow}={})=>new Promise((resolve,reject)=>{queue.push({payload,context,onSlow,resolve,reject});schedule()});
+}
+function recordingBatchTransport(){
+ if(!APP.batchTransport)APP.batchTransport=createRecordingBatchTransport(
+  (targetDate,changes,onSlow)=>{const id=requestId('REC_BATCH');return api('opsSaveBatch',{targetDate,changes,requestId:id},{requestId:id,onSlow})},
+  {canSend:context=>!APP.needsRead&&!APP.preview&&context.targetDate===APP.targetDate&&context.apiUrl===apiUrl()&&context.session===recordingSession()}
+ );
+ return APP.batchTransport;
+}
+
 async function saveOne(input,classId,studentId,recovery=null){
  const key=`${classId}|${studentId}`,student=findStudent(classId,studentId);
  if(!student||APP.preview||APP.needsRead||(APP.loading&&APP.loadingTargetDate!==APP.targetDate)||APP.accepting||APP.saving.has(key)){
@@ -177,6 +208,7 @@ async function saveOne(input,classId,studentId,recovery=null){
  setSync('녹음 체크 저장 중','saving');
  renderRecordingRecovery();
 
+ const useBatch=!recovery&&Number(APP.data?.recordingBatchLimit)>=1&&typeof expectedRevision==='string';
  const write=async()=>{
   try{
    if(APP.needsRead||APP.preview||APP.targetDate!==date||attempt.apiUrl!==apiUrl()||attempt.session!==recordingSession()){
@@ -185,7 +217,8 @@ async function saveOne(input,classId,studentId,recovery=null){
    state.textContent=desired?'제출 · 저장 중':'미확인 · 저장 중';
    recordingJournal().put({...attempt,state:'SENT'});
    (APP.outboxAutoTried??=new Set()).add(id);
-   const result=await api('opsSaveOne',{targetDate:date,classId,studentId,received:desired,requestId:id,...revision},
+   const savePayload={targetDate:date,classId,studentId,received:desired,requestId:id,...revision};
+   const result=useBatch?await recordingBatchTransport()(savePayload,{context:attempt,onSlow:()=>{state.textContent='서버 저장 확인 중…'}}):await api('opsSaveOne',savePayload,
     {requestId:id,onSlow:()=>{state.textContent='서버 저장 확인 중…'}});
    if(APP.preview)return;
    if(result?.conflict){const error=new Error('다른 화면에서 이 학생의 체크가 변경되었습니다. 최신 상태를 다시 확인합니다.');error.conflict=true;throw error;}
@@ -233,6 +266,7 @@ async function saveOne(input,classId,studentId,recovery=null){
    await refreshRecording();
   }
  };
+ if(useBatch)return write();
  const queued=(APP.writeQueue||Promise.resolve()).then(write);
  APP.writeQueue=queued.catch(()=>{});
  return queued;
