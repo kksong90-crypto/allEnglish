@@ -161,6 +161,14 @@ async function testViewport(browser,name,viewport,isMobile,base){
     assert.match(await page.locator('#practice-result').innerText(),/1개 정답/);
     assert.equal(logs.filter(x=>['saveVocabResult','submitPointTest'].includes(x.action)).length,0);
 
+    // Station-style spelling must not accept letters separated by spaces.
+    await page.locator('#practice-result button').filter({hasText:'이 범위 다시 연습하기'}).click();
+    await page.locator('#practice-view .practice-mode').filter({hasText:'실전 TEST'}).click();
+    await page.locator('#practice-answer-0').fill('i n e v i t a b l e');
+    await page.locator('#practice-view button').filter({hasText:'채점하기'}).click();
+    assert.match(await page.locator('#practice-result').innerText(),/0개 정답/);
+    assert.equal(logs.filter(x=>['saveVocabResult','submitPointTest'].includes(x.action)).length,0);
+
     // Capture only synthetic practice content for UI inspection.
     if(process.env.CI){
       await mkdir(artifacts,{recursive:true});
