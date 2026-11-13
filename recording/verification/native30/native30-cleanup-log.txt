@@ -1,0 +1,99 @@
+0 AXWebArea [STAGING ONLY] 녹음 API 학교시험 격리 PR7 20261109 - 프로젝트 편집자 - Apps Script, URL: script.google.com/home/projects/1gtJFnSdYn_1sjx_LB3Nli2XbEdE9JKR_7eMwmreKww6_r0Qo23p6X7JT/edit
+	1 container
+		2 container script.google.com 에서는 서비스 제공 및 서비스 품질 개선과 트래픽 분석을 위해 Google 쿠키를 사용합니다. , ID: glue-cookie-notification-bar-1
+			3 container
+				4 text script.google.com 에서는 서비스 제공 및 서비스 품질 개선과 트래픽 분석을 위해 Google 쿠키를 사용합니다. 
+				5 link Description: Google에서 쿠키를 사용하는 방법을 자세히 알아보세요. 새 탭에서 열립니다., Value: policies.google.com/technologies/cookies?hl=ko
+			6 button 확인
+		7 container yDmH0d
+			8 container gb
+				9 container
+					10 link Description: Google Apps Script, Value: script.google.com/home, ID: sdgBod
+					11 button 이름 변경하기
+					12 pop up button (collapsed) 배포, ID: ow14, Secondary Actions: Expand
+					13 button 이 프로젝트를 다른 사용자와 공유
+					14 pop up button (collapsed) Description: 지원, Secondary Actions: Expand
+					15 button (collapsed) Description: Google 앱, Secondary Actions: Expand
+					16 button (collapsed) Description: Google 계정: 송경근 (kksong90@gmail.com), Google 멤버십, Secondary Actions: Expand
+			17 container
+				18 container Apps Script 프로젝트 페이지
+					19 link 개요
+						20 text 개요
+					21 link 편집기
+						22 text 편집기
+					23 link 프로젝트 기록
+						24 text 프로젝트 기록
+					25 link 트리거
+						26 text 트리거
+					27 link 실행
+						28 text 실행
+					29 link 프로젝트 설정
+						30 text 프로젝트 설정
+				31 heading 편집기, Value: 1
+					32 text 편집기
+				33 container
+					34 heading 파일, Value: 2
+						35 text 파일
+					36 button (disabled) 알파벳순으로 파일 정렬
+					37 pop up button (collapsed) Description: 파일 추가, Secondary Actions: Expand
+					38 list 프로젝트 파일
+						39 appsscript.json
+							40 text appsscript.json
+							41 button appsscript.json에 대한 파일 작업 메뉴
+								42 pop up button (collapsed) Description: appsscript.json에 대한 파일 작업 메뉴, Secondary Actions: Expand
+						43 (selected) Code.gs
+							44 text Code.gs
+							45 button Code.gs에 대한 파일 작업 메뉴
+								46 pop up button (collapsed) Description: Code.gs에 대한 파일 작업 메뉴, Secondary Actions: Expand
+						47 IntegratedStaging.html
+							48 text IntegratedStaging.html
+							49 button IntegratedStaging.html에 대한 파일 작업 메뉴
+								50 pop up button (collapsed) Description: IntegratedStaging.html에 대한 파일 작업 메뉴, Secondary Actions: Expand
+					51 heading 라이브러리, Value: 2
+						52 text 라이브러리
+					53 button 라이브러리 추가
+					54 heading 서비스, Value: 2
+						55 text 서비스
+					56 button 서비스 추가
+					57 list 서비스 종속성
+						58 Sheets Sheets의 작업 메뉴
+							59 text Sheets
+							60 button Sheets의 작업 메뉴
+								61 pop up button (collapsed) Description: Sheets의 작업 메뉴, Secondary Actions: Expand
+					62 splitter Description: 창 크기 조절, Value: 50
+					63 container
+						64 button 코드 수정 실행취소
+						65 button (disabled) 코드 수정 재실행
+						66 button (disabled) Drive에 프로젝트 저장
+							67 image
+						143 button 선택한 기능 실행
+							144 text 실행
+						145 button 선택한 기능 디버그
+							146 image
+							147 text 디버그
+						148 list 실행할 함수 선택
+							149 (selected) cleanupNativeThirtyStaging20261114
+						68 button 실행 로그 패널 닫기
+							69 text 실행 로그
+						70 container
+							71 text .
+							72 AXWebArea about:blank
+							80 container
+						152 splitter Description: 창 크기 조절, Value: 60
+						153 container
+							154 text 실행 로그
+							155 content list 로그
+								159 container 1번째 로그 오전 1:17:10. 알림. 실행이 시작됨.
+									160 text 오전 1:17:10
+									161 text 알림
+									162 text 실행이 시작됨
+								163 container 2번째 로그 오전 1:17:23. 정보. {"probe":"NATIVE30_CLEANUP","total":2,"received":2,"inactiveFixtureStudents":28}.
+									164 text 오전 1:17:23
+									165 text 정보
+									166 text {"probe":"NATIVE30_CLEANUP","total":2,"received":2,"inactiveFixtureStudents":28}
+								167 container 3번째 로그 오전 1:17:23. 알림. 실행이 완료됨.
+									168 text 오전 1:17:23
+									169 text 알림
+									170 text 실행이 완료됨
+						158 button 실행 로그 창 닫기
+		171 text 선택한 기능 실행

@@ -1,0 +1,119 @@
+Browser tab: 25, Title: "All바른 통합 STAGING", URL: "https://script.google.com/macros/s/AKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A/exec?ui=1&build=integrated35".
+1 AXWebArea All바른 통합 STAGING, URL: script.google.com/macros/s/AKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A/exec?ui=1&build=integrated35
+	2 container warning-bar-table
+		3 container 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다.
+			4 container 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다., ID: warning
+				5 text 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다.
+				6 link Description: 악용사례 신고, Value: drive.google.com/abuse?id=AFS7Ads6cqh1si9oc3jQsIwBewyrdUdj36AdZDbWA8w0xVD-CZ9ipgv42TelogPaZfw14FpfuDhl5Br_QMVHUzhNkmMxORlvyz1ix-VQ%3A0&docurl=https%3A%2F%2Fscript.google.com%2Fmacros%2Fs%2FAKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A%2Fexec%3Fui%3D1%26build%3Dintegrated35
+				7 link Description: 자세히 알아보기, Value: developers.google.com/apps-script
+				8 button 닫기
+		9 container All바른 통합 STAGING
+			10 container Description: All바른 통합 STAGING, ID: sandboxFrame
+				11 AXWebArea n-v3qknmnmoqbmk2hve4mnzfssw3mge3kr2fnw6ea-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true
+					12 container Description: All바른 통합 STAGING, ID: userHtmlFrame
+						13 AXWebArea All바른 녹음체크, URL: n-v3qknmnmoqbmk2hve4mnzfssw3mge3kr2fnw6ea-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true
+							14 container
+								15 heading <경근T> 녹음체크, Value: 1
+									16 text <경근T> 녹음체크
+								117 text 11월 16일 월요일
+								118 text 온라인
+								192 text 자동 저장 중
+								20 button 설정
+							21 container
+								22 container 업무 선택
+									23 checkbox 녹음체크, Value: 1
+									24 checkbox 예정결석, Value: 0
+									25 checkbox 학교시험 성적, Value: 0
+								26 container Description: 녹음체크, ID: workspace-recording
+									27 container Description: 녹음 대상 날짜, ID: date-strip
+										28 button 11/12(목)2명
+											29 text 11/12(목)
+											30 text 2명
+										31 button 11/16(월)30명
+											32 text 11/16(월)
+											33 text 30명
+									34 container 녹음 제출 현황
+										35 text 대상
+										193 text 30
+										194 text 제출 · 저장 중
+										195 text 30
+										196 text 미확인
+										197 text 0
+										41 progress indicator Description: 녹음 제출 현황 · 저장 중인 체크 포함, Value: 100, ID: recording-progress
+									42 container notice-banner
+										198 text 변경 14명 저장 중
+										44 button (collapsed) 공지 안내, Secondary Actions: Expand
+											45 text 공지 안내
+										199 text 마감 15:00
+									47 container
+										48 text 학생 또는 반 검색
+										49 search text field (settable) 학생 또는 반 검색, ID: recording-search
+									50 checkbox 미확인만, Value: 0, ID: pending-only
+									127 container
+										128 heading [검증전용] 녹음 저장 QA, Value: 2
+											129 text [검증전용] 녹음 저장 QA
+										130 text 학생별 확정 범위는 아래에서 확인하세요 30/30
+										131 checkbox (settable, integer) Description: 검증학생1 저장 당시 범위 · 검증용 Day 1 제출 · 11/14 01:13, Value: 1
+										132 text 검증학생1 저장 당시 범위  · 검증용 Day 1 제출 · 11/14 01:13
+										133 checkbox (settable, integer) Description: 검증학생2 저장 당시 범위 · 검증용 Day 1 제출 · 11/14 01:13, Value: 1
+										134 text 검증학생2 저장 당시 범위  · 검증용 Day 1 제출 · 11/14 01:13
+										135 checkbox (settable, integer) Description: 규모검증01 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:26, Value: 1
+										136 text 규모검증01 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:26
+										137 checkbox (settable, integer) Description: 규모검증02 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:33, Value: 1
+										138 text 규모검증02 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:33
+										139 checkbox (settable, integer) Description: 규모검증03 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:33, Value: 1
+										140 text 규모검증03 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:33
+										141 checkbox (settable, integer) Description: 규모검증04 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:33, Value: 1
+										142 text 규모검증04 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:33
+										143 checkbox (settable, integer) Description: 규모검증05 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:33, Value: 1
+										144 text 규모검증05 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:33
+										145 checkbox (settable, integer) Description: 규모검증06 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:33, Value: 1
+										146 text 규모검증06 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:33
+										147 checkbox (settable, integer) Description: 규모검증07 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										148 text 규모검증07 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										149 checkbox (settable, integer) Description: 규모검증08 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										150 text 규모검증08 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										151 checkbox (settable, integer) Description: 규모검증09 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										152 text 규모검증09 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										153 checkbox (settable, integer) Description: 규모검증10 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										154 text 규모검증10 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										155 checkbox (settable, integer) Description: 규모검증11 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										156 text 규모검증11 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										157 checkbox (settable, integer) Description: 규모검증12 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										158 text 규모검증12 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										159 checkbox (settable, integer) Description: 규모검증13 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										160 text 규모검증13 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										161 checkbox (settable, integer) Description: 규모검증14 저장 당시 범위 · 범위 확인 필요 제출 · 01:14:46, Value: 1
+										162 text 규모검증14 저장 당시 범위  · 범위 확인 필요 제출 · 01:14:46
+										163 checkbox (disabled, settable, integer) Description: 규모검증15 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										164 text 규모검증15 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										165 checkbox (disabled, settable, integer) Description: 규모검증16 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										166 text 규모검증16 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										167 checkbox (disabled, settable, integer) Description: 규모검증17 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										168 text 규모검증17 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										169 checkbox (disabled, settable, integer) Description: 규모검증18 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										170 text 규모검증18 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										171 checkbox (disabled, settable, integer) Description: 규모검증19 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										172 text 규모검증19 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										173 checkbox (disabled, settable, integer) Description: 규모검증20 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										174 text 규모검증20 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										175 checkbox (disabled, settable, integer) Description: 규모검증21 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										176 text 규모검증21 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										177 checkbox (disabled, settable, integer) Description: 규모검증22 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										178 text 규모검증22 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										179 checkbox (disabled, settable, integer) Description: 규모검증23 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										180 text 규모검증23 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										181 checkbox (disabled, settable, integer) Description: 규모검증24 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										182 text 규모검증24 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										183 checkbox (disabled, settable, integer) Description: 규모검증25 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										184 text 규모검증25 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										185 checkbox (disabled, settable, integer) Description: 규모검증26 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										186 text 규모검증26 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										187 checkbox (disabled, settable, integer) Description: 규모검증27 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										188 text 규모검증27 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+										189 checkbox (disabled, settable, integer) Description: 규모검증28 저장 당시 범위 · 범위 확인 필요 제출 · 저장 중, Value: 1
+										190 text 규모검증28 저장 당시 범위  · 범위 확인 필요 제출 · 저장 중
+								191 text 최근 동기화 01:14:05
+								116 text v8.2.22
+
+The focused UI element is 13 AXWebArea All바른 녹음체크, URL: n-v3qknmnmoqbmk2hve4mnzfssw3mge3kr2fnw6ea-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true
