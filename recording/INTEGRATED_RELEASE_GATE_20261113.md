@@ -74,3 +74,8 @@ Google 배포 기록은34 / 2026-11-14 00:13 KST다. 실제4쌍 표본에서 두
 ## 현재: STAGING36 복귀 조회 교체
 
 복귀 시15초 이상 된 명단 조회만 취소하고 새로 읽는다. 저장 요청·보관 입력은 유지한다. 화면132/132·서버29/29, 실제 공개36의 체크 해제/복원·다른 탭/복귀 후2/2 확인. 되돌림35. [구현·검증·운영 전환 남은 조건](RESUME_READ_ACCEPTANCE_20261114.md). 운영6파일은 모두 기존 기준과 일치했고 기존 URL ping도 성공했으나 활성 배포 번호 재조회는 Google 배포 관리 로딩 문제로 미확인이다. 운영38이라는 기존 기록과 이번 읽기 결과를 구분한다. 실물 휴대전화 OS 검증·운영 반영 별도 확인은 남아 있다.
+
+## 최종 전환 묶음 고정
+
+검증 프런트7개 자산을sourceCommit f8dd7beb06db9737257a1d4de23e382433eaa2f0으로 고정했고, 서버29+패키지8검사가 통과했다. 실제 운영6파일 보관본을 줄바꿈/끝 개행까지 맞춰6개해시와Git원시blob을 대조했다. 후보 서버/manifest 해시는 기존과 동일하다. [최종 인계](https://github.com/kksong90-crypto/allbarun-recording-api/blob/cabbc98866deae3c594e5a448cbc7c064538b3f2/release-candidate/RELEASE_HANDOFF_20261114.md), [전환 상태](https://github.com/kksong90-crypto/allbarun-recording-api/blob/cabbc98866deae3c594e5a448cbc7c064538b3f2/release-candidate/RELEASE_READINESS_20261114.json). 실제 휴대전화 OS 확인·현재 활성배포/정적앱 경로/실제 운영센터 대상 확인·운영반영 별도 확인이 남아 readyForProductionDeployment=false다. Google 배포 관리 조회 오류를 완료로 처리하지 않았다.
+
