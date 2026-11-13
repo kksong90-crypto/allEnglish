@@ -337,3 +337,27 @@ test('mobile back preserves tab history and typed answers when exit is canceled'
   assert.equal(v.read('assignedPracticeState'),null);
   assert.equal(calls(v,'saveVocabResult').length,0);
 });
+
+
+test('malformed Student API contract fails closed without misleading practice score', async () => {
+  const cases = [
+    ['unexpected plan',result => {result.testPlanId='DIFFERENT_PLAN';}, /계획이 변경/],
+    ['wrong mode',result => {result.mode='WORD_TO_MEANING';}, /연습 유형이 일치/],
+    ['duplicate canonical word',result => {result.questions[1]={...result.questions[0],questionNo:2};}, /문항이 중복/],
+    ['too many questions',result => {result.questions=Array.from({length:201},(_,i)=>({
+      questionNo:i+1,prompt:'가상 뜻 '+i,acceptedAnswers:['word'+i],
+      bookId:'SYNTHETIC_B',vocabWordId:'WORD_'+i
+    }));}, /허용 범위를 초과/]
+  ];
+  for(const [label,change,expected] of cases) {
+    const backend=mockBackend();change(backend.practiceResult);
+    const v=virtualStudent({backend});
+    await v.boot();
+    await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+    assert.match(v.node('practice-view').innerHTML,expected,label);
+    assert.equal(v.node('practice-answer-0'),null,label);
+    assert.equal(v.read('assignedPracticeState'),null,label);
+    assert.equal(calls(v,'saveVocabResult').length,0,label);
+    assert.equal(calls(v,'submitPointTest').length,0,label);
+  }
+});
