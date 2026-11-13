@@ -98,9 +98,10 @@ async function testViewport(browser,name,viewport,isMobile,base){
   const page=await context.newPage();
   const unexpected=[];
   page.on('pageerror',err=>unexpected.push(String(err)));
+  // Playwright runs the last matching handler first; specific mock routes must win.
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   try {
     await page.goto(base,{waitUntil:'domcontentloaded'});
     await page.locator('#home-learning-content button[data-test-plan-id="SYNTHETIC_PLAN"]')
@@ -156,15 +157,16 @@ async function testViewport(browser,name,viewport,isMobile,base){
     assert.match(await page.locator('#practice-result').innerText(),/1개 정답/);
     assert.equal(logs.filter(x=>['saveVocabResult','submitPointTest'].includes(x.action)).length,0);
 
-    // Page view change is safe after completed private practice.
-    await page.evaluate(()=>showTab('home'));
-    assert.equal(await page.locator('section#home.active').count(),1);
-    assert.ok(!unexpected.length,name+' uncaught exceptions: '+unexpected.join('; '));
-
+    // Capture only synthetic practice content for UI inspection.
     if(process.env.CI){
       await mkdir(artifacts,{recursive:true});
       await page.screenshot({path:path.join(artifacts,name+'.png'),fullPage:true});
     }
+
+    // Page view change is safe after completed private practice.
+    await page.evaluate(()=>showTab('home'));
+    assert.equal(await page.locator('section#home.active').count(),1);
+    assert.ok(!unexpected.length,name+' uncaught exceptions: '+unexpected.join('; '));
     console.log('BROWSER PASS: '+name+' '+viewport.width+'x'+viewport.height+
       '; 4 modes, immediate correction, draft protection, official writes 0.');
   } finally {
@@ -176,9 +178,10 @@ async function testUncertainScope(browser,base){
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,timezoneId:'Asia/Seoul'});
   await context.addInitScript(syntheticScript);
   const page=await context.newPage();
+  // Playwright runs the last matching handler first; specific mock routes must win.
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   try {
     await page.goto(base,{waitUntil:'domcontentloaded'});
     await page.locator('#home-learning-content .home-task-warning').waitFor({timeout:20000});
