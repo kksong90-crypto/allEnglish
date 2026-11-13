@@ -461,6 +461,11 @@
   </section>
 
   <!-- 포인트 -->
+  <section id="practice">
+    <div class="section-title">📝 시험 전 단어 연습</div>
+    <div id="practice-view"><div class="card">홈 또는 학습일정에서 배정된 시험범위 연습을 시작하세요. 개인 연습은 공식 시험 성적에 반영되지 않습니다.</div></div>
+  </section>
+
   <section id="point">
     <div class="section-title">🎯 포인트</div>
 
@@ -601,6 +606,7 @@ async function fetchSheet(sheetName) {
     let favoriteEditSerial = 0;
     let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
     let currentTestMeta = null;
+    let assignedPracticeRequestSerial = 0;
     let testAlreadySaved = false;
     let currentTabId = "home";
     let appTabHistory = [];
@@ -768,11 +774,11 @@ async function fetchSheet(sheetName) {
       return value !== null && value !== undefined && String(value).trim() !== "";
     }
 
-    function makeAnswerInput(index) {
+    function makeAnswerInput(index, prefix = "answer-") {
       return `
         <input
           type="text"
-          id="answer-${index}"
+          id="${prefix}${index}"
           placeholder="영어 단어 입력"
           autocomplete="off"
           autocorrect="off"
@@ -1338,6 +1344,10 @@ async function loadHomeContent(forceRefresh = false) {
       vocabData = [];
       currentVocabWords = [];
       wrongWords = [];
+      currentTestMeta = null;
+      assignedPracticeRequestSerial += 1;
+      const practiceTarget = document.getElementById("practice-view");
+      if (practiceTarget) practiceTarget.innerHTML = '<div class="card">학습일정에서 연습할 시험범위를 다시 선택하세요.</div>';
       serverWrongWords = [];
       currentPointTest = null;
       studentContentPromise = null;
@@ -2098,30 +2108,44 @@ function renderScheduleDay(day, options = {}) {
 async function startAssignedVocaPractice(testPlanId, button) {
   const planId = String(testPlanId || "").trim();
   if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
+  if (!currentUser?.token) return showAppToast("로그인 후 이용하세요.");
+  const epoch = studentSessionEpoch;
+  const request = ++assignedPracticeRequestSerial;
   const originalText = button?.textContent || "시험범위 개인 연습";
   if (button) { button.disabled = true; button.textContent = "불러오는 중…"; }
+  // A dedicated view avoids downloading or overwriting the full vocabulary catalog.
+  showTab("practice", { deferLoad: true });
+  const target = document.getElementById("practice-view");
+  if (!target) return showAppToast("개인 연습 화면을 찾지 못했습니다.");
+  target.innerHTML = '<div class="card" role="status">배정된 시험범위를 확인하고 있습니다…</div>';
+  const current = () => epoch === studentSessionEpoch &&
+    request === assignedPracticeRequestSerial && getActiveTabId() === "practice";
   try {
-    await loadVocabBooksOnce();
-    showTab("vocab");
-    const target = document.getElementById("vocab-view");
-    if (target) target.innerHTML = `<div class="card">배정된 시험범위를 확인하고 있습니다…</div>`;
     const result = await apiPost({
       action: "getAssignedVocaPracticeQuestions",
       testPlanId: planId,
       mode: "MEANING_TO_WORD",
       limit: "200",
       randomize: "true"
+    }, API_LONG_TIMEOUT_MS);
+    if (!current()) return;
+    if (result?.success !== true) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
+    const questions = Array.isArray(result.questions) ? result.questions : [];
+    if (!questions.length) throw new Error("이 계획에 연습할 시험범위 단어가 없습니다.");
+    const rows = questions.map(question => {
+      const answers = (Array.isArray(question?.acceptedAnswers) ? question.acceptedAnswers : [])
+        .map(value => String(value ?? "").trim()).filter(Boolean);
+      if (!answers.length || !String(question?.prompt || "").trim()) return null;
+      return ["[시험범위]", String(question.sourceLabel || "배정 계획"), answers[0],
+        String(question.prompt), Number(question.questionNo || 0),
+        String(question.bookId || ""), answers.join("|"), String(question.vocabWordId || "")];
     });
-    if (!result?.success) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
-    const rows = (Array.isArray(result.questions) ? result.questions : []).map(question => {
-      const answers = (Array.isArray(question.acceptedAnswers) ? question.acceptedAnswers : []).map(String).filter(Boolean);
-      return ["[시험범위]", String(question.sourceLabel || "배정 계획"), answers[0] || "", String(question.prompt || ""), Number(question.questionNo || 0), String(question.bookId || ""), answers.join("|"), String(question.vocabWordId || "")];
-    }).filter(row => row[2] && row[3]);
-    if (!rows.length) throw new Error("이 계획에 연습할 시험범위 단어가 없습니다.");
+    if (rows.some(row => !row)) throw new Error("시험범위 문항이 일부 누락되었습니다. 최신 학습일정을 확인해 주세요.");
+    const today = String(result.planDate || "") === getTodayString();
     renderTest(rows, {
       mode: "meaning",
-      modeLabel: "배정 시험범위 개인 연습",
-      targetId: "vocab-view",
+      modeLabel: today ? "오늘 단어시험 사전 연습" : "배정 시험범위 사전 연습",
+      targetId: "practice-view",
       book: "[시험범위]",
       day: String(result.planDate || "배정 계획"),
       source: "ASSIGNED_TEST_PLAN",
@@ -2129,9 +2153,10 @@ async function startAssignedVocaPractice(testPlanId, button) {
       skipSave: true
     });
   } catch (error) {
-    const target = document.getElementById("vocab-view");
-    if (target) target.innerHTML = `<div class="card">${escapeHtml(error?.message || "시험범위 연습을 시작하지 못했습니다.")}</div>`;
-    showAppToast(error?.message || "시험범위 연습을 시작하지 못했습니다.");
+    if (!current()) return;
+    target.innerHTML = '<div class="card">' + escapeHtml(error?.message || "연습을 시작하지 못했습니다.") +
+      '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\')">홈에서 최신 시험범위 확인</button></div></div>';
+    showAppToast("시험범위 개인 연습을 시작하지 못했습니다.");
   } finally {
     if (button) { button.disabled = false; button.textContent = originalText; }
   }
@@ -2194,11 +2219,17 @@ function renderHomeVocabTask(item) {
   const school = String(item.schoolVocabText || "").trim();
   const book = item.vocabBookName || item.bookName || item.groupName || "";
   const fallback = !regular && !school ? String(item.displayText || "").trim() : "";
+  const planId = String(item?.testPlanId || "").trim();
+  const connected = String(currentUser?.role || "student").toLowerCase() === "student" &&
+    planId && item?.vocaScopeState === "CONNECTED" &&
+    Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
   return '<article class="home-task"><h3>이번 시험 단어</h3>' +
     (book ? '<p class="home-task-book">' + escapeHtml(book) + '</p>' : '') +
     (regular ? '<p class="home-task-scope">' + escapeHtml(regular) + '</p>' : '') +
     (school ? '<div class="home-task-school"><small>학교 시험 범위</small><p>' + escapeHtml(school) + '</p></div>' : '') +
-    (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') + '</article>';
+    (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') +
+    (connected ? '<button class="home-panel-action" type="button" data-test-plan-id="' + escapeHtml(planId) +
+      '" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this)">이 시험범위 연습하기</button>' : '') + '</article>';
 }
 function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
@@ -3450,10 +3481,11 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       wrongWords = [];
       testAlreadySaved = false;
       currentTestMeta = meta;
+      const practiceMode = meta.targetId === "practice-view";
 
       let html = `
         <div class="card test-header-card">
-          <span class="badge badge-success">단어시험</span><br><br>
+          <span class="badge badge-success">${meta.skipSave ? "시험 전 개인 연습" : "단어시험"}</span><br><br>
           <b style="font-size:1.2em;">${escapeHtml(meta.modeLabel)}</b><br>
           총 ${currentVocabWords.length}문제입니다.<br>
           ${meta.mode === "listening" ? "발음을 듣고 알맞은 영어 단어를 입력하세요." : "뜻을 보고 알맞은 영어 단어를 입력하세요."}
@@ -3468,7 +3500,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         html += `
           <div class="vocab-question">
             <b>Q${index + 1}. ${question}</b>
-            ${makeAnswerInput(index)}
+            ${makeAnswerInput(index, practiceMode ? "practice-answer-" : "answer-")}
           </div>
         `;
       });
@@ -3477,7 +3509,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         <div class="test-action-bar">
           <button class="vocab-btn" onclick="gradeVocabTest()">채점하기</button>
         </div>
-        <div id="vocab-result"></div>
+        ${practiceMode ? '<div id="practice-result"></div>' : '<div id="vocab-result"></div>'}
       `;
 
       document.getElementById(meta.targetId).innerHTML = html;
@@ -3486,6 +3518,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     function gradeVocabTest() {
       let correctCount = 0;
       let resultRows = "";
+      const inputPrefix = currentTestMeta?.targetId === "practice-view" ? "practice-answer-" : "answer-";
       wrongWords = [];
 
       currentVocabWords.forEach((row, index) => {
@@ -3494,7 +3527,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         // The canonical word is always accepted; optional aliases extend it.
         const correctAnswer = [row[2], row[6]].filter(hasVocabText).map(String).join("|");
         const meaning = row[3];
-        const input = document.getElementById(`answer-${index}`);
+        const input = document.getElementById(`${inputPrefix}${index}`);
         const userAnswer = input ? input.value : "";
         const isCorrect = isAnswerCorrect(userAnswer, correctAnswer);
 
@@ -3548,7 +3581,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         resultHtml += currentTestMeta?.skipSave ? renderPracticeRetryHtml() : renderWrongNoteHtml();
       }
 
-      const resultTarget = document.getElementById("vocab-result");
+      if (currentTestMeta?.skipSave && currentTestMeta?.testPlanId && currentTestMeta?.targetId === "practice-view") {
+        resultHtml += '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="startAssignedVocaPractice(currentTestMeta.testPlanId)">이 범위 다시 연습하기</button></div>';
+      }
+      const resultTarget = document.getElementById(currentTestMeta?.targetId === "practice-view" ? "practice-result" : "vocab-result");
       resultTarget.innerHTML = resultHtml;
       resultTarget.scrollIntoView({ behavior: "smooth" });
 
@@ -4324,7 +4360,7 @@ function renderPointResult(result) {
     });
 
     document.addEventListener("paste", function(e) {
-      if (e.target && e.target.id && e.target.id.startsWith("answer-")) {
+      if (e.target?.id && (e.target.id.startsWith("answer-") || e.target.id.startsWith("practice-answer-"))) {
         e.preventDefault();
         alert("단어시험에서는 붙여넣기를 사용할 수 없습니다.");
       }
