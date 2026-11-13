@@ -33,6 +33,8 @@ main{padding-top:12px;max-width:960px}
 .recording-progress{height:4px;background:linear-gradient(to right,#2c7953 var(--completion,0%),#e7eee9 var(--completion,0%))}
 .notice-banner{box-shadow:none;border:0;border-radius:11px;padding:10px 12px;margin:8px 0 12px;align-items:flex-start}
 .notice-banner b{font-size:13px}
+.notice-banner.saving{background:var(--warnbg);color:#735016}
+.recording-progress[data-saving="true"]{background:linear-gradient(to right,#bc8b32 var(--completion,0%),#e7eee9 var(--completion,0%))}
 .notice-copy{min-width:0;flex:1}
 .notice-details{font-size:11px;color:var(--muted);margin-top:3px}
 .notice-details summary{cursor:pointer;width:fit-content}
@@ -76,3 +78,4 @@ label.field{display:grid;gap:6px;font-size:13px;font-weight:650}
 #score-results form .field{flex:1;margin:0}
 @media(max-width:560px){main{padding:10px 12px 55px}.workspace-nav .btn{font-size:13px}.head h1{font-size:17px}.recording-overview .metric{gap:6px}.recording-overview .metric b{font-size:21px}.notice-banner{gap:8px}.class-head{padding:10px 12px}.student{padding:11px 12px}.student-list{grid-template-columns:1fr}.student:nth-child(odd){border-right:0}.notice-copy{min-width:0}}
 @media(prefers-reduced-motion:reduce){.student{transition:none}}
+

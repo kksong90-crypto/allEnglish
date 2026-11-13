@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.21',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.22',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -74,8 +74,32 @@ async function loadData(force=false,targetDate=APP.targetDate,verifyPending=fals
 function renderError(error){APP.renderedGridKey=null;APP.renderedDatesKey=null;const banner=$('notice-banner');banner.className='notice-banner error';$('notice-title').textContent='불러오기 실패';$('notice-detail').textContent=error.message;$('classes').innerHTML='';$('empty').hidden=false;$('empty').textContent='서버 데이터를 확인하지 못했습니다. 설정에서 연결 상태를 확인하세요.'}
 function render(data){const datesKey=JSON.stringify([data.candidates||[],data.targetDate,data.totalStudents]);if(datesKey!==APP.renderedDatesKey){renderDates(data.candidates||[],data.targetDate,data.totalStudents);APP.renderedDatesKey=datesKey;}renderSummary(data);const gridKey=JSON.stringify([data.targetDate,!!APP.preview,data.classes||[]]);if(gridKey!==APP.renderedGridKey){renderClasses(data.classes||[]);APP.renderedGridKey=gridKey;}$('now-label').textContent=data.targetLabel+(APP.preview?' · 최근 화면':'');$('authoritative-read').textContent=`최근 동기화 ${data.lastAuthoritativeReadAt}`;renderRecordingRecovery();applyRecordingFilters()}
 function renderDates(items,targetDate,totalStudents){$('date-strip').innerHTML=items.map(item=>{const count=item.date===targetDate&&Number.isSafeInteger(totalStudents)&&totalStudents>=0?totalStudents:item.studentCount;return `<button type="button" class="date-chip ${item.date===APP.targetDate?'active':''}" onclick="selectDate('${esc(item.date)}')">${esc(item.shortLabel)}<span class="tiny">${count}명</span></button>`}).join('')}
+function recordingPendingPresentation(data,pending,targetDate){
+ const empty={pendingCount:0,classCounts:new Map()};
+ if(!data||data.targetDate!==targetDate||!Array.isArray(data.classes)||!pending?.size||typeof pending.forEach!=='function')return empty;
+ const roster=new Map(),classCounts=new Map();let valid=true;
+ for(const cls of data.classes||[]){
+  if(!cls||!Array.isArray(cls.students))return empty;
+  if(classCounts.has(String(cls.classId)))valid=false;
+  const count={received:0,total:0};classCounts.set(String(cls.classId),count);
+  for(const student of cls.students||[]){
+   if(!student||typeof student.studentId!=='string'){valid=false;continue;}
+   const key=`${cls.classId}|${student.studentId}`;
+   if(roster.has(key))valid=false;
+   const received=typeof student.received==='boolean'?student.received:student.status==='RECEIVED';
+   roster.set(key,{received,count});count.total++;if(received)count.received++;
+  }
+ }
+ let pendingCount=0;
+ pending.forEach((entry,key)=>{if(entry?.targetDate!==targetDate||typeof entry.received!=='boolean'||!roster.has(key))return;pendingCount++;const row=roster.get(key);if(row.received!==entry.received){row.count.received+=entry.received?1:-1;row.received=entry.received;}});
+ if(!pendingCount)return empty;
+ if(!valid||roster.size!==data.totalStudents)return{pendingCount,classCounts:new Map()};
+ const received=[...classCounts.values()].reduce((n,c)=>n+c.received,0);
+ return{pendingCount,classCounts,totalReceived:received,totalPending:roster.size-received};
+}
+function renderRecordingSaveFeedback(){if(APP.data){renderSummary(APP.data);renderClassCounts();}}
 async function selectDate(date){if(APP.loading||APP.saving.size||date===APP.targetDate)return;await loadData(false,date)}
-function renderSummary(data){const progress=$('recording-progress');if(progress){const total=Number(data.totalStudents)||0,received=Number(data.totalReceived)||0,percent=total>0?Math.max(0,Math.min(100,received/total*100)):0;progress.style?.setProperty?.('--completion',percent+'%');progress.setAttribute?.('aria-valuenow',String(Math.round(percent)));}$('m-total').textContent=data.totalStudents;$('m-received').textContent=data.totalReceived;const pending=data.deadlinePassed?data.totalMissing:data.totalUnknown;$('m-pending').textContent=pending;$('m-pending-label').textContent=data.deadlinePassed?'미제출':'미확인';$('deadline-badge').textContent=data.deadlinePassed?'15시 마감 완료':`마감 ${data.deadlineAt.slice(11)}`;const notice=data.notice||{};const banner=$('notice-banner');if(!data.totalStudents){banner.className='notice-banner neutral';$('notice-title').textContent='녹음 대상 없음';$('notice-detail').textContent=data.exemptReason||'선택 날짜에는 대상이 없습니다.'}else if(notice.complete){banner.className='notice-banner complete';$('notice-title').textContent='전원 제출 완료';$('notice-detail').textContent=notice.active?'학생웹앱과 운영센터에 완료 공지가 노출 중입니다.':`완료 공지는 ${data.noticeStartAt}부터 ${data.noticeEndAt}까지 노출됩니다.`}else if(notice.active){banner.className='notice-banner missing';$('notice-title').textContent=`미제출·미확인 ${notice.missing}명`;$('notice-detail').textContent='체크 저장 성공 시 공지 명단에서 즉시 제외됩니다.'}else{banner.className='notice-banner future';$('notice-title').textContent=`확인 대기 ${notice.missing}명`;$('notice-detail').textContent=`공지는 ${data.noticeStartAt}부터 노출됩니다.`}}
+function renderSummary(data){const pendingView=typeof recordingPendingPresentation==='function'&&!APP.preview&&!APP.needsRead?recordingPendingPresentation(data,APP.pendingPresentation,APP.targetDate):{pendingCount:0};if(Number.isSafeInteger(pendingView.totalReceived))data={...data,totalReceived:pendingView.totalReceived,...(data.deadlinePassed?{totalMissing:pendingView.totalPending}:{totalUnknown:pendingView.totalPending})};const receivedLabel=$('m-received-label');if(receivedLabel)receivedLabel.textContent=pendingView.pendingCount?'제출 · 저장 중':'제출';const progress=$('recording-progress');if(progress){progress.setAttribute?.('data-saving',String(Boolean(pendingView.pendingCount)));progress.setAttribute?.('aria-label',pendingView.pendingCount?'녹음 제출 현황 · 저장 중인 체크 포함':'녹음 제출 완료율');const total=Number(data.totalStudents)||0,received=Number(data.totalReceived)||0,percent=total>0?Math.max(0,Math.min(100,received/total*100)):0;progress.style?.setProperty?.('--completion',percent+'%');progress.setAttribute?.('aria-valuenow',String(Math.round(percent)));}$('m-total').textContent=data.totalStudents;$('m-received').textContent=data.totalReceived;const pending=data.deadlinePassed?data.totalMissing:data.totalUnknown;$('m-pending').textContent=pending;$('m-pending-label').textContent=data.deadlinePassed?'미제출':'미확인';$('deadline-badge').textContent=data.deadlinePassed?'15시 마감 완료':`마감 ${data.deadlineAt.slice(11)}`;const notice=data.notice||{};const banner=$('notice-banner');if(APP.needsRead){banner.className='notice-banner saving';$('notice-title').textContent='저장 상태 다시 확인 중';$('notice-detail').textContent='서버의 현재 상태를 확인하고 있습니다. 보관한 체크는 아래에서 확인할 수 있습니다.'}else if(pendingView.pendingCount){banner.className='notice-banner saving';$('notice-title').textContent=`변경 ${pendingView.pendingCount}명 저장 중`;$('notice-detail').textContent='체크를 이 기기에 보관했습니다. 저장 중에도 다음 학생을 체크할 수 있습니다.'}else if(!data.totalStudents){banner.className='notice-banner neutral';$('notice-title').textContent='녹음 대상 없음';$('notice-detail').textContent=data.exemptReason||'선택 날짜에는 대상이 없습니다.'}else if(notice.complete){banner.className='notice-banner complete';$('notice-title').textContent='전원 제출 완료';$('notice-detail').textContent=notice.active?'학생웹앱과 운영센터에 완료 공지가 노출 중입니다.':`완료 공지는 ${data.noticeStartAt}부터 ${data.noticeEndAt}까지 노출됩니다.`}else if(notice.active){banner.className='notice-banner missing';$('notice-title').textContent=`미제출·미확인 ${notice.missing}명`;$('notice-detail').textContent='체크 저장 성공 시 공지 명단에서 즉시 제외됩니다.'}else{banner.className='notice-banner future';$('notice-title').textContent=`확인 대기 ${notice.missing}명`;$('notice-detail').textContent=`공지는 ${data.noticeStartAt}부터 노출됩니다.`}}
 function renderClasses(classes){const root=$('classes'),empty=$('empty');root.innerHTML=classes.map(cls=>renderClass(cls,APP.preview)).join('');empty.hidden=classes.length>0;if(!classes.length)empty.textContent='선택 날짜에는 표시할 녹음 대상이 없습니다.'}
 function recordingClassScopeLabel(cls){const students=cls.students||[],scoped=students.filter(st=>Object.prototype.hasOwnProperty.call(st,'scopeSource')).length;return scoped?(scoped===students.length?'학생별 확정 범위는 아래에서 확인하세요':'일부 학생 범위 확인 필요'):(cls.vocabSummary||'단어범위 확인 필요')}
 function renderClass(cls,preview=false){return `<section class="class-card" data-class-id="${esc(cls.classId)}"><div class="class-head"><div><h2>${esc(cls.className)}</h2><p>${esc(recordingClassScopeLabel(cls))}</p>${cls.canCheck?'':`<div class="open-info">확인 가능: ${esc(cls.openLabel)}</div>`}</div><div class="count">${cls.receivedCount}/${cls.students.length}</div></div><div class="student-list">${cls.students.map(st=>renderStudent(cls,st,preview)).join('')}</div></section>`}
@@ -83,7 +107,7 @@ function renderStudentScope(student){if(!Object.prototype.hasOwnProperty.call(st
 function renderStudent(cls,student,preview=false){const key=`${cls.classId}|${student.studentId}`,received=student.status==='RECEIVED',missing=student.status==='MISSING',disabled=preview||!student.canCheck||!navigator.onLine;const className=['student',received?'received':'',missing?'missing':'',disabled&&!received?'locked':''].filter(Boolean).join(' ');const state=received?`제출${student.savedAt?' · '+student.savedAt:''}`:(missing?'미제출 확정':(student.canCheck?'미확인':`${student.openLabel}부터`));const override=!preview&&student.canAcceptBeforeDeadline?`<button class="override-btn" type="button" onclick="acceptBeforeDeadline(event,'${esc(cls.classId)}','${esc(student.studentId)}','${esc(student.name)}')">마감 전 제출 인정</button>`:'';return `<label class="${className}" data-key="${esc(key)}" data-search="${esc(cls.className+' '+student.name)}"><input type="checkbox" ${received?'checked':''} ${disabled?'disabled':''} onchange="saveOne(this,'${esc(cls.classId)}','${esc(student.studentId)}')"><div class="student-main"><div class="name-line"><span class="name">${esc(student.name)}</span>${student.plannedAbsence?'<span class="badge absence">예정결석</span>':''}</div>${renderStudentScope(student)}<span class="state">${esc(state)}</span></div>${override}</label>`}
 function findStudent(classId,studentId){for(const cls of APP.data?.classes||[]){if(cls.classId===classId)return cls.students.find(st=>st.studentId===studentId)}return null}
 function recalcLocalClasses(){for(const cls of APP.data?.classes||[]){cls.receivedCount=cls.students.filter(st=>st.status==='RECEIVED').length;cls.missingCount=cls.students.filter(st=>st.status==='MISSING').length;cls.unknownCount=cls.students.filter(st=>st.status==='UNKNOWN').length}}
-function renderClassCounts(){const classes=new Map((APP.data?.classes||[]).map(cls=>[String(cls.classId),cls]));document.querySelectorAll('.class-card[data-class-id]').forEach(card=>{const cls=classes.get(card.dataset.classId),count=card.querySelector('.count');if(cls&&count)count.textContent=`${cls.receivedCount}/${cls.students.length}`})}
+function renderClassCounts(){const pendingView=typeof recordingPendingPresentation==='function'&&!APP.preview&&!APP.needsRead?recordingPendingPresentation(APP.data,APP.pendingPresentation,APP.targetDate):null;const classes=new Map((APP.data?.classes||[]).map(cls=>[String(cls.classId),cls]));document.querySelectorAll('.class-card[data-class-id]').forEach(card=>{const cls=classes.get(card.dataset.classId),count=card.querySelector('.count');if(cls&&count){const projected=pendingView?.classCounts.get(card.dataset.classId);count.textContent=`${projected?projected.received:cls.receivedCount}/${cls.students.length}`}})}
 function applySummary(summary,notice){if(!APP.data)return;APP.data.totalStudents=summary.total;APP.data.totalReceived=summary.received;if(APP.data.deadlinePassed)APP.data.totalMissing=summary.missing;else APP.data.totalUnknown=summary.missing;APP.data.notice=notice||summary.notice;recalcLocalClasses();renderSummary(APP.data);renderClassCounts()}
 async function verifyUncertainSave(classId,studentId,desired,name){setSync('저장 결과 다시 확인 중','saving');const data=await loadData(true,APP.targetDate,true),current=findStudent(classId,studentId),confirmed=!!data&&current&&current.received===desired;if(confirmed){setSync('저장 확인 완료','');toast(`${name} 저장을 CoreDB에서 확인했습니다.`)}else{setSync('저장 확인 필요','error');toast(`${name} 저장 상태를 확인하지 못했습니다. 화면의 다시 읽기를 눌러 확인하세요.`)}return confirmed}
 function applySavedStudentScope(row,student,result){if(!Object.prototype.hasOwnProperty.call(result,'scope'))return;const s=result.scope,valid=s&&['SAVED','SAVED_UNRESOLVED'].includes(s.scopeSource)&&typeof s.vocabSummary==='string'&&Array.isArray(s.testPlanIds)&&s.testPlanIds.every(id=>typeof id==='string'&&id.trim());Object.assign(student,valid?{scopeSource:s.scopeSource,vocabSummary:s.vocabSummary,testPlanIds:s.testPlanIds.slice()}:{scopeSource:'SAVED_UNRESOLVED',vocabSummary:'',testPlanIds:[]});const existing=row.querySelector('.student-scope'),html=renderStudentScope(student);if(existing)existing.outerHTML=html;else row.querySelector('.student-main')?.insertAdjacentHTML('beforeend',html)}
@@ -244,12 +268,14 @@ async function saveOne(input,classId,studentId,recovery=null){
  const row=input.closest('.student'),state=row.querySelector('.state');
  const before=state.textContent;
  APP.saving.add(key);
+ (APP.pendingPresentation??=new Map()).set(key,{targetDate:date,received:desired,requestId:id});
  input.disabled=true;
  row.classList.remove('error');
  row.classList.add('pending');
  clearDashboardCache();
  state.textContent='저장 대기 중…';
  setSync('자동 저장 중','saving');
+ if(typeof renderRecordingSaveFeedback==='function')renderRecordingSaveFeedback();
  renderRecordingRecovery();
 
  const useBatch=!recovery&&Number(APP.data?.recordingBatchLimit)>=1&&typeof expectedRevision==='string';
@@ -300,6 +326,8 @@ async function saveOne(input,classId,studentId,recovery=null){
   }finally{
    row.classList.remove('pending');
    APP.saving.delete(key);
+   APP.pendingPresentation?.delete(key);
+   if(typeof renderRecordingSaveFeedback==='function')renderRecordingSaveFeedback();
    if(input.isConnected)input.disabled=APP.preview||APP.needsRead||!student.canCheck||!navigator.onLine;
    renderRecordingRecovery();
    if(typeof applyRecordingFilters==='function')applyRecordingFilters();
@@ -560,4 +588,5 @@ if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},600
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
 updateNetwork();if(ensureConnected()){restoreDashboardCache();void loadData(false,initialRecordingTargetDate());}
 renderRecordingRecovery();
+
 
