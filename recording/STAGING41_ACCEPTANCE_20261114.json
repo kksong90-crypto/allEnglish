@@ -1,0 +1,127 @@
+{
+  "version": 41,
+  "uiVersion": "8.2.27",
+  "rollbackVersion": 40,
+  "closedAt": "2026-11-14T13:59:42.391Z",
+  "beforeReopen": {
+    "readAt": "2026-11-14T14:00:02.173Z",
+    "headers": [
+      "recording_check_id",
+      "recording_batch_id",
+      "target_date",
+      "class_id",
+      "student_id",
+      "test_plan_ids_json",
+      "vocab_summary",
+      "status",
+      "received_checked_at",
+      "status_changed_at",
+      "checked_by",
+      "source",
+      "applied_to_lesson",
+      "applied_at",
+      "memo",
+      "created_at",
+      "updated_at",
+      "record_version"
+    ],
+    "rows": [
+      {
+        "row": 328,
+        "values": [
+          "RC_c41005e3db5dac2a6f8389d3",
+          "RB_20261116",
+          "2026-11-16",
+          "RECQA_20261112_CLASS",
+          "RECQA_20261112_S1",
+          "[\"RECQA_20261112_TP1\"]",
+          "검증용 Day 1",
+          "UNKNOWN",
+          "",
+          "2026. 11. 14",
+          "kksong90@gmail.com",
+          "WEBAPP_V800_UNCHECKED",
+          "FALSE",
+          "",
+          "",
+          "2026. 11. 12",
+          "2026. 11. 14",
+          "101"
+        ]
+      },
+      {
+        "row": 329,
+        "values": [
+          "RC_79441d1a436b2014cfa1b73f",
+          "RB_20261116",
+          "2026-11-16",
+          "RECQA_20261112_CLASS",
+          "RECQA_20261112_S2",
+          "[\"RECQA_20261112_TP1\"]",
+          "검증용 Day 1",
+          "UNKNOWN",
+          "",
+          "2026. 11. 14",
+          "kksong90@gmail.com",
+          "WEBAPP_V800_UNCHECKED",
+          "FALSE",
+          "",
+          "",
+          "2026. 11. 12",
+          "2026. 11. 14",
+          "59"
+        ]
+      }
+    ],
+    "browserReopenedAfterRead": true
+  },
+  "restored": {
+    "range": "RecordingChecks!A328:R329",
+    "majorDimension": "ROWS",
+    "values": [
+      [
+        "RC_c41005e3db5dac2a6f8389d3",
+        "RB_20261116",
+        "2026-11-16",
+        "RECQA_20261112_CLASS",
+        "RECQA_20261112_S1",
+        "[\"RECQA_20261112_TP1\"]",
+        "검증용 Day 1",
+        "RECEIVED",
+        "2026. 11. 14",
+        "2026. 11. 14",
+        "kksong90@gmail.com",
+        "WEBAPP_V800_CONFIRMED",
+        "FALSE",
+        "",
+        "",
+        "2026. 11. 12",
+        "2026. 11. 14",
+        "102"
+      ],
+      [
+        "RC_79441d1a436b2014cfa1b73f",
+        "RB_20261116",
+        "2026-11-16",
+        "RECQA_20261112_CLASS",
+        "RECQA_20261112_S2",
+        "[\"RECQA_20261112_TP1\"]",
+        "검증용 Day 1",
+        "RECEIVED",
+        "2026. 11. 14",
+        "2026. 11. 14",
+        "kksong90@gmail.com",
+        "WEBAPP_V800_CONFIRMED",
+        "FALSE",
+        "",
+        "",
+        "2026. 11. 12",
+        "2026. 11. 14",
+        "60"
+      ]
+    ]
+  },
+  "physicalPhoneAcceptance": false,
+  "productionDeployment": false,
+  "package41Validated": false
+}
