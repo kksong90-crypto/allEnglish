@@ -8,6 +8,8 @@ const storage = new Map([
   ['allbarun.rec.token', 'expired-token'],
 ]);
 const elements = new Map();
+const pendingKey='allbarun.rec.pending.v1.REC_SAVE_session';
+storage.set(pendingKey,JSON.stringify({v:1,apiUrl:'https://example.invalid/exec',session:'expired-token',requestId:'REC_SAVE_session',targetDate:'2026-11-16',classId:'QA',studentId:'QA1',received:true,expectedRevision:'R0',createdAt:1,state:'SENT'}));
 
 function element(id) {
   if (!elements.has(id)) {
@@ -32,6 +34,8 @@ const context = vm.createContext({
   console,
   confirm: () => true,
   localStorage: {
+    get length() { return storage.size; },
+    key: index => [...storage.keys()][index] ?? null,
     getItem: key => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, String(value)),
     removeItem: key => storage.delete(key),
@@ -42,7 +46,7 @@ const context = vm.createContext({
   document: {
     hidden: false,
     addEventListener: () => {},
-    getElementById: element,
+    getElementById: id => id==='recording-recovery'?null:element(id),
     querySelectorAll: () => [],
   },
   fetch: async () => ({
@@ -60,6 +64,7 @@ await new Promise(resolve => setImmediate(resolve));
 await new Promise(resolve => setImmediate(resolve));
 
 assert.equal(storage.has('allbarun.rec.token'), false, 'expired token must be removed');
+assert.equal(storage.has(pendingKey),true,'unsent check must survive session expiry for later review');
 assert.equal(storage.get('allbarun.rec.apiUrl'), 'https://example.invalid/exec', 'API URL must be preserved');
 assert.equal(element('api-url').value, 'https://example.invalid/exec');
 assert.equal(element('admin-pin').value, '');
@@ -69,3 +74,4 @@ assert.match(element('setup-note').textContent, /기존 관리자 PIN/);
 assert.equal(element('sync-state').textContent, '로그인 필요');
 
 console.log('recording session relogin runtime: PASS');
+
