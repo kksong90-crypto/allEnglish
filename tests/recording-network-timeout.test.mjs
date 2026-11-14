@@ -5,7 +5,7 @@ import {test} from 'node:test';
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 function harness({failure}={}) {
   let next=0;const timers=new Map(),requests=[],events=[];
-  const ctx={AbortController,JSON,Error,navigator:{onLine:true},
+  const ctx={AbortController,JSON,Error,performance,TextEncoder,navigator:{onLine:true},
     apiUrl:()=> 'https://synthetic.example/exec',token:()=> 'SYNTHETIC_SESSION',requestId:()=> 'REC_SAVE_generated',
     isSessionError:()=>false,requireSessionLogin:()=>new Error('session'),
     setTimeout:(f,ms)=>{const id=++next;timers.set(id,{f,ms});return id},clearTimeout:id=>timers.delete(id),
@@ -32,4 +32,14 @@ test('connection loss retains uncertainty for writes but does not turn a read in
     await assert.rejects(h.ctx.api(action,{requestId:'REC_SAVE_original'}),e=>e.uncertain===(action==='opsSaveOne'?true:undefined));
     assert.equal(h.timers.size,0);
   }
+});
+
+
+test('small recording writes request keepalive while reads and other write actions do not',async()=>{
+ for(const action of ['opsSaveOne','opsSaveBatch','opsDashboard','quickSaveScore']){const h=harness(),p=h.ctx.api(action,{requestId:'REC_SAVE_original'});assert.equal(h.requests[0].keepalive,/^opsSave/.test(action)?true:undefined);h.fire(45000);await assert.rejects(p);assert.equal(h.ctx.api.keepaliveBytes||0,0);}
+});
+test('multibyte payload size and concurrent in-flight budget prevent keepalive quota overload',async()=>{
+ const h=harness(),large=h.ctx.api('opsSaveBatch',{memo:'가'.repeat(20000)});assert.equal(h.requests[0].keepalive,undefined);h.fire(45000);await assert.rejects(large);
+ const a=h.ctx.api('opsSaveOne',{memo:'가'.repeat(10000)}),b=h.ctx.api('opsSaveOne',{memo:'가'.repeat(10000)});assert.equal(h.requests[1].keepalive,true);assert.equal(h.requests[2].keepalive,undefined);assert.ok(h.ctx.api.keepaliveBytes<=49152);h.fire(45000);await Promise.allSettled([a,b]);assert.equal(h.ctx.api.keepaliveBytes,0);
+ const c=h.ctx.api('opsSaveOne',{});assert.equal(h.requests[3].keepalive,true);h.fire(45000);await assert.rejects(c);assert.equal(h.ctx.api.keepaliveBytes,0);
 });

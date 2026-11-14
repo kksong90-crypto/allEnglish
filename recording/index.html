@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#173e35">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="allbarun-recording-version" content="8.2.25-RECONCILE-STATE">
+  <meta name="allbarun-recording-version" content="8.2.26-BACKGROUND-DISPATCH">
   <title>All바른 녹음체크</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
@@ -100,7 +100,7 @@
 
   <footer>
     <span id="authoritative-read">서버 확인 전</span>
-    <span>v8.2.25</span>
+    <span>v8.2.26</span>
   </footer>
 </main>
 
@@ -121,6 +121,10 @@
     <details>
       <summary>최근 조회 처리 시간</summary>
       <pre id="read-timing" class="audit-result">조회 기록 없음</pre>
+    </details>
+    <details>
+      <summary>최근 저장 처리 시간</summary>
+      <pre id="save-timing" class="audit-result">저장 기록 없음</pre>
     </details>
     <div class="settings-grid">
       <button class="btn secondary" type="button" onclick="readServerAgain()">서버 상태 다시 읽기</button>

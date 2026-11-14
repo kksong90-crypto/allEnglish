@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.25',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.26',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -37,7 +37,7 @@ function isWriteAction(action){return /^(?:opsSaveOne|opsSaveBatch|opsAcceptBefo
 function isSessionError(message){return /로그인이 필요|세션이 (?:만료|유효하지)|다시 로그인/.test(String(message||''))}
 function resetSetupCopy(){const title=$('setup-title'),note=$('setup-note');if(title)title.textContent='녹음체크 서버 연결';if(note)note.textContent='Apps Script 웹앱 실행 주소와 관리자 PIN을 입력하세요. 기존 주소는 그대로 사용합니다.'}
 function requireSessionLogin(message){clearDashboardCache();APP.readEpoch=(APP.readEpoch||0)+1;APP.preview=true;$('classes').innerHTML='';APP.data=null;resetWorkspaceReads();localStorage.removeItem(APP.tokenKey);const url=$('api-url'),pin=$('admin-pin'),modal=$('setup-modal'),title=$('setup-title'),note=$('setup-note');if(url)url.value=apiUrl();if(pin)pin.value='';if(title)title.textContent='세션 만료 · 다시 로그인';if(note)note.textContent='서버 주소는 유지했습니다. 기존 관리자 PIN을 입력하면 바로 다시 연결됩니다.';if(modal)modal.classList.add('show');setSync('로그인 필요','error');const error=new Error(message||'세션이 만료되었습니다. 다시 로그인하세요.');error.authRequired=true;return error}
-async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController(),externalSignal=write?null:override.signal,externalAbort=()=>controller.abort();if(externalSignal?.aborted)controller.abort();else externalSignal?.addEventListener('abort',externalAbort,{once:true});let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);let definitive=false;try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});const text=await response.text();if(externalSignal?.aborted)throw Object.assign(new Error('이전 명단 조회를 중단했습니다.'),{obsolete:true});let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}definitive=true;if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);throw new Error(message)}return json.data}catch(error){if(error?.name==='AbortError'){if(externalSignal?.aborted)throw Object.assign(new Error('이전 명단 조회를 중단했습니다.'),{obsolete:true});const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}if(write&&!definitive)error.uncertain=true;throw error}finally{externalSignal?.removeEventListener('abort',externalAbort);clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
+async function api(action,payload={},override={}){const url=override.url||apiUrl();if(!url)throw new Error('서버 주소가 설정되지 않았습니다.');if(!navigator.onLine)throw new Error('인터넷 연결이 없어 서버에 연결할 수 없습니다.');const write=isWriteAction(action),id=override.requestId||payload.requestId||(write?requestId():''),safePayload=id?{...payload,requestId:id}:payload,body={action,payload:safePayload,token:override.token===undefined?token():override.token,pin:override.pin||''},timeoutMs=Number(override.timeoutMs||(write?45000:45000)),controller=new AbortController(),externalSignal=write?null:override.signal,externalAbort=()=>controller.abort();if(externalSignal?.aborted)controller.abort();else externalSignal?.addEventListener('abort',externalAbort,{once:true});const serialized=JSON.stringify(body),bodyBytes=typeof TextEncoder==='function'?new TextEncoder().encode(serialized).byteLength:0,keepalive=/^opsSave(?:One|Batch)$/.test(action)&&bodyBytes>0&&(api.keepaliveBytes||0)+bodyBytes<=49152,networkStarted=performance.now();if(keepalive)api.keepaliveBytes=(api.keepaliveBytes||0)+bodyBytes;let slow=false;const slowTimer=setTimeout(()=>{slow=true;override.onSlow?.()},12000),timer=setTimeout(()=>controller.abort(),timeoutMs);let definitive=false;try{const response=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:serialized,signal:controller.signal,cache:'no-store',...(keepalive?{keepalive:true}:{})});const text=await response.text();if(externalSignal?.aborted)throw Object.assign(new Error('이전 명단 조회를 중단했습니다.'),{obsolete:true});let json;try{json=JSON.parse(text)}catch(_){throw new Error('서버 응답을 읽지 못했습니다. 배포 주소와 권한을 확인하세요.')}definitive=true;if(!json.success){const message=json.error?.message||'요청에 실패했습니다.';if(action!=='login'&&isSessionError(message))throw requireSessionLogin(message);throw new Error(message)}if(/^opsSave(?:One|Batch)$/.test(action)&&typeof renderSaveTiming==='function')renderSaveTiming(json.data,performance.now()-networkStarted,keepalive);return json.data}catch(error){if(error?.name==='AbortError'){if(externalSignal?.aborted)throw Object.assign(new Error('이전 명단 조회를 중단했습니다.'),{obsolete:true});const delayed=new Error(`서버 응답이 ${Math.round(timeoutMs/1000)}초를 넘었습니다. ${write?'저장 성공 여부를 자동으로 다시 확인합니다.':'기존 화면은 유지합니다.'}`);delayed.uncertain=write;delayed.requestId=id;throw delayed}if(write&&!definitive)error.uncertain=true;throw error}finally{if(keepalive)api.keepaliveBytes=Math.max(0,(api.keepaliveBytes||0)-bodyBytes);externalSignal?.removeEventListener('abort',externalAbort);clearTimeout(timer);clearTimeout(slowTimer);if(slow)override.onRecovered?.()}}
 function updateNetwork(){const online=navigator.onLine,node=$('network-state');node.textContent=online?'온라인':'오프라인';node.className='pill '+(online?'':'offline');document.querySelectorAll('input[type=checkbox],.override-btn').forEach(el=>{if(!online){el.disabled=true;APP.renderedGridKey=null}})}
 function ensureConnected(){if(!apiUrl()||!token()){$('api-url').value=apiUrl();$('setup-modal').classList.add('show');return false}$('setup-modal').classList.remove('show');return true}
 async function connectServer(){if(APP.loading||APP.saving.size){toast('진행 중인 작업이 끝난 뒤 연결을 변경하세요.');return}const url=$('api-url').value.trim(),pin=$('admin-pin').value.trim();if(!url||!pin){toast('주소와 PIN을 입력하세요.');return}setSync('연결 중','saving');try{const login=await api('login',{}, {url,pin,token:''});clearDashboardCache();APP.readEpoch=(APP.readEpoch||0)+1;resetWorkspaceReads();APP.preview=true;APP.data=null;$('classes').innerHTML='';localStorage.setItem(APP.apiKey,url);localStorage.setItem(APP.tokenKey,login.token);$('admin-pin').value='';$('setup-modal').classList.remove('show');resetSetupCopy();toast('연결했습니다.');APP.targetDate='';await loadData(false);void loadSelectedWorkspace()}catch(error){setSync('연결 오류','error');toast(error.message)}}
@@ -67,6 +67,14 @@ function renderReadTiming(data,elapsedMs,error){
    for(const [key,label] of [['inputs','기본 자료·계획 조회'],['plans','반·계획 대상 판정'],['eligibility','학생·결석·배정 구성'],['roster','교재 자료 조회'],['bookIndexes','반·이전 수업·정렬 구성'],['classAssembly','면제·휴원 결과 조합']])lines.push(`${label}: ${ms(stages.milliseconds?.[key])}`);
   }
  }
+ node.textContent=lines.join('\n');
+}
+function renderSaveTiming(data,elapsedMs,keepalive){
+ const node=$('save-timing');if(!node)return;
+ const ms=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0?`${Math.round(value)} ms`:'미제공';
+ const timing=data?.serverTiming,lines=[`브라우저 요청 대기: ${ms(elapsedMs)} (화면 정지 시간이 포함될 수 있습니다.)`,`전송 유지 요청: ${keepalive?'사용':'미사용'}`];
+ lines.push('전송 유지는 화면 잠금·프로세스 종료 후 완료를 보장하지 않습니다.');
+ if(timing){lines.push('아래는 서버 응답에 포함된 처리 시간입니다.',`서버 합계: ${ms(timing.totalMs)}`);for(const [key,label] of [['lockWaitMs','저장 잠금 대기'],['targetSnapshotMs','대상 확인'],['checksMs','기존 체크 조회'],['saveFlushMs','체크 기록 확정'],['noticeMs','공지 반영'],['auditMirrorMs','감사 기록'],['cacheClearMs','조회 캐시 정리']])lines.push(`${label}: ${ms(timing[key])}`);}else lines.push('서버 처리 시간 미제공');
  node.textContent=lines.join('\n');
 }
 function invalidateRecordingRead(){APP.readEpoch=(APP.readEpoch||0)+1;APP.needsRead=true;APP.refreshPending=true;clearDashboardCache();}
@@ -190,6 +198,7 @@ function createRecordingBatchTransport(send,{delayMs=120,max=30,canSend=()=>true
  const queue=[];let active=false,timer=null;
  function schedule(){if(!active&&!timer&&queue.length)timer=setTimeout(()=>{timer=null;void flush()},delayMs)}
  async function flush(){
+  if(timer){clearTimeout(timer);timer=null;}
   if(active||!queue.length)return;active=true;
   const date=queue[0].payload.targetDate,jobs=[];
   while(queue.length&&jobs.length<max&&queue[0].payload.targetDate===date)jobs.push(queue.shift());
@@ -206,7 +215,8 @@ function createRecordingBatchTransport(send,{delayMs=120,max=30,canSend=()=>true
   }catch(error){if(!error.deferred)error.uncertain=true;for(const job of jobs)job.reject(error)}
   finally{active=false;schedule()}
  }
- return (payload,{context,onSlow}={})=>new Promise((resolve,reject)=>{queue.push({payload,context,onSlow,resolve,reject});schedule()});
+ const enqueue=(payload,{context,onSlow}={})=>new Promise((resolve,reject)=>{queue.push({payload,context,onSlow,resolve,reject});schedule()});
+ enqueue.flush=flush;return enqueue;
 }
 function recordingBatchTransport(){
  if(!APP.batchTransport)APP.batchTransport=createRecordingBatchTransport(
@@ -593,11 +603,13 @@ function resumeRecording(){
  }
  return refreshRecording();
 }
+function prepareRecordingBackground(){void APP.batchTransport?.flush?.();}
 window.addEventListener('online',()=>{updateNetwork();void resumeRecording()});
+window.addEventListener('pagehide',prepareRecordingBackground);
 window.addEventListener('offline',updateNetwork);
 window.addEventListener('pageshow',event=>{if(event.persisted)void resumeRecording()});
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden)void resumeRecording();
+ if(document.hidden)prepareRecordingBackground();else void resumeRecording();
 });
 if(typeof setInterval==='function')setInterval(()=>{void refreshRecording()},60000);
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(reg=>reg.update()).catch(()=>{})}
