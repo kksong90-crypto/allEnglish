@@ -79,3 +79,9 @@ label.field{display:grid;gap:6px;font-size:13px;font-weight:650}
 @media(max-width:560px){main{padding:10px 12px 55px}.workspace-nav .btn{font-size:13px}.head h1{font-size:17px}.recording-overview .metric{gap:6px}.recording-overview .metric b{font-size:21px}.notice-banner{gap:8px}.class-head{padding:10px 12px}.student{padding:11px 12px}.student-list{grid-template-columns:1fr}.student:nth-child(odd){border-right:0}.notice-copy{min-width:0}}
 @media(prefers-reduced-motion:reduce){.student{transition:none}}
 
+
+/* Recovery status never reflows the roster; details stay available on demand. */
+.recording-recovery{position:fixed;z-index:40;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;right:12px;width:auto;max-width:620px;max-height:40vh;overflow:auto;margin:0 auto;box-shadow:0 4px 20px #173e3526}
+.recovery-toggle{font:inherit;font-weight:700;min-height:44px;border:0;background:transparent;color:inherit;cursor:pointer;width:100%;text-align:left}
+.recording-recovery.recovery-compact:not(.recovery-expanded)>:not(.recovery-toggle){display:none}
+.recording-recovery.recovery-compact:not(.recovery-expanded){padding:0 12px;width:max-content;max-width:calc(100vw - 24px);left:auto}
