@@ -6,16 +6,16 @@ import {memoryStorage} from './recording-journal-harness.mjs';
 const source=fs.readFileSync(new URL('../recording/app.js',import.meta.url),'utf8');
 const url='https://example.test/exec',date='2026-11-16';
 function attempt(extra={}){return{v:1,apiUrl:url,session:'SESSION',requestId:'REC_SAVE_original',targetDate:date,classId:'C',studentId:'S',received:true,expectedRevision:'R0',createdAt:1,state:'QUEUED',...extra}}
-function harness({storage=memoryStorage(),session='SESSION',serverReceived=false,revision='R0',canCheck=true,apiImpl}={}){
- let seq=0;const writes=[],reads=[],messages=[],student={studentId:'S',name:'검증학생',received:serverReceived,status:serverReceived?'RECEIVED':'UNKNOWN',revision,canCheck};
+function harness({storage=memoryStorage(),session='SESSION',serverReceived=false,revision='R0',canCheck=true,apiImpl,readImpl}={}){
+ let seq=0;const writes=[],reads=[],messages=[],syncStates=[],student={studentId:'S',name:'검증학생',received:serverReceived,status:serverReceived?'RECEIVED':'UNKNOWN',revision,canCheck};
  const state={textContent:'미확인'},row={dataset:{key:'C|S'},querySelector:()=>input,classList:{add(){},remove(){},toggle(){}}};
  const input={checked:serverReceived,isConnected:true,closest:()=>({...row,querySelector:()=>state})};
  const APP={data:{targetDate:date,classes:[]},targetDate:date,saving:new Set()},ctx={APP,Date,performance,localStorage:storage,
   apiUrl:()=>url,token:()=>session+'.signature',navigator:{onLine:true},document:{hidden:false,querySelectorAll:()=>[row]},$:()=>null,
   findStudent:(_c,s)=>s==='S'?student:null,requestId:()=> 'REC_SAVE_new_'+(++seq),ensureConnected:()=>true,
-  toast:m=>messages.push(m),setSync(){},clearDashboardCache(){},render(){},renderReadTiming(){},renderError(){},updateNetwork(){},applySummary(){},applySavedStudentScope(){},
+  toast:m=>messages.push(m),setSync:(text,kind='')=>syncStates.push({text,kind}),clearDashboardCache(){},render(){},renderReadTiming(){},renderError(){},updateNetwork(){},applySummary(){},applySavedStudentScope(){},
   api:async(action,payload)=>{
-   if(action==='opsDashboard'){reads.push(payload);return{targetDate:date,classes:[]}}
+   if(action==='opsDashboard'){reads.push(payload);return readImpl?await readImpl(payload):{targetDate:date,classes:[]}}
    writes.push(payload);if(apiImpl)return apiImpl(payload);
    student.received=payload.received;student.status=payload.received?'RECEIVED':'UNKNOWN';student.revision='R1';
    return{ok:true,status:student.status,received:student.received,revision:student.revision,summary:{received:1}};
@@ -23,7 +23,7 @@ function harness({storage=memoryStorage(),session='SESSION',serverReceived=false
  vm.createContext(ctx);
  vm.runInContext(source.slice(source.indexOf('function createRecordingJournal('),source.indexOf('async function acceptBeforeDeadline(')),ctx);
  vm.runInContext(source.split('\n').find(l=>l.startsWith('async function loadData(')),ctx);
- return{ctx,APP,student,input,writes,reads,messages,storage,journal:ctx.recordingJournal()};
+ return{ctx,APP,student,input,writes,reads,messages,syncStates,storage,journal:ctx.recordingJournal()};
 }
 test('click is durably recorded before the first network microtask; reload can recover an unsent check',async()=>{
  const storage=memoryStorage(),first=harness({storage,apiImpl:()=>new Promise(()=>{})});first.input.checked=true;
@@ -94,3 +94,21 @@ test('journal contains no PIN, full credential, signature or student name',()=>{
 test('reopen retry racing an earlier committed write reconciles without blaming another screen',async()=>{const h=harness({apiImpl:async()=>{h.student.received=true;h.student.revision='COMMITTED';return{conflict:true};}});h.journal.put(attempt({state:'SENT'}));await h.ctx.recoverRecordingChecks();assert.equal(h.writes.length,1);assert.equal(h.journal.list(url).items.length,0);assert.ok(h.messages.some(m=>m.includes('이전 체크의 저장 결과')));assert.ok(h.messages.every(m=>!m.includes('다른 화면')));assert.equal(h.reads.length,1);});
 test('reopen retry with a differing newer state remains retained for review without overwriting',async()=>{const h=harness({apiImpl:async()=>{h.student.received=false;h.student.revision='NEWER';return{conflict:true};}});h.journal.put(attempt({state:'SENT'}));await h.ctx.recoverRecordingChecks();await h.ctx.recoverRecordingChecks();assert.equal(h.writes.length,1);assert.equal(h.student.received,false);assert.equal(h.journal.list(url).items[0].state,'REVIEW');});
 test('ordinary concurrent edit still explains that another screen changed the row',async()=>{const h=harness({apiImpl:async()=>{h.student.revision='NEWER';return{conflict:true};}});h.input.checked=true;await h.ctx.saveOne(h.input,'C','S');assert.ok(h.messages.some(m=>m.includes('다른 화면')));assert.equal(h.student.received,false);assert.equal(h.journal.list(url).items.length,1);});
+
+// The phone can resume while a successful write is still being verified.
+// Hold the authoritative read so an incorrect transient warning cannot hide in a completed promise.
+test('successful replay shows checking while the authoritative read is pending, then confirms without a review warning',async()=>{
+ let releaseRead;const read=new Promise(resolve=>{releaseRead=resolve});const h=harness({readImpl:()=>read});h.journal.put(attempt({state:'SENT'}));
+ const task=h.ctx.recoverRecordingChecks();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(h.reads.length,1);assert.equal(h.syncStates.at(-1).text,'저장 결과 확인 중');assert.equal(h.syncStates.at(-1).kind,'saving');assert.ok(h.syncStates.every(s=>!s.text.includes('확인 필요')));
+ releaseRead({targetDate:date,classes:[]});await task;assert.equal(h.syncStates.at(-1).text,'저장 확인 완료');assert.equal(h.journal.list(url).items.length,0);
+});
+test('a differing newer server value requires review only after the authoritative read completes',async()=>{
+ let releaseRead;const read=new Promise(resolve=>{releaseRead=resolve});const h=harness({readImpl:()=>read,apiImpl:async()=>{h.student.revision='NEWER';return{conflict:true}}});h.journal.put(attempt({state:'SENT'}));
+ const task=h.ctx.recoverRecordingChecks();await new Promise(resolve=>setImmediate(resolve));assert.equal(h.syncStates.at(-1).kind,'saving');
+ releaseRead({targetDate:date,classes:[]});await task;assert.equal(h.syncStates.at(-1).text,'확인 필요한 체크가 있습니다.');assert.equal(h.syncStates.at(-1).kind,'error');assert.equal(h.student.received,false);assert.equal(h.journal.list(url).items[0].state,'REVIEW');assert.equal(h.writes.length,1);
+});
+test('failed verification retains the durable attempt and asks for review without declaring the server state confirmed',async()=>{
+ const h=harness({readImpl:async()=>{throw Error('offline read')},apiImpl:async()=>{throw Object.assign(Error('reply lost'),{uncertain:true})}});h.journal.put(attempt({state:'SENT'}));
+ await h.ctx.recoverRecordingChecks();assert.equal(h.syncStates.at(-1).text,'저장 확인 필요');assert.equal(h.syncStates.at(-1).kind,'error');assert.equal(h.journal.list(url).items.length,1);assert.equal(h.writes.length,1);assert.ok(h.syncStates.every(s=>!s.text.includes('재확인 완료')));
+});

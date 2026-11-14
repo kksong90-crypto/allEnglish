@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.24',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.25',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -70,7 +70,7 @@ function renderReadTiming(data,elapsedMs,error){
  node.textContent=lines.join('\n');
 }
 function invalidateRecordingRead(){APP.readEpoch=(APP.readEpoch||0)+1;APP.needsRead=true;APP.refreshPending=true;clearDashboardCache();}
-async function loadData(force=false,targetDate=APP.targetDate,verifyPending=false){if(!ensureConnected()||APP.loading||(APP.saving.size&&!(verifyPending&&APP.saving.size===1)))return null;APP.loading=true;APP.loadingTargetDate=targetDate;let readVerified=false;force=force||pendingRecordingChecks().length>0;const readEpoch=APP.readEpoch||0,readLease=typeof AbortController==='function'?{controller:new AbortController(),startedAt:Date.now(),superseded:false}:null;APP.activeDashboardRead=readLease;const readStarted=performance.now();setSync(APP.preview?'최근 화면 · 확인 중':'서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate,force,readOnly:true,readOnlyCandidateCache:true},{signal:readLease?.controller.signal,onSlow:()=>{if(readEpoch===(APP.readEpoch||0)&&!APP.saving.size)setSync('조회 지연 · 기존 화면 유지','error')}});if(readEpoch!==(APP.readEpoch||0))return null;if(!data||!/^\d{4}-\d{2}-\d{2}$/.test(data.targetDate)||(targetDate&&data.targetDate!==targetDate))throw new Error('요청한 날짜와 응답 날짜가 다릅니다. 기존 화면을 유지합니다.');readVerified=true;if(APP.preview||APP.needsRead)APP.renderedGridKey=null;APP.preview=false;APP.needsRead=false;APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();render(data);if(typeof saveDashboardCache==='function')saveDashboardCache(data);renderReadTiming(data,performance.now()-readStarted,false);setSync('저장 준비','');return data}catch(error){if(readEpoch!==(APP.readEpoch||0)&&!error.authRequired)return null;renderReadTiming(null,performance.now()-readStarted,true);if(error.authRequired){toast('세션이 만료되었습니다. 기존 PIN으로 다시 로그인하세요.')}else if(APP.data){setSync('조회 지연 · 기존 화면 유지','error');toast(error.message)}else{renderError(error);setSync('오류','error')}return null}finally{if(APP.activeDashboardRead===readLease)delete APP.activeDashboardRead;APP.loading=false;delete APP.loadingTargetDate;updateNetwork();renderRecordingRecovery();if(readVerified)void recoverRecordingChecks();if(APP.refreshPending&&!APP.saving.size&&!APP.accepting&&typeof refreshRecording==='function')void refreshRecording()}}
+async function loadData(force=false,targetDate=APP.targetDate,verifyPending=false){if(!ensureConnected()||APP.loading||(APP.saving.size&&!(verifyPending&&APP.saving.size===1)))return null;APP.loading=true;APP.loadingTargetDate=targetDate;let readVerified=false;force=force||pendingRecordingChecks().length>0;const readEpoch=APP.readEpoch||0,readLease=typeof AbortController==='function'?{controller:new AbortController(),startedAt:Date.now(),superseded:false}:null;APP.activeDashboardRead=readLease;const readStarted=performance.now();setSync(APP.preview?'최근 화면 · 확인 중':APP.needsRead?'저장 결과 확인 중':'서버 확인 중','saving');try{const data=await api('opsDashboard',{targetDate,force,readOnly:true,readOnlyCandidateCache:true},{signal:readLease?.controller.signal,onSlow:()=>{if(readEpoch===(APP.readEpoch||0)&&!APP.saving.size)setSync('조회 지연 · 기존 화면 유지','error')}});if(readEpoch!==(APP.readEpoch||0))return null;if(!data||!/^\d{4}-\d{2}-\d{2}$/.test(data.targetDate)||(targetDate&&data.targetDate!==targetDate))throw new Error('요청한 날짜와 응답 날짜가 다릅니다. 기존 화면을 유지합니다.');readVerified=true;if(APP.preview||APP.needsRead)APP.renderedGridKey=null;APP.preview=false;APP.needsRead=false;APP.data=data;APP.targetDate=data.targetDate;APP.lastLoaded=Date.now();render(data);if(typeof saveDashboardCache==='function')saveDashboardCache(data);renderReadTiming(data,performance.now()-readStarted,false);setSync('저장 준비','');return data}catch(error){if(readEpoch!==(APP.readEpoch||0)&&!error.authRequired)return null;renderReadTiming(null,performance.now()-readStarted,true);if(error.authRequired){toast('세션이 만료되었습니다. 기존 PIN으로 다시 로그인하세요.')}else if(APP.data){setSync('조회 지연 · 기존 화면 유지','error');toast(error.message)}else{renderError(error);setSync('오류','error')}return null}finally{if(APP.activeDashboardRead===readLease)delete APP.activeDashboardRead;APP.loading=false;delete APP.loadingTargetDate;updateNetwork();renderRecordingRecovery();if(readVerified)void recoverRecordingChecks();if(APP.refreshPending&&!APP.saving.size&&!APP.accepting&&typeof refreshRecording==='function')void refreshRecording()}}
 function renderError(error){APP.renderedGridKey=null;APP.renderedDatesKey=null;const banner=$('notice-banner');banner.className='notice-banner error';$('notice-title').textContent='불러오기 실패';$('notice-detail').textContent=error.message;$('classes').innerHTML='';$('empty').hidden=false;$('empty').textContent='서버 데이터를 확인하지 못했습니다. 설정에서 연결 상태를 확인하세요.'}
 function render(data){const datesKey=JSON.stringify([data.candidates||[],data.targetDate,data.totalStudents]);if(datesKey!==APP.renderedDatesKey){renderDates(data.candidates||[],data.targetDate,data.totalStudents);APP.renderedDatesKey=datesKey;}renderSummary(data);const gridKey=JSON.stringify([data.targetDate,!!APP.preview,data.classes||[]]);if(gridKey!==APP.renderedGridKey){renderClasses(data.classes||[]);APP.renderedGridKey=gridKey;}$('now-label').textContent=data.targetLabel+(APP.preview?' · 최근 화면':'');$('authoritative-read').textContent=`최근 동기화 ${data.lastAuthoritativeReadAt}`;renderRecordingRecovery();applyRecordingFilters()}
 function renderDates(items,targetDate,totalStudents){$('date-strip').innerHTML=items.map(item=>{const count=item.date===targetDate&&Number.isSafeInteger(totalStudents)&&totalStudents>=0?totalStudents:item.studentCount;return `<button type="button" class="date-chip ${item.date===APP.targetDate?'active':''}" onclick="selectDate('${esc(item.date)}')">${esc(item.shortLabel)}<span class="tiny">${count}명</span></button>`}).join('')}
@@ -311,12 +311,12 @@ async function saveOne(input,classId,studentId,recovery=null){
   }catch(error){
    APP.renderedGridKey=null;
    retainRecordingAttempt(attempt,error.deferred?'QUEUED':error.uncertain?'SENT':'REVIEW');
-   row.classList.add('error');
+   row.classList.toggle('error',!error.uncertain&&!error.conflict&&!error.deferred);
    input.checked=student.received;
    if(error.uncertain||error.conflict){
     APP.needsRead=true;
     state.textContent=error.conflict?(recovery?.retry?'이전 저장 결과 확인 중':'다른 화면의 변경 확인 중'):'저장 결과 미확인';
-    setSync('저장 결과 확인 필요','error');
+    setSync('저장 결과 확인 중','saving');
     if(error.conflict)toast(error.message);
    }else if(!error.deferred){
     state.textContent=before;
@@ -336,7 +336,13 @@ async function saveOne(input,classId,studentId,recovery=null){
   if(!APP.saving.size&&!APP.recovering)void recoverRecordingChecks();
   if(APP.needsRead&&!APP.saving.size&&!APP.preview){
    const latest=await loadData(true,date);
-   if(latest)setSync('서버 상태 재확인 완료','');
+   const confirmed=latest&&!APP.preview&&!APP.needsRead&&classifyRecordingAttempt(attempt,{apiUrl:apiUrl(),session:recordingSession()},APP.targetDate,findStudent(classId,studentId))==='CONFIRMED';
+   if(confirmed){
+    const cleared=removeRecordingAttempt(attempt);
+    setSync(APP.saving.size?'자동 저장 중':cleared?'저장 확인 완료':'기기 보관 정리 필요',APP.saving.size?'saving':cleared?'':'error');
+   }else if(!APP.preview){
+    setSync(latest?'확인 필요한 체크가 있습니다.':'저장 확인 필요','error');
+   }
   }else if(APP.refreshPending&&!APP.saving.size&&typeof refreshRecording==='function'){
    await refreshRecording();
   }
