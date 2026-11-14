@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.23',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.24',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -291,7 +291,7 @@ async function saveOne(input,classId,studentId,recovery=null){
    const result=useBatch?await recordingBatchTransport()(savePayload,{context:attempt,onSlow:()=>{state.textContent='서버 저장 확인 중…'}}):await api('opsSaveOne',savePayload,
     {requestId:id,onSlow:()=>{state.textContent='서버 저장 확인 중…'}});
    if(APP.preview)return;
-   if(result?.conflict){const error=new Error('다른 화면에서 이 학생의 체크가 변경되었습니다. 최신 상태를 다시 확인합니다.');error.conflict=true;throw error;}
+   if(result?.conflict){const error=new Error(recovery?.retry?'이전 체크의 저장 결과를 다시 확인합니다.':'다른 화면에서 이 학생의 체크가 변경되었습니다. 최신 상태를 다시 확인합니다.');error.conflict=true;throw error;}
    if(!result||result.ok===false||result.received!==desired||result.status!==(desired?'RECEIVED':'UNKNOWN')||!result.summary||
       (result.targetDate&&result.targetDate!==date)||(result.classId&&result.classId!==classId)||(result.studentId&&result.studentId!==studentId)){
     const error=new Error('저장 응답이 요청과 일치하지 않아 서버 상태를 다시 확인합니다.');error.uncertain=true;throw error;
@@ -315,7 +315,7 @@ async function saveOne(input,classId,studentId,recovery=null){
    input.checked=student.received;
    if(error.uncertain||error.conflict){
     APP.needsRead=true;
-    state.textContent=error.conflict?'다른 화면의 변경 확인 중':'저장 결과 미확인';
+    state.textContent=error.conflict?(recovery?.retry?'이전 저장 결과 확인 중':'다른 화면의 변경 확인 중'):'저장 결과 미확인';
     setSync('저장 결과 확인 필요','error');
     if(error.conflict)toast(error.message);
    }else if(!error.deferred){

@@ -1,7 +1,9 @@
 # 녹음 중심 통합 앱 실사용 전환 기준
-최신 확인: STAGING36 / UI8.2.23, 복귀 조회 개선 배포·실제 저장/복원과 운영6파일 재대조 완료 (2026-11-14).
+최신 확인: STAGING37 / UI8.2.24, 실제 운영센터303 native17검사와 세 업무 연동·저장 중 재실행 검증 완료 (2026-11-14).
 
-현재 격리 배포는 immutable36 / UI8.2.23 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보 서버를 격리34에 배포했고35에서는 화면만 갱신했으며 실제 운영에는 반영하지 않았다.
+현재 판정과 근거는 [최신 통합 검증](NATIVE303_STAGING37_ACCEPTANCE_20261114.md)을 우선한다. 아래 버전별 내용은 당시 기록이다.
+
+현재 격리 배포는 immutable37 / UI8.2.24 / 서버8.3.0-INTEGRATED-CANDIDATE다. 운영 배포는 실제 Apps Script에서 조회한 immutable38이다. 운영 전환 후보는 [API PR8](https://github.com/kksong90-crypto/allbarun-recording-api/pull/8)이다. 후보 서버를 격리34에 배포했고35에서는 화면만 갱신했으며 실제 운영에는 반영하지 않았다.
 
 최종 목표는 휴대전화에서 빠르게 연속 체크하고 잠금·통신 지연·재접속 뒤에도 입력을 잃지 않으며, 같은 앱에서 예정결석과 학교시험 생성·점수 입력을 운영센터/CoreDB와 일치시키는 것이다.
 
@@ -78,4 +80,3 @@ Google 배포 기록은34 / 2026-11-14 00:13 KST다. 실제4쌍 표본에서 두
 ## 최종 전환 묶음 고정
 
 검증 프런트7개 자산을sourceCommit f8dd7beb06db9737257a1d4de23e382433eaa2f0으로 고정했고, 서버29+패키지8검사가 통과했다. 실제 운영6파일 보관본을 줄바꿈/끝 개행까지 맞춰6개해시와Git원시blob을 대조했다. 후보 서버/manifest 해시는 기존과 동일하다. [최종 인계](https://github.com/kksong90-crypto/allbarun-recording-api/blob/cabbc98866deae3c594e5a448cbc7c064538b3f2/release-candidate/RELEASE_HANDOFF_20261114.md), [전환 상태](https://github.com/kksong90-crypto/allbarun-recording-api/blob/cabbc98866deae3c594e5a448cbc7c064538b3f2/release-candidate/RELEASE_READINESS_20261114.json). 실제 휴대전화 OS 확인·현재 활성배포/정적앱 경로/실제 운영센터 대상 확인·운영반영 별도 확인이 남아 readyForProductionDeployment=false다. Google 배포 관리 조회 오류를 완료로 처리하지 않았다.
-

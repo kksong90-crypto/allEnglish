@@ -89,3 +89,8 @@ test('competing retained intents for one student require review and normal click
 test('journal contains no PIN, full credential, signature or student name',()=>{
  const h=harness();h.journal.put(attempt());const raw=h.storage.getItem(h.storage.key(0));assert.ok(!/signature|검증학생|admin.pin|token/.test(raw));
 });
+
+
+test('reopen retry racing an earlier committed write reconciles without blaming another screen',async()=>{const h=harness({apiImpl:async()=>{h.student.received=true;h.student.revision='COMMITTED';return{conflict:true};}});h.journal.put(attempt({state:'SENT'}));await h.ctx.recoverRecordingChecks();assert.equal(h.writes.length,1);assert.equal(h.journal.list(url).items.length,0);assert.ok(h.messages.some(m=>m.includes('이전 체크의 저장 결과')));assert.ok(h.messages.every(m=>!m.includes('다른 화면')));assert.equal(h.reads.length,1);});
+test('reopen retry with a differing newer state remains retained for review without overwriting',async()=>{const h=harness({apiImpl:async()=>{h.student.received=false;h.student.revision='NEWER';return{conflict:true};}});h.journal.put(attempt({state:'SENT'}));await h.ctx.recoverRecordingChecks();await h.ctx.recoverRecordingChecks();assert.equal(h.writes.length,1);assert.equal(h.student.received,false);assert.equal(h.journal.list(url).items[0].state,'REVIEW');});
+test('ordinary concurrent edit still explains that another screen changed the row',async()=>{const h=harness({apiImpl:async()=>{h.student.revision='NEWER';return{conflict:true};}});h.input.checked=true;await h.ctx.saveOne(h.input,'C','S');assert.ok(h.messages.some(m=>m.includes('다른 화면')));assert.equal(h.student.received,false);assert.equal(h.journal.list(url).items.length,1);});
