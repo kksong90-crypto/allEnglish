@@ -1,5 +1,5 @@
 'use strict';
-const APP={version:'8.2.26',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
+const APP={version:'8.2.27',apiKey:'allbarun.rec.apiUrl',tokenKey:'allbarun.rec.token',cacheKey:'allbarun.rec.dashboardCache.v2',targetDate:'',data:null,loading:false,saving:new Set(),lastLoaded:0};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function toast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove('show'),2600)}
@@ -195,11 +195,11 @@ async function recoverRecordingChecks(){
 
 // Serialize network batches while preserving a distinct promise and journal per student.
 function createRecordingBatchTransport(send,{delayMs=120,max=30,canSend=()=>true}={}){
- const queue=[];let active=false,timer=null;
+ const queue=[];let active=0,timer=null,cohort={overlapped:false};
  function schedule(){if(!active&&!timer&&queue.length)timer=setTimeout(()=>{timer=null;void flush()},delayMs)}
- async function flush(){
+ async function flush({background=false}={}){
   if(timer){clearTimeout(timer);timer=null;}
-  if(active||!queue.length)return;active=true;
+  if(active>=(background?2:1)||!queue.length)return;if(!active)cohort={overlapped:false};const batchCohort=cohort;active++;if(active>1)batchCohort.overlapped=true;
   const date=queue[0].payload.targetDate,jobs=[];
   while(queue.length&&jobs.length<max&&queue[0].payload.targetDate===date)jobs.push(queue.shift());
   try{
@@ -211,9 +211,9 @@ function createRecordingBatchTransport(send,{delayMs=120,max=30,canSend=()=>true
    for(const result of results){if(!result||map.has(result.requestId))throw new Error('중복된 저장 응답입니다.');map.set(result.requestId,result)}
    // Validate the complete envelope before settling any individual write.
    for(const job of jobs){const result=map.get(job.payload.requestId);if(!result||result.targetDate!==date||result.classId!==job.payload.classId||result.studentId!==job.payload.studentId)throw new Error('학생별 저장 응답이 요청과 일치하지 않습니다.')}
-   for(const job of jobs){const result=map.get(job.payload.requestId);if(result.error&&!result.conflict){job.reject(new Error(result.error.message||'학생 체크를 저장하지 못했습니다.'))}else job.resolve(result)}
+   for(const job of jobs){const result=map.get(job.payload.requestId);if(result.error&&!result.conflict){job.reject(new Error(result.error.message||'학생 체크를 저장하지 못했습니다.'))}else job.resolve(batchCohort.overlapped?{...result,clientReconcileRequired:true}:result)}
   }catch(error){if(!error.deferred)error.uncertain=true;for(const job of jobs)job.reject(error)}
-  finally{active=false;schedule()}
+  finally{active--;schedule()}
  }
  const enqueue=(payload,{context,onSlow}={})=>new Promise((resolve,reject)=>{queue.push({payload,context,onSlow,resolve,reject});schedule()});
  enqueue.flush=flush;return enqueue;
@@ -290,6 +290,7 @@ async function saveOne(input,classId,studentId,recovery=null){
 
  const useBatch=!recovery&&Number(APP.data?.recordingBatchLimit)>=1&&typeof expectedRevision==='string';
  const write=async()=>{
+  let backgroundConfirmed=false;
   try{
    if(APP.needsRead||APP.preview||APP.targetDate!==date||attempt.apiUrl!==apiUrl()||attempt.session!==recordingSession()){
     const error=new Error('서버 확인 후 보관된 체크를 복구합니다.');error.deferred=true;throw error;
@@ -315,9 +316,9 @@ async function saveOne(input,classId,studentId,recovery=null){
    row.classList.toggle('received',result.received);
    row.classList.toggle('missing',result.status==='MISSING');
    state.textContent=result.received?`제출 · ${result.savedAt}`:result.status==='MISSING'?'미제출':'미확인';
-   applySummary(result.summary,result.notice);
+   if(result.clientReconcileRequired){backgroundConfirmed=true;APP.needsRead=true;APP.refreshPending=true;}else applySummary(result.summary,result.notice);
    removeRecordingAttempt(attempt);
-   if(APP.saving.size===1)setSync('저장 완료','');
+   if(APP.saving.size===1)setSync(APP.needsRead?'저장 상태 확인 중':'저장 완료',APP.needsRead?'saving':'');
   }catch(error){
    APP.renderedGridKey=null;
    retainRecordingAttempt(attempt,error.deferred?'QUEUED':error.uncertain?'SENT':'REVIEW');
@@ -347,11 +348,14 @@ async function saveOne(input,classId,studentId,recovery=null){
   if(APP.needsRead&&!APP.saving.size&&!APP.preview){
    const latest=await loadData(true,date);
    const confirmed=latest&&!APP.preview&&!APP.needsRead&&classifyRecordingAttempt(attempt,{apiUrl:apiUrl(),session:recordingSession()},APP.targetDate,findStudent(classId,studentId))==='CONFIRMED';
-   if(confirmed){
+   if(backgroundConfirmed&&latest&&!APP.preview&&!APP.needsRead){
+    const pending=pendingRecordingChecks().length;
+    setSync(APP.saving.size?'자동 저장 중':pending?'보관된 체크 확인 필요':'저장 확인 완료',APP.saving.size?'saving':pending?'error':'');
+   }else if(confirmed){
     const cleared=removeRecordingAttempt(attempt);
     setSync(APP.saving.size?'자동 저장 중':cleared?'저장 확인 완료':'기기 보관 정리 필요',APP.saving.size?'saving':cleared?'':'error');
    }else if(!APP.preview){
-    setSync(latest?'확인 필요한 체크가 있습니다.':'저장 확인 필요','error');
+    setSync(backgroundConfirmed&&!latest?'저장 완료 · 집계 확인 대기':latest?'확인 필요한 체크가 있습니다.':'저장 확인 필요',backgroundConfirmed&&!latest?'saving':'error');
    }
   }else if(APP.refreshPending&&!APP.saving.size&&typeof refreshRecording==='function'){
    await refreshRecording();
@@ -603,9 +607,11 @@ function resumeRecording(){
  }
  return refreshRecording();
 }
-function prepareRecordingBackground(){void APP.batchTransport?.flush?.();}
+function prepareRecordingBackground(){const transport=APP.batchTransport;if(!transport?.flush)return;void transport.flush({background:true});void transport.flush({background:true});}
 window.addEventListener('online',()=>{updateNetwork();void resumeRecording()});
 window.addEventListener('pagehide',prepareRecordingBackground);
+window.addEventListener('focus',()=>{void resumeRecording()});
+document.addEventListener('resume',()=>{void resumeRecording()});
 window.addEventListener('offline',updateNetwork);
 window.addEventListener('pageshow',event=>{if(event.persisted)void resumeRecording()});
 document.addEventListener('visibilitychange',()=>{

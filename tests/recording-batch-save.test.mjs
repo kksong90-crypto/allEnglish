@@ -16,7 +16,7 @@ function uiHarness(){
  const clock=timers(),journal=journalContext(),students=Array.from({length:30},(_,i)=>({studentId:'S'+i,received:false,canCheck:true,revision:'R'+i})),calls=[],pending=[],cached=[],APP={data:{recordingBatchLimit:30,totalReceived:0},saving:new Set(),targetDate:'2026-11-16'};let n=0;
  const ctx={...clock,...journal,APP,$:()=>null,saveDashboardCache:data=>cached.push(JSON.parse(JSON.stringify(data))),findStudent:(_c,s)=>students.find(x=>x.studentId===s),navigator:{onLine:true},requestId:prefix=>prefix+'_'+(++n),setSync(){},toast(){},applySavedStudentScope(){},clearDashboardCache(){},applySummary:s=>APP.data.totalReceived=s.received,loadData:async()=>null,api:(action,payload)=>new Promise((resolve,reject)=>{calls.push({action,payload});pending.push({resolve,reject})})};vm.createContext(ctx);vm.runInContext(transport+source.slice(source.indexOf('async function saveOne('),source.indexOf('async function acceptBeforeDeadline(')),ctx);
  const inputs=students.map(()=>{const state={textContent:'미확인'};return {checked:true,state,isConnected:true,closest:()=>({querySelector:()=>state,classList:{add(){},remove(){},toggle(){}}})}});
- return {clock,journal,students,APP,calls,pending,cached,inputs,start:()=>students.map((s,i)=>ctx.saveOne(inputs[i],'C',s.studentId))};
+ return {clock,journal,students,APP,calls,pending,cached,inputs,ctx,startOne:i=>ctx.saveOne(inputs[i],'C',students[i].studentId),start:()=>students.map((s,i)=>ctx.saveOne(inputs[i],'C',s.studentId))};
 }
 test('batch UI stores all thirty independent journal entries before transmission and confirms every original revision',async()=>{const h=uiHarness(),writes=h.start();assert.equal(h.journal.pendingRecordingChecks().length,30);assert.equal(h.APP.saving.size,30);assert.ok(h.inputs.every(x=>x.checked&&x.disabled));h.clock.tick();assert.equal(h.calls.length,1);assert.equal(h.calls[0].action,'opsSaveBatch');assert.equal(h.calls[0].payload.changes[29].expectedRevision,'R29');h.pending[0].resolve(reply('2026-11-16',h.calls[0].payload.changes));await Promise.all(writes);assert.equal(h.APP.data.totalReceived,30);assert.equal(h.APP.saving.size,0);assert.equal(h.journal.pendingRecordingChecks().length,0);assert.ok(h.students.every(s=>s.received));assert.ok(h.inputs.every(x=>x.checked&&!x.disabled));});
 test('a lost batch reply preserves thirty journal entries and requires authoritative recovery',async()=>{const h=uiHarness(),writes=h.start();h.clock.tick();h.pending[0].reject(Error('response lost'));await Promise.all(writes);assert.equal(h.APP.needsRead,true);assert.equal(h.journal.pendingRecordingChecks().length,30);assert.ok(h.inputs.every(x=>!x.checked&&x.disabled));assert.equal(h.calls.length,1);assert.equal(h.cached.length,0);});
@@ -25,3 +25,38 @@ test('the final confirmed batch repopulates reopening cache exactly once after e
 test('background flush dispatches durable queued checks without waiting for the suspended batch timer',async()=>{const h=setup(),a=h.queue(payload(0)),b=h.queue(payload(1));assert.equal(h.calls.length,0);void h.queue.flush();assert.equal(h.calls.length,1);assert.equal(h.calls[0].changes.length,2);assert.equal(h.clock.tasks.size,0);void h.queue.flush();assert.equal(h.calls.length,1);h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));await Promise.all([a,b]);assert.equal(h.clock.tasks.size,0);});
 test('background flush preserves serialization and keeps a second in-flight batch queued',async()=>{const h=setup(),a=h.queue(payload(0));void h.queue.flush();const b=h.queue(payload(1));void h.queue.flush();assert.equal(h.calls.length,1);h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));await drain();assert.equal(h.calls.length,1);void h.queue.flush();assert.equal(h.calls.length,2);h.pending[1].resolve(reply(h.calls[1].date,h.calls[1].changes));await Promise.all([a,b]);});
 test('background flush cannot bypass a changed session or unverified roster',async()=>{const h=setup({canSend:()=>false}),p=h.queue(payload(0));void h.queue.flush();await assert.rejects(p,e=>e.deferred&&!e.uncertain);assert.equal(h.calls.length,0);assert.equal(h.clock.tasks.size,0);});
+
+test('hiding during an in-flight write dispatches the trailing batch before the first response arrives',async()=>{
+ const h=setup(),a=h.queue(payload(0));h.clock.tick();const b=h.queue(payload(1));assert.equal(h.calls.length,1);
+ void h.queue.flush({background:true});assert.equal(h.calls.length,2);assert.equal(h.calls[0].changes[0].studentId,'S0');assert.equal(h.calls[1].changes[0].studentId,'S1');
+ h.pending[1].resolve(reply(h.calls[1].date,h.calls[1].changes));h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));await Promise.all([a,b]);assert.equal(h.clock.tasks.size,0);
+});
+test('repeated hide/pagehide flushes never exceed two requests and preserve all later queued jobs',async()=>{
+ const h=setup(),writes=Array.from({length:61},(_,i)=>h.queue(payload(i)));for(let i=0;i<6;i++)void h.queue.flush({background:true});assert.equal(h.calls.length,2);assert.equal(h.calls[0].changes.length,30);assert.equal(h.calls[1].changes.length,30);
+ h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));h.pending[1].resolve(reply(h.calls[1].date,h.calls[1].changes));await drain();assert.equal(h.calls.length,2);h.clock.tick();assert.equal(h.calls.length,3);assert.equal(h.calls[2].changes[0].studentId,'S60');h.pending[2].resolve(reply(h.calls[2].date,h.calls[2].changes));assert.equal((await Promise.all(writes)).length,61);
+});
+test('a conflict in the first batch cannot erase an independently confirmed trailing background write',async()=>{
+ const h=setup(),a=h.queue(payload(0)),b=h.queue(payload(1));h.clock.tick();const c=h.queue(payload(2));void h.queue.flush({background:true});const first=reply(h.calls[0].date,h.calls[0].changes);first.results[0]={...first.results[0],ok:false,conflict:true};h.pending[1].resolve(reply(h.calls[1].date,h.calls[1].changes));h.pending[0].resolve(first);const done=await Promise.all([a,b,c]);assert.equal(done[0].conflict,true);assert.equal(done[2].studentId,'S2');assert.equal(done[2].ok,true);
+});
+test('background dispatch revalidates session and roster even while another valid request is active',async()=>{
+ let allowed=true;const h=setup({canSend:()=>allowed}),a=h.queue(payload(0));h.clock.tick();const b=h.queue(payload(1));allowed=false;void h.queue.flush({background:true});await assert.rejects(b,e=>e.deferred&&!e.uncertain);assert.equal(h.calls.length,1);h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));await a;
+});
+
+test('out-of-order background responses never regress the global summary and trigger one final authoritative read',async()=>{
+ const h=uiHarness();let reads=0;vm.runInContext(source.slice(source.indexOf('function classifyRecordingAttempt('),source.indexOf('function retainedRecordingCheck(')),h.ctx);
+ h.ctx.loadData=async()=>{reads++;h.APP.needsRead=false;h.APP.data.totalReceived=2;return h.APP.data;};
+ const a=h.startOne(0);h.clock.tick();const b=h.startOne(1);void h.APP.batchTransport.flush({background:true});assert.equal(h.calls.length,2);
+ const later=reply('2026-11-16',h.calls[1].payload.changes);later.results[0].summary.received=2;h.pending[1].resolve(later);await drain();
+ const earlier=reply('2026-11-16',h.calls[0].payload.changes);earlier.results[0].summary.received=1;h.pending[0].resolve(earlier);await Promise.all([a,b]);
+ assert.equal(reads,1);assert.equal(h.APP.data.totalReceived,2);assert.equal(h.journal.pendingRecordingChecks().length,0);assert.ok(h.students.slice(0,2).every(s=>s.received));
+});
+test('a later serial foreground batch is not forced into background reconciliation after the overlap drains',async()=>{
+ const h=setup(),a=h.queue(payload(0));h.clock.tick();const b=h.queue(payload(1));void h.queue.flush({background:true});h.pending[0].resolve(reply(h.calls[0].date,h.calls[0].changes));h.pending[1].resolve(reply(h.calls[1].date,h.calls[1].changes));const both=await Promise.all([a,b]);assert.ok(both.every(r=>r.clientReconcileRequired));
+ const c=h.queue(payload(2));h.clock.tick();h.pending[2].resolve(reply(h.calls[2].date,h.calls[2].changes));assert.equal((await c).clientReconcileRequired,undefined);
+});
+
+test('an aggregate reread failure after two acknowledged writes is not mislabeled as an unconfirmed save',async()=>{
+ const h=uiHarness(),messages=[];h.ctx.setSync=(text,kind)=>messages.push({text,kind});h.ctx.loadData=async()=>null;
+ const a=h.startOne(0);h.clock.tick();const b=h.startOne(1);void h.APP.batchTransport.flush({background:true});h.pending[1].resolve(reply('2026-11-16',h.calls[1].payload.changes));h.pending[0].resolve(reply('2026-11-16',h.calls[0].payload.changes));await Promise.all([a,b]);
+ assert.equal(h.journal.pendingRecordingChecks().length,0);assert.ok(h.students.slice(0,2).every(s=>s.received));assert.equal(messages.at(-1).text,'저장 완료 · 집계 확인 대기');assert.equal(messages.at(-1).kind,'saving');
+});
