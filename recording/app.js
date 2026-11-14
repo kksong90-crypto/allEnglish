@@ -147,6 +147,12 @@ function renderRecordingRecovery(){
  // Active writes already show their state beside the student; keep their durable records without expanding recovery UI.
  journal={...journal,items:journal.items.filter(a=>a.state==='REVIEW'||APP.preview||APP.needsRead||a.targetDate!==APP.targetDate||!APP.saving.has(`${a.classId}|${a.studentId}`)||a.apiUrl!==apiUrl()||a.session!==recordingSession())};
  panel.replaceChildren();panel.hidden=!journal.items.length&&!journal.damaged;if(panel.hidden)return;
+ panel.classList.toggle('recovery-compact',!journal.damaged);
+ panel.classList.toggle('recovery-expanded',Boolean(APP.recoveryExpanded));
+ const toggle=document.createElement('button');toggle.type='button';toggle.className='recovery-toggle';
+ toggle.textContent=`보관 ${journal.items.length}건 · ${APP.recoveryExpanded?'접기':'자세히'}`;
+ toggle.setAttribute('aria-expanded',String(Boolean(APP.recoveryExpanded)));
+ toggle.addEventListener('click',()=>{APP.recoveryExpanded=!APP.recoveryExpanded;renderRecordingRecovery()});panel.append(toggle);
  const title=document.createElement('b');title.textContent=`이 기기에 보관된 체크 ${journal.items.length}건`;panel.append(title);
  const note=document.createElement('p');note.textContent=APP.preview||APP.loading||APP.needsRead?'서버 상태 확인 후 복구합니다.':APP.saving.size?'전송 대기 중인 체크를 보관했습니다.':'저장된 항목은 자동 정리합니다. 변경된 항목은 아래에서 확인하세요.';panel.append(note);
  if(journal.damaged){const warning=document.createElement('p');warning.textContent='읽을 수 없는 보관 항목이 있습니다. 자동 전송하지 않습니다.';panel.append(warning)}
