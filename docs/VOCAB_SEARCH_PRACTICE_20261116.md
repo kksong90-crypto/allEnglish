@@ -1,5 +1,7 @@
 # 단어장 탐색·개인 연습 개선 후보
 
+> 후속 상태: 학생웹 개선은 PR60으로 기존 실사용 주소에 반영됐고 Pages·게시 확인·Chromium/WebKit·37개 모듈·배포본 합성 성능 검사가 통과했다. 아래 개발/리뷰 시점의 미배포 기록과 구분한다. 실제 계정 첫 조회 속도는 미측정이다. [최종 영수증](VOCAB_ROLLOUT_20261116.md).
+
 기준: allEnglish main `0c391a1`. branch: `feature/vocab-search-practice-20261116`.
 
 ## 사용자 요구와 구현
