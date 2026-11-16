@@ -4,6 +4,7 @@ on:
     paths:
       - 'index.html'
       - 'student-shell.css'
+      - 'station-library.js'
       - 'browser-tests/**'
       - '.github/workflows/student-practice-browser.yml'
   workflow_dispatch:
@@ -25,6 +26,8 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Android-sized Chromium and desktop browser flow
         run: node browser-tests/assigned-practice.browser.mjs chromium
+      - name: Keyboard and accessible learning feedback
+        run: node browser-tests/mobile-review.browser.mjs
       - name: iPhone-sized WebKit browser flow
         run: node browser-tests/assigned-practice.browser.mjs webkit
       - uses: actions/upload-artifact@v4

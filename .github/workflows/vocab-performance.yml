@@ -1,0 +1,30 @@
+name: Vocabulary synthetic performance budgets
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: vocabulary-performance-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm --prefix browser-tests ci --no-audit --no-fund
+      - working-directory: browser-tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify functional scope and answer contracts
+        run: node --test tests/vocab-performance-contract.test.mjs tests/assigned_practice_direct.test.mjs tests/search-review.test.mjs
+      - name: Measure in a separate browser run with synthetic transport only
+        run: node browser-tests/vocab-performance.browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vocabulary-synthetic-performance
+          path: browser-tests/artifacts/vocab-performance.json
+          retention-days: 7

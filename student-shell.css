@@ -4422,3 +4422,27 @@ body.dark #practice .practice-answer-details{background:#1d2b2a;border-color:#42
 body:has(#practice.active) .top-user-bar,
 body:has(#practice.active) .bottom-nav{display:none!important}
 body:has(#practice.active) #practice{padding-bottom:1.5rem}
+
+/* Public vocabulary: compact filters and readable results on phones. */
+#station-library summary,#legacy-vocab-library>summary{cursor:pointer;font-weight:800;min-height:44px;padding:8px 0;line-height:1.5}
+#station-library .control-grid{margin:12px 0;align-items:end}
+#station-library input[type="search"]{width:100%;box-sizing:border-box;min-height:46px;padding:11px 13px;border:1px solid var(--brand-line,#cbded8);border-radius:12px;font:inherit;background:var(--card-bg,#fff);color:inherit}
+#station-library-status{font-size:.9rem;line-height:1.6}
+#station-library-words ol{max-height:360px;overflow-y:auto;overscroll-behavior:contain;padding:0 0 0 26px;line-height:1.65}
+#station-library-words li{padding:7px 3px;border-bottom:1px solid var(--brand-line,#d8e5e1);overflow-wrap:anywhere}
+#station-library-words>button{width:100%;margin:8px 0;min-height:46px}
+#station-library-search-result ol{padding:0;list-style:none;display:grid;gap:8px}
+#station-library-search-result li{padding:12px;border:1px solid var(--brand-line,#d8e5e1);border-radius:12px;line-height:1.6;overflow-wrap:anywhere}
+#station-library-search-result li button{display:block;margin:8px 0 0;min-height:44px}
+#practice .practice-head>.vocab-btn{margin-top:12px;font-size:.85rem;min-height:44px;padding:10px 14px}
+#practice .practice-actions button:disabled{opacity:.45;cursor:default}
+body.dark #station-library input[type="search"]{background:#1d2b2a;border-color:#425e56;color:#eef8f6}
+
+#station-library-search-result ol{max-height:360px;overflow-y:auto;overscroll-behavior:contain}
+
+/* WebKit native selects must not expand the vocabulary grid on small screens. */
+#station-library .control-grid>div{min-width:0}
+#station-library select,#station-library input[type="search"]{min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:720px){#station-library .control-grid{grid-template-columns:minmax(0,1fr)}}
+/* Keep navigation buttons visible when WebKit gives the logo an intrinsic minimum. */
+.brand-wrap>.brand-logo-wide{min-width:0;flex-shrink:1}

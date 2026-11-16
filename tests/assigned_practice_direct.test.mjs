@@ -332,6 +332,10 @@ test('mobile back preserves tab history and typed answers when exit is canceled'
   assert.equal(v.node('practice-answer-0').value,'app');
   v.context.confirm=()=>true;
   v.context.goBackInApp();
+  assert.equal(v.read('getActiveTabId()'),'practice');
+  assert.equal(v.read('assignedPracticeState.mode'),'');
+  assert.equal(v.read('appTabHistory.length'),before);
+  v.context.goBackInApp();
   assert.equal(v.read('getActiveTabId()'),'home');
   assert.equal(v.read('appTabHistory.length'),Math.max(0,before-1));
   assert.equal(v.read('assignedPracticeState'),null);
@@ -411,4 +415,31 @@ test('student cannot enter staff preview and invalid public identities never ren
  const v=virtualStudent({backend:mockBackend()});await v.boot();
  v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
  v.read('currentUser').role='admin';v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
+});
+
+test('cards can hide the same answer and undo a step without inflating progress or losing the scope',async()=>{
+ const v=virtualStudent({backend:mockBackend()});await v.boot();await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+ v.context.assignedPracticeChooseMode('card');
+ const first=v.read('assignedPracticeCurrentIndex()');
+ v.context.assignedPracticeReveal();assert.equal(v.read('assignedPracticeState.study.revealed'),true);
+ v.context.assignedPracticeHide();assert.equal(v.read('assignedPracticeState.study.revealed'),false);assert.equal(v.read('assignedPracticeCurrentIndex()'),first);
+ v.context.assignedPracticeReveal();v.context.assignedPracticeRate(false);
+ assert.equal(v.read('assignedPracticeState.study.completed'),1);
+ v.context.assignedPracticePrevious();assert.equal(v.read('assignedPracticeCurrentIndex()'),first);
+ assert.equal(v.read('assignedPracticeState.study.completed'),0);assert.equal(v.read('assignedPracticeState.study.misses'),0);
+ v.context.assignedPracticeRate(true);assert.equal(v.read('assignedPracticeState.study.completed'),1);
+ v.context.assignedPracticeBackToMenu();assert.equal(v.read('assignedPracticeState.mode'),'');
+ v.context.assignedPracticeChooseMode('spell');assert.equal(v.read('assignedPracticeState.history.length'),0);
+ assert.equal(calls(v,'saveVocabResult').length,0);
+});
+test('public student practice returns to selected library; entering vocabulary never downloads legacy rows',async()=>{
+ const v=virtualStudent({backend:mockBackend()});await v.boot();
+ v.context.showTab('vocab');assert.equal(calls(v,'getVocabData').length,0);
+ v.context.startPublicVocaPractice({revisionId:'R',label:'Day 1',words:[{vocabWordId:'W',word:'apple',meaning:'사과'}]});
+ assert.equal(v.read('assignedPracticeState.personal'),true);assert.equal(v.read('assignedPracticeState.preview'),false);
+ assert.match(v.node('practice-view').innerHTML,/혼자 단어 연습/);
+ v.context.assignedPracticeChooseMode('card');v.context.goBackInApp();
+ assert.equal(v.read('getActiveTabId()'),'practice');assert.equal(v.read('assignedPracticeState.mode'),'');
+ v.context.assignedPracticeReturnToSource();assert.equal(v.read('getActiveTabId()'),'vocab');
+ assert.equal(calls(v,'getVocabData').length,0);assert.equal(calls(v,'saveVocabResult').length,0);
 });

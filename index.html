@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="allbarun-student-release" content="20261116-admin-public-preview">
+<meta name="allbarun-student-release" content="20261116-vocab-search-study">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
@@ -20,7 +20,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="All바른 English" />
 
-  <link id="student-preparation-layout" rel="stylesheet" href="student-shell.css?v=20261113.1" />
+  <link id="student-preparation-layout" rel="stylesheet" href="student-shell.css?v=20261116-vocab-study-webkit2" />
 
 
   
@@ -382,19 +382,32 @@
     <div class="section-title">📘 단어장</div>
 
     <details id="station-library" class="control-card">
-      <summary>전체 공개 교재·범위 찾기</summary>
+      <summary>전체 공개 교재·범위 찾기 · 카드 연습</summary>
       <div class="control-grid">
         <div><label class="field-label" for="station-library-query">교재명·출판사·유형·연도 검색</label>
           <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
+        <div><label class="field-label" for="station-library-category">카테고리</label>
+          <select id="station-library-category"><option value="">전체</option><option value="TEXTBOOK">교과서</option><option value="MOCK_EXAM">모의고사</option><option value="VOCAB">시중 단어장</option><option value="SUPPLEMENT">부교재</option><option value="EBS">EBS 수능교재</option><option value="OTHER">기타</option></select></div>
         <div><label class="field-label" for="station-library-book">교재</label>
           <select id="station-library-book" disabled></select></div>
         <div><label class="field-label" for="station-library-scope">과·Day·범위</label>
           <select id="station-library-scope" disabled></select></div>
       </div>
+      <div class="control-grid">
+        <div><label class="field-label" for="station-library-word-query">영어·뜻 검색</label>
+          <input id="station-library-word-query" type="search" placeholder="예: evaluate, 평가" maxlength="80" autocomplete="off"></div>
+        <div><label class="field-label" for="station-library-word-scope">단어 검색 범위</label>
+          <select id="station-library-word-scope"><option value="all">전체 공개 교재</option><option value="book">선택한 교재</option><option value="section">선택한 범위</option></select></div>
+      </div>
+      <div class="button-row"><button id="station-library-word-search" type="button" class="vocab-btn">단어 검색</button>
+        <button id="station-library-word-clear" type="button" class="vocab-btn secondary">검색 초기화</button></div>
       <p id="station-library-status" role="status"></p>
+      <div id="station-library-search-result" aria-live="polite"></div>
       <div id="station-library-words"></div>
     </details>
 
+    <details id="legacy-vocab-library" class="control-card">
+      <summary>기존 정규·포인트 단어장 / 중요단어 관리</summary>
     <div class="control-card">
       <div class="control-grid">
         <div>
@@ -445,6 +458,7 @@
 
     <div id="vocab-progress"></div>
     <div id="vocab-view"></div>
+    </details>
   </section>
 
   <!-- 중요단어 -->
@@ -606,6 +620,7 @@ async function fetchSheet(sheetName) {
     let favoriteEditSerial = 0;
     let currentFavoriteFolder = DEFAULT_FOLDER_NAME;
     let currentTestMeta = null;
+    let vocabStudyView = '';
     let assignedPracticeRequestSerial = 0;
     let assignedPracticeState = null;
     let testAlreadySaved = false;
@@ -1199,14 +1214,14 @@ async function loadHomeContent(forceRefresh = false) {
       studentReadonlyEpoch++;
       studentReadonlyFlights.clear();
     }
-    async function studentReadonlyFetch(query) {
+    async function studentReadonlyFetch(query, timeoutMs) {
       const allowed = ['getStudentContent','getFavoriteState','getStudentStats','getWrongNote'];
-      if (!allowed.includes(query.get('action'))) return fetchJsonWithTimeout(SHEET_URL + '?' + query.toString());
+      if (!allowed.includes(query.get('action'))) return fetchJsonWithTimeout(SHEET_URL + '?' + query.toString(), {}, timeoutMs);
       query.sort();
-      const key = studentReadonlyEpoch + '|' + SHEET_URL + '|' + query.toString();
+      const key = studentReadonlyEpoch + '|' + String(timeoutMs || '') + '|' + SHEET_URL + '|' + query.toString();
       let pending = studentReadonlyFlights.get(key);
       if (!pending) {
-        pending = fetchJsonWithTimeout(SHEET_URL + '?' + query.toString());
+        pending = fetchJsonWithTimeout(SHEET_URL + '?' + query.toString(), {}, timeoutMs);
         studentReadonlyFlights.set(key, pending);
       }
       try {
@@ -1217,14 +1232,14 @@ async function loadHomeContent(forceRefresh = false) {
       }
     }
 
-    async function apiGet(params) {
+    async function apiGet(params, timeoutMs) {
       const epoch = studentSessionEpoch;
       const query = new URLSearchParams(params);
       if (currentUser && currentUser.token && !query.has("token")) {
         query.set("token", currentUser.token);
       }
 
-      const result = await studentReadonlyFetch(query);
+      const result = await studentReadonlyFetch(query, timeoutMs);
       return epoch === studentSessionEpoch ? handleApiAuthFailure(result) : result;
     }
 
@@ -1343,6 +1358,13 @@ async function loadHomeContent(forceRefresh = false) {
       favoriteEditSerial += 1;
       currentFavoriteFolder = DEFAULT_FOLDER_NAME;
       vocabData = [];
+      if (typeof renderStudentProgress === 'function') {
+        renderStudentProgress.cache = new Map();
+        renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+      }
+      vocabStudyView = '';
+      const legacyLibrary = document.getElementById('legacy-vocab-library');
+      if (legacyLibrary) legacyLibrary.open = false;
       currentVocabWords = [];
       wrongWords = [];
       currentTestMeta = null;
@@ -1800,7 +1822,8 @@ function printMyScoreReport() {
 }
 
 if (tabId === "vocab") {
-  loadVocabBooksOnce();
+  if (window.StationLibrary) window.StationLibrary.open();
+  if (document.getElementById('legacy-vocab-library')?.open) loadVocabBooksOnce();
 }
 
 if (tabId === "retest") {
@@ -1831,6 +1854,14 @@ updateAppBackButton();
         return;
       }
 
+      if (getActiveTabId() === 'vocab' && vocabStudyView) {
+        returnToVocabList();
+        return;
+      }
+      if (getActiveTabId() === 'practice' && assignedPracticeState?.mode) {
+        assignedPracticeBackToMenu();
+        return;
+      }
       const previousTab = appTabHistory.length ? appTabHistory[appTabHistory.length - 1] : null;
 
       if (previousTab && document.getElementById(previousTab)) {
@@ -2195,12 +2226,33 @@ async function startAssignedVocaPractice(testPlanId, button) {
   }
 }
 
+// Personal practice uses the selected legacy rows and never saves official grades.
+function startSelectedVocaPractice() {
+  const rows = getSelectedVocabWords();
+  if (!currentUser?.token || !rows.length) return showAppToast('단어장과 범위를 먼저 선택하세요.');
+  assignedPracticeRequestSerial++;
+  showTab('practice', {deferLoad:true});
+  assignedPracticeState = {planId:'PERSONAL_SELECTED', sourceRows:rows, batchStart:0, rows:rows.slice(0,200),
+    planDate:document.getElementById('vocab-book-select').value + ' · ' + document.getElementById('vocab-day-select').value,
+    personal:true, returnTab:'vocab', epoch:studentSessionEpoch, token:currentUser.token, mode:'', study:null, finished:true};
+  renderAssignedPracticeMenu();
+}
+function returnToVocabList() {
+  vocabStudyView = '';
+  showVocabList();
+}
 // Staff preview uses only a verified public catalog response; no student impersonation.
-window.startPublicVocaPreview = function ({revisionId, label, words}) {
-  if (!currentUser?.token || !['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase())) return;
+window.startPublicVocaPreview = function (selection) {
+  if (!['admin', 'teacher'].includes(String(currentUser?.role || '').toLowerCase())) return;
+  return startPublicVocaPractice(selection);
+};
+window.startPublicVocaPractice = startPublicVocaPractice;
+function startPublicVocaPractice({revisionId, bookName, label, words}) {
+  if (!currentUser?.token) return;
+  const staffPreview = ['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase());
   if (!revisionId || !Array.isArray(words) || !words.length) return showAppToast('공개 범위를 먼저 조회해 주세요.');
   const seen = new Set();
-  const rows = words.slice(0, 200).map(word => {
+  const rows = words.map(word => {
     const id = String(word.vocabWordId || '').trim();
     if (!id || seen.has(id) || !String(word.word || '').trim() || !String(word.meaning || '').trim()) return null;
     seen.add(id);
@@ -2210,14 +2262,14 @@ window.startPublicVocaPreview = function ({revisionId, label, words}) {
     }
     if (answers != null && (!Array.isArray(answers) || answers.some(a => typeof a !== 'string'))) return null;
     const aliases = [word.word, ...(answers || [])].map(a => String(a).trim()).filter(Boolean);
-    return ['[관리자 미리보기]', String(label || '공개 범위'), String(word.word), String(word.meaning),
+    return [staffPreview ? '[관리자 미리보기]' : '[공개 교재 연습]', String(label || '공개 범위'), String(word.word), String(word.meaning),
       0, String(word.bookId || ''), [...new Set(aliases)].join('|'), id];
   });
   if (rows.some(row => !row)) return showAppToast('공개 범위의 단어 정보가 불완전합니다. 다시 조회해 주세요.');
   assignedPracticeRequestSerial++;
   showTab('practice', {deferLoad:true});
-  assignedPracticeState = {planId:'PUBLIC_PREVIEW:' + revisionId, rows, planDate:'공개 교재 미리보기 · ' + String(label || ''),
-    preview:true, epoch:studentSessionEpoch, token:currentUser.token, mode:'', study:null, finished:true};
+  assignedPracticeState = {planId:'PUBLIC_PREVIEW:' + revisionId, sourceRows:rows, batchStart:0, rows:rows.slice(0,200), planDate:(staffPreview ? '공개 교재 미리보기 · ' : '공개 교재 연습 · ') + [bookName, label].filter(Boolean).join(' · '),
+    preview:staffPreview, personal:!staffPreview, returnTab:'vocab', epoch:studentSessionEpoch, token:currentUser.token, mode:'', study:null, finished:true};
   renderAssignedPracticeMenu();
 };
 
@@ -2233,32 +2285,94 @@ function isActivePracticeDraft() {
     !assignedPracticeState.finished &&
     ["card", "recall", "spell", "mock"].includes(assignedPracticeState.mode);
 }
+function assignedPracticeBatchControls() {
+  const state = assignedPracticeState;
+  if (!state?.sourceRows || state.sourceRows.length <= 200) return '';
+  const start = state.batchStart || 0, total = state.sourceRows.length;
+  return '<p>전체 ' + total + '단어 · 현재 ' + (start + 1) + '–' + Math.min(start + 200, total) + '번째 단어</p>' +
+    '<div class="practice-actions"><button type="button" class="vocab-btn secondary" ' + (start ? '' : 'disabled') +
+    ' onclick="assignedPracticeChangeBatch(-1)">← 이전 묶음</button><button type="button" class="vocab-btn secondary" ' +
+    (start + 200 < total ? '' : 'disabled') + ' onclick="assignedPracticeChangeBatch(1)">다음 묶음 →</button></div>';
+}
+function assignedPracticeChangeBatch(direction) {
+  if (!isAssignedPracticeCurrent() || ![-1,1].includes(direction)) return;
+  const state = assignedPracticeState;
+  if (!state.sourceRows) return;
+  const start = (state.batchStart || 0) + direction * 200;
+  if (start < 0 || start >= state.sourceRows.length || !confirmAssignedPracticeExit()) return;
+  if (currentTestMeta?.targetId === 'practice-view') { currentTestMeta = null; testAlreadySaved = true; }
+  state.batchStart = start;
+  state.rows = state.sourceRows.slice(start, start + 200);
+  renderAssignedPracticeMenu();
+}
 function assignedPracticeHeader() {
   if (!isAssignedPracticeCurrent()) return "";
   const data = assignedPracticeState;
   const options = [["card", "암기 카드"], ["recall", "리콜"], ["spell", "스펠링"], ["mock", "실전 TEST"]];
   return '<div class="practice-head"><div class="practice-kicker">ALLBARUN · EXAM PRACTICE</div>' +
-    '<h3>' + (data.preview ? '학생 연습 미리보기' : '시험 전 단어 연습') + '</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
-    (data.preview ? ' · 공개 범위 ' : ' · 확정된 시험범위 ') + data.rows.length + '문항</p>' +
-    '<p class="practice-scope-note">' + (data.preview ? '공개 범위의 앞 200단어까지 확인하는 관리자·교사 미리보기입니다. ' : '배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. ') + '개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    '<h3>' + (data.preview ? '학생 연습 미리보기' : data.personal ? '혼자 단어 연습' : '시험 전 단어 연습') + '</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
+    (data.preview || data.personal ? ' · 선택 범위 ' : ' · 확정된 시험범위 ') + data.rows.length + '문항</p>' +
+    '<p class="practice-scope-note">' + (data.preview ? '공개 범위를 한 번에 최대 200단어씩 확인하는 관리자·교사 미리보기입니다. ' : data.personal ? '선택 범위를 한 번에 최대 200단어씩 혼자 연습합니다. ' : '배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. ') + '개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    assignedPracticeBatchControls() +
     '<div class="practice-modes" role="group" aria-label="시험 전 연습 방식">' +
     options.map(([value, label]) =>
-      '<button type="button" class="practice-mode ' + (data.mode === value ? 'active' : '') +
+      '<button type="button" id="practice-mode-' + value + '" aria-pressed="' + (data.mode === value ? 'true' : 'false') + '" class="practice-mode ' + (data.mode === value ? 'active' : '') +
       '" onclick="assignedPracticeChooseMode(\'' + value + '\')">' + label + '</button>'
-    ).join("") + '</div></div>';
+    ).join("") + '</div><button type="button" class="vocab-btn secondary" onclick="assignedPracticeBackToMenu()">← 학습 방식 선택</button></div>';
 }
 function renderAssignedPracticeMenu() {
   if (!isAssignedPracticeCurrent()) return;
   assignedPracticeState.mode = "";
   assignedPracticeState.finished = true;
   assignedPracticeState.study = null;
+  assignedPracticeState.history = [];
   const target = document.getElementById("practice-view");
   if (!target) return;
   target.innerHTML = assignedPracticeHeader() +
     '<div class="practice-panel"><strong>오늘 시험 준비 방식 선택</strong>' +
     '<p>단어를 아직 외우지 못했다면 암기 카드부터, 어느 정도 외웠다면 스펠링이나 실전 TEST를 선택하세요.</p>' +
     '<p>리콜은 뜻이 서로 겹치지 않는 문제에 한하여 객관식으로 연습합니다.</p>' +
-    '<button type="button" class="vocab-btn secondary" onclick="showTab(\'home\')">학습일정으로 돌아가기</button></div>';
+    '<button type="button" class="vocab-btn secondary" onclick="assignedPracticeReturnToSource()">' + (assignedPracticeState.returnTab === 'vocab' ? '선택한 단어장으로 돌아가기' : '학습일정으로 돌아가기') + '</button></div>';
+}
+function assignedPracticeBackToMenu() {
+  if (!isAssignedPracticeCurrent() || !confirmAssignedPracticeExit()) return;
+  if (currentTestMeta?.targetId === 'practice-view') {
+    currentTestMeta = null;
+    testAlreadySaved = true;
+  }
+  renderAssignedPracticeMenu();
+}
+function assignedPracticeRestartRange() {
+  if (!isAssignedPracticeCurrent() || !confirmAssignedPracticeExit()) return;
+  const state = assignedPracticeState;
+  // Only published assignments have a server-owned plan ID. Public/Day study
+  // keeps its verified words locally, including after a wrong-word-only retry.
+  if (!state.personal && !state.preview) return startAssignedVocaPractice(state.planId);
+  if (currentTestMeta?.targetId === 'practice-view') {
+    currentTestMeta = null;
+    testAlreadySaved = true;
+  }
+  renderAssignedPracticeMenu();
+}
+function assignedPracticeReturnToSource() {
+  if (!isAssignedPracticeCurrent()) return;
+  showTab(assignedPracticeState.returnTab || 'home');
+}
+function assignedPracticeRememberStep() {
+  const state = assignedPracticeState;
+  if (!state?.study) return;
+  state.history ||= [];
+  const study = state.study;
+  // Choices never mutate during a round; copy only the progress that can change.
+  state.history.push({...study, queue:[...study.queue], seen:new Map(study.seen),
+    needsReview:new Set(study.needsReview), feedback:study.feedback ? {...study.feedback} : null});
+  if (state.history.length > 200) state.history.shift();
+}
+function assignedPracticePrevious() {
+  if (!isAssignedPracticeCurrent() || !assignedPracticeState.history?.length || !confirmAssignedPracticeExit()) return;
+  assignedPracticeState.study = assignedPracticeState.history.pop();
+  assignedPracticeState.finished = false;
+  renderAssignedPracticeStudy();
 }
 function assignedPracticeAnswerText(row) {
   return [row?.[2],row?.[6]].filter(hasVocabText).map(String).join("|");
@@ -2276,29 +2390,26 @@ function isAssignedPracticeSpellingCorrect(userAnswer, row) {
     .map(assignedPracticeNormalizeSpelling).filter(Boolean);
   return choices.some(expected => expected === actual);
 }
-function assignedPracticeRecallChoices(index) {
+function assignedPracticeRecallEntries(rows) {
+  return rows.map(row => ({word:String(row[2]), looseWord:normalizeAnswer(row[2]),
+    meaning:normalizeAnswer(row[3]), strictWord:assignedPracticeNormalizeSpelling(row[2]),
+    accepted:new Set(assignedPracticeAnswerText(row).split('|').map(assignedPracticeNormalizeSpelling).filter(Boolean))}));
+}
+function assignedPracticeRecallChoices(index, preparedEntries) {
   const state = assignedPracticeState;
-  if (!state) return null;
-  const question = state.rows[index];
-  if (!question || !question[2]) return null;
-  // Prompts shared by two different words can have more than one correct meaning.
-  if (state.rows.some((other, i) =>
-    i !== index && normalizeAnswer(other[3]) === normalizeAnswer(question[3]) &&
-    normalizeAnswer(other[2]) !== normalizeAnswer(question[2]))) return null;
-  const correct = String(question[2]);
-  const seen = new Set([normalizeAnswer(correct)]);
-  const others = shuffleArray(state.rows.filter((other,i) =>
-    i !== index && normalizeAnswer(other[3]) !== normalizeAnswer(question[3])))
-    .map(other => String(other[2]))
-    .filter(value => {
-      const normalized = normalizeAnswer(value);
-      if (!normalized || seen.has(normalized) ||
-          isAssignedPracticeSpellingCorrect(value, question)) return false;
-      seen.add(normalized);
-      return true;
-    });
+  if (!state || !state.rows[index]?.[2]) return null;
+  const entries = preparedEntries || assignedPracticeRecallEntries(state.rows), question = entries[index];
+  // Loose normalization is only for ambiguous prompts/duplicate choices.
+  // Strict accepted spellings remain separate, exactly as in actual grading.
+  if (entries.some((other,i) => i !== index && other.meaning === question.meaning && other.looseWord !== question.looseWord)) return null;
+  const seen = new Set([question.looseWord]);
+  const others = shuffleArray(entries.filter((other,i) => i !== index && other.meaning !== question.meaning))
+    .filter(other => {
+      if (!other.looseWord || seen.has(other.looseWord) || question.accepted.has(other.strictWord)) return false;
+      seen.add(other.looseWord); return true;
+    }).map(other => other.word);
   if (others.length < 3) return null;
-  return shuffleArray([correct, ...others.slice(0,3)]);
+  return shuffleArray([question.word, ...others.slice(0,3)]);
 }
 function assignedPracticeHasUnsavedInput() {
   if (!isAssignedPracticeCurrent() || assignedPracticeState.finished) return false;
@@ -2326,24 +2437,26 @@ function assignedPracticeChooseMode(mode) {
     testAlreadySaved = true;
   }
   state.mode = mode;
+  state.history = [];
   state.finished = false;
   if (mode === "mock") {
     state.study = null;
     renderTest([...state.rows], {
-      mode: "meaning", modeLabel: "배정 범위 주관식 모의연습",
+      mode: "meaning", modeLabel: state.personal || state.preview ? "선택 범위 주관식 모의연습" : "배정 범위 주관식 모의연습",
       targetId: "practice-view", source: "ASSIGNED_TEST_PLAN",
       book: "[시험범위]", day: state.planDate || "배정 계획",
       testPlanId: state.planId, skipSave: true
     });
     document.getElementById("practice-view")
-      .insertAdjacentHTML("afterbegin", assignedPracticeHeader() +
+      .insertAdjacentHTML("afterbegin",
         '<p class="practice-contract-note">스펠링 중심 사전 연습이며 실제 시험의 문항 유형·수·순서는 다를 수 있습니다.</p>');
     return;
   }
   const indices = state.rows.map((_,i)=>i);
   const choiceMap = new Map();
+  const recallEntries = mode === 'recall' ? assignedPracticeRecallEntries(state.rows) : null;
   const eligible = mode === "recall" ? indices.filter(index => {
-    const choices = assignedPracticeRecallChoices(index);
+    const choices = assignedPracticeRecallChoices(index, recallEntries);
     if (!choices) return false;
     choiceMap.set(index, choices);
     return true;
@@ -2365,14 +2478,26 @@ function assignedPracticeChooseMode(mode) {
 function assignedPracticeCurrentIndex() {
   return assignedPracticeState?.study?.queue?.[0];
 }
+function assignedPracticeReviewDifficult() {
+  if (!isAssignedPracticeCurrent() || !assignedPracticeState.finished) return;
+  const state = assignedPracticeState, previous = state.study;
+  if (!previous?.needsReview.size) return;
+  const indices = [...previous.needsReview];
+  state.history = [];
+  state.finished = false;
+  state.study = {queue:indices, total:indices.length, completed:0, seen:new Map(),
+    needsReview:new Set(), misses:0, revealed:false, feedback:null, choiceMap:previous.choiceMap};
+  renderAssignedPracticeStudy();
+}
 function assignedPracticeRenderFinish() {
   const study = assignedPracticeState.study;
   assignedPracticeState.finished = true;
   const note = study.needsReview.size ? '<p>아직 어려운 단어 ' + study.needsReview.size +
-    '개는 스펠링 연습이나 실전 TEST에서 다시 확인하세요.</p>' :
+    '개를 아래에서 확인하고 다시 연습하세요.</p><ul>' + [...study.needsReview].map(index => '<li>' + escapeHtml(assignedPracticeState.rows[index][2]) + ' — ' + escapeHtml(assignedPracticeState.rows[index][3]) + '</li>').join('') + '</ul><button type="button" class="vocab-btn" onclick="assignedPracticeReviewDifficult()">어려운 단어만 다시 연습</button>' :
     '<p>이 연습을 마쳤습니다. 실제 시험 준비 상태는 실전 TEST로 확인하세요.</p>';
-  return assignedPracticeHeader() + '<div class="practice-panel practice-finished"><h3>이번 연습 완료</h3>' +
+  return assignedPracticeHeader() + '<div class="practice-panel practice-finished"><h3 id="practice-finished-heading" tabindex="-1">이번 연습 완료</h3>' +
     '<p>연습한 단어 ' + study.total + '개 · 오답 ' + study.misses + '회</p>' + note +
+    '<button class="vocab-btn secondary" type="button" onclick="assignedPracticePrevious()">← 이전 단어</button> ' +
     '<button class="vocab-btn" type="button" onclick="assignedPracticeChooseMode(\'mock\')">실전 TEST 풀기</button> ' +
     '<button class="vocab-btn secondary" type="button" onclick="assignedPracticeChooseMode(\'' +
     assignedPracticeState.mode + '\')">이 방식 다시 연습</button></div>';
@@ -2384,6 +2509,7 @@ function renderAssignedPracticeStudy() {
   const target = document.getElementById("practice-view");
   if (!study.queue.length) {
     target.innerHTML = assignedPracticeRenderFinish();
+    focusAssignedPracticeStep();
     return;
   }
   const index = assignedPracticeCurrentIndex(), row=state.rows[index];
@@ -2397,20 +2523,22 @@ function renderAssignedPracticeStudy() {
     '<div class="practice-progress"><div style="width:' +
     Math.min(99, Math.round((reviewed/Math.max(1,total))*100)) + '%"></div></div>' +
     '<p class="practice-instruction">' + instruction + '</p>' +
-    '<div class="practice-prompt">' + escapeHtml(state.mode === "card" ? row[2] : row[3]) + '</div>';
+    '<div class="practice-prompt">' + escapeHtml(state.mode === "card" ? row[2] : row[3]) + '</div>' +
+    (state.mode === 'card' ? '<button type="button" class="small-btn secondary" onclick="assignedPracticeSpeak()">🔊 발음 듣기</button>' : '');
   if (state.mode === "card") {
     content += study.revealed
-      ? '<div class="practice-reveal">' + escapeHtml(row[3]) + '</div><div class="practice-actions">' +
+      ? '<div class="practice-reveal" role="status" aria-live="polite">' + escapeHtml(row[3]) + '</div><div class="practice-actions">' +
+        '<button type="button" id="practice-hide-button" class="vocab-btn secondary" onclick="assignedPracticeHide()">뜻 다시 가리기</button>' +
         '<button type="button" class="vocab-btn secondary" onclick="assignedPracticeRate(false)">다시 보기</button>' +
         '<button type="button" class="vocab-btn" onclick="assignedPracticeRate(true)">기억했어요</button></div>'
-      : '<button type="button" class="vocab-btn" onclick="assignedPracticeReveal()">뜻 확인하기</button>';
+      : '<button type="button" id="practice-reveal-button" class="vocab-btn" onclick="assignedPracticeReveal()">뜻 확인하기</button>';
   } else if (state.mode === "recall") {
     const options = study.choiceMap.get(index) || [];
     content += '<div class="practice-options">' + options.map((value,i) => {
       const graded = study.feedback !== null;
       const right = isAssignedPracticeSpellingCorrect(value,row);
       const cls = graded ? (right ? ' correct' : study.feedback.choice===i ? ' wrong' : '') : '';
-      return '<button type="button" class="practice-choice' + cls + '" ' +
+      return '<button type="button" id="practice-choice-' + i + '" class="practice-choice' + cls + '" ' +
         (graded ? 'disabled' : '') + ' onclick="assignedPracticePick(' + i + ')">' +
         escapeHtml(value) + '</button>';
     }).join("") + '</div>';
@@ -2427,9 +2555,21 @@ function renderAssignedPracticeStudy() {
       '" role="status">' + (correct ? '정답입니다.' :
       '정답은 ' + escapeHtml(String(row[2])) +
         '입니다. ' + ((study.seen.get(index) || 0) >= 1 ? '암기 카드에서 한 번 더 확인하세요.' : '틀린 단어는 뒤에서 다시 확인합니다.')) + '</div>' +
-      '<button type="button" class="vocab-btn" onclick="assignedPracticeNext()">다음 단어</button>';
+      '<button type="button" id="practice-next-button" class="vocab-btn" onclick="assignedPracticeNext()">다음 단어</button>';
   }
+  content += '<div class="practice-actions"><button type="button" class="vocab-btn secondary" ' + (state.history?.length ? '' : 'disabled') + ' onclick="assignedPracticePrevious()">← 이전 단어</button></div>';
   target.innerHTML = assignedPracticeHeader() + content + '</div>';
+  focusAssignedPracticeStep();
+}
+function focusAssignedPracticeStep() {
+  if (!isAssignedPracticeCurrent()) return;
+  const state = assignedPracticeState, study = state.study;
+  const id = !study?.queue.length ? 'practice-finished-heading' : study.feedback !== null ? 'practice-next-button' :
+    state.mode === 'spell' ? 'practice-spell-input' : state.mode === 'recall' ? 'practice-choice-0' :
+    study.revealed ? 'practice-hide-button' : 'practice-reveal-button';
+  const element = document.getElementById(id);
+  element?.focus?.({preventScroll:true});
+  element?.scrollIntoView?.({block:'nearest', behavior:'instant'});
 }
 function assignedPracticeReveal() {
   if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "card" ||
@@ -2437,10 +2577,21 @@ function assignedPracticeReveal() {
   assignedPracticeState.study.revealed = true;
   renderAssignedPracticeStudy();
 }
+function assignedPracticeSpeak() {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== 'card') return;
+  const row = assignedPracticeState.rows[assignedPracticeCurrentIndex()];
+  if (row) speakWord(row[2]);
+}
+function assignedPracticeHide() {
+  if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== 'card' || !assignedPracticeState.study?.queue.length) return;
+  assignedPracticeState.study.revealed = false;
+  renderAssignedPracticeStudy();
+}
 function assignedPracticeRate(remembered) {
   if (!isAssignedPracticeCurrent() || assignedPracticeState.mode !== "card") return;
   const study = assignedPracticeState.study;
   if (!study?.queue.length || !study.revealed) return;
+  assignedPracticeRememberStep();
   const index = study.queue.shift(), seen = study.seen.get(index) || 0;
   if (!remembered) {
     study.misses++;
@@ -2479,6 +2630,7 @@ function assignedPracticeNext() {
   if (!isAssignedPracticeCurrent() || !["recall","spell"].includes(assignedPracticeState.mode)) return;
   const study = assignedPracticeState.study;
   if (!study?.queue.length || study.feedback === null) return;
+  assignedPracticeRememberStep();
   const index=study.queue.shift(), correct=study.feedback.correct;
   const seen=study.seen.get(index)||0;
   if (!correct) {
@@ -3276,6 +3428,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     }
 
     async function loadVocabDays() {
+      vocabStudyView = '';
       const selectedBook = document.getElementById("vocab-book-select").value;
       const daySelect = document.getElementById("vocab-day-select");
       const target = document.getElementById("vocab-view");
@@ -3476,6 +3629,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
      *  8. 단어장 표시 / 검색 / 진행률
      ************************************************************/
     function showVocabList() {
+      vocabStudyView = '';
       const target = document.getElementById("vocab-view");
       const selectedBook = document.getElementById("vocab-book-select").value;
       const selectedDay = document.getElementById("vocab-day-select").value;
@@ -3529,6 +3683,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         ` : ""}
 
         <div class="button-row">
+          <button class="vocab-btn" onclick="startSelectedVocaPractice()">혼자 카드·리콜·스펠링 연습</button>
           <button class="vocab-btn secondary" onclick="toggleWordHide()">
             ${vocabHiddenMode ? "영어 보기" : "영어 가리기"}
           </button>
@@ -3586,10 +3741,17 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
     async function renderStudentProgress(book, day) {
       const target = document.getElementById("vocab-progress");
+      const epoch = studentSessionEpoch;
+      const serial = renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+      const cache = renderStudentProgress.cache ||= new Map();
+      const key = JSON.stringify([epoch, book, day]), previous = cache.get(key);
+      if (previous && Date.now() - previous.at < 120000) { target.innerHTML = previous.html; return; }
       target.innerHTML = "<div class='progress-box'>학습 기록을 불러오는 중입니다...</div>";
 
       try {
         const result = await apiGet({ action: "getStudentStats", book, day });
+        if (epoch !== studentSessionEpoch || serial !== renderStudentProgress.serial) return;
+        if (document.getElementById('vocab-book-select').value !== book || String(document.getElementById('vocab-day-select').value) !== String(day)) return;
 
         if (!result.success) {
           target.innerHTML = "";
@@ -3615,8 +3777,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
             </div>
           </div>
         `;
+        cache.delete(key); cache.set(key, {at:Date.now(), html:target.innerHTML});
+        if (cache.size > 12) cache.delete(cache.keys().next().value);
       } catch (err) {
-        target.innerHTML = "";
+        if (epoch === studentSessionEpoch && serial === renderStudentProgress.serial) target.innerHTML = "";
       }
     }
 
@@ -3808,6 +3972,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     }
 
     function renderTest(words, meta) {
+      if (meta.targetId === 'vocab-view') vocabStudyView = 'test';
       currentVocabWords = words;
       wrongWords = [];
       testAlreadySaved = false;
@@ -3815,7 +3980,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       const practiceMode = meta.targetId === "practice-view";
       if (practiceMode && assignedPracticeState) assignedPracticeState.finished = false;
 
-      let html = `
+      let html = (practiceMode ? assignedPracticeHeader() : '') + `
         <div class="card test-header-card">
           <span class="badge badge-success">${meta.skipSave ? "시험 전 개인 연습" : "단어시험"}</span><br><br>
           <b style="font-size:1.2em;">${escapeHtml(meta.modeLabel)}</b><br>
@@ -3824,6 +3989,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         </div>
       `;
 
+      if (meta.targetId === "vocab-view") html += '<button class="vocab-btn secondary" onclick="returnToVocabList()">← 단어 목록·학습 방식으로</button>';
       currentVocabWords.forEach((row, index) => {
         const question = meta.mode === "listening"
           ? `<button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊 발음 듣기</button>`
@@ -3905,7 +4071,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         // Primary next actions precede the optional answer breakdown on mobile.
         if (wrongWords.length > 0) resultHtml += renderPracticeRetryHtml();
         if (currentTestMeta.testPlanId) {
-          resultHtml += '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="startAssignedVocaPractice(currentTestMeta.testPlanId)">이 범위 다시 연습하기</button></div>';
+          resultHtml += '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="assignedPracticeRestartRange()">이 범위 다시 연습하기</button></div>';
         }
         resultHtml += '<details class="practice-answer-details"><summary>내 답과 정답 전체 확인</summary>' +
           resultTable + '</details>';
@@ -3975,6 +4141,9 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       testAlreadySaved = true;
 
       const status = document.getElementById("save-result-status");
+      const epoch = studentSessionEpoch;
+      renderStudentProgress.cache?.clear();
+      renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
       const meta = currentTestMeta || {};
       const first = currentVocabWords[0] || [];
       const book = meta.book || first[0] || "";
@@ -3999,6 +4168,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
           wrongJson: JSON.stringify(wrongPayload)
         });
 
+        if (epoch === studentSessionEpoch) {
+          renderStudentProgress.cache?.clear();
+          renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+        }
         if (status) {
           status.textContent = result.success ? "결과가 저장되었습니다." : (result.message || "결과 저장 실패");
         }
@@ -4038,6 +4211,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
     }
 
     function renderMeaningCheck(words, targetId, title) {
+      if (targetId === 'vocab-view') vocabStudyView = 'meaning';
       let html = `
         <div class="card">
           <b>${escapeHtml(title)}</b><br>
@@ -4045,13 +4219,14 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         </div>
       `;
 
+      if (targetId === "vocab-view") html += '<button class="vocab-btn secondary" onclick="returnToVocabList()">← 단어 목록·학습 방식으로</button>';
       words.forEach((row, index) => {
         html += `
           <div class="vocab-question">
             <b>${index + 1}. <span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>${escapeHtml(row[2])}</span>
               <button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button>
             </b>
-            <button class="small-btn secondary" onclick="document.getElementById('meaning-${index}').style.display='block'">뜻 보기</button>
+            <button class="small-btn secondary" onclick="const box=document.getElementById('meaning-${index}'); const hidden=box.style.display==='none'; box.style.display=hidden?'block':'none'; this.textContent=hidden?'뜻 가리기':'뜻 보기';">뜻 보기</button>
             <div id="meaning-${index}" class="mini-card" style="display:none;">${escapeHtml(row[3])}</div>
           </div>
         `;
@@ -4263,7 +4438,9 @@ function renderPointSummary(result) {
 }
 
 async function openCurrentPointVocabStudy() {
-  showTab('vocab');
+  showTab('vocab', {deferLoad:true});
+  const legacyLibrary = document.getElementById('legacy-vocab-library');
+  if (legacyLibrary) legacyLibrary.open = true;
 
   try {
     await loadVocabBooksOnce(true);
@@ -4810,6 +4987,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
   }catch(e){if(session===studentSessionEpoch&&version===generation)error('vocab-view',e.message);return false;}
  };
  loadVocabDays=async function(){
+  vocabStudyView = '';
   selectedKey='';vocabData=[header];document.getElementById('vocab-progress').innerHTML='';document.getElementById('vocab-search-result').innerHTML='';
   const name=document.getElementById('vocab-book-select').value,day=document.getElementById('vocab-day-select');
   const b=current()&&catalog.books.find(b=>b.name===name);
@@ -5080,7 +5258,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js?v=20261116-admin"></script>
+  <script src="station-library.js?v=20261116-speed-check"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>
