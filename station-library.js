@@ -13,7 +13,7 @@
   const searchButton = document.getElementById('station-library-word-search');
   const searchResult = document.getElementById('station-library-search-result');
   const legacy = document.getElementById('legacy-vocab-library');
-  const sectionCache = new Map(), searchCache = new Map(), sectionFlights = new Map();
+  const sectionCache = new Map(), searchCache = new Map(), sectionFlights = new Map(), searchFlights = new Map();
   const TIMEOUT = 90000, CACHE_MS = 120000;
   let catalog = null, loading = null, generation = 0, selection = 0, searchSerial = 0, ranges = [], selectedWords = null;
 
@@ -41,6 +41,7 @@
     sectionCache.clear();
     searchCache.clear();
     sectionFlights.clear();
+    searchFlights.clear();
     searchIndex.clear();
     if (category) category.value = '';
     if (wordQuery) wordQuery.value = '';
@@ -87,6 +88,7 @@
     if (catalog || !currentUser?.token) return;
     if (loading) return loading;
     const request = generation;
+    words.replaceChildren();
     status.textContent = '교재 목록을 불러오는 중입니다. 단어는 선택한 범위만 불러옵니다.';
     const task = (async () => {
       try {
@@ -100,7 +102,15 @@
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
         showBooks();
       } catch {
-        if (request === generation) status.textContent = '교재 목록을 불러오지 못했습니다. 닫았다가 다시 열어주세요.';
+        if (request === generation) {
+          catalog = null; searchIndex.clear();
+          status.textContent = '교재 목록을 불러오지 못했습니다. 다시 불러오기를 눌러 주세요.';
+          const retry = document.createElement('button');
+          retry.type = 'button'; retry.className = 'vocab-btn secondary';
+          retry.textContent = '교재 목록 다시 불러오기';
+          retry.addEventListener('click', () => request === generation ? loadCatalog() : undefined);
+          words.replaceChildren(retry);
+        }
       } finally {
         if (loading === task) loading = null;
       }
@@ -199,13 +209,20 @@
         practice.textContent = staff ? '이 범위 학생 연습 미리보기' : '이 범위 카드·리콜·스펠링 연습';
         practice.addEventListener('click', () => {
           if (epoch !== generation || request !== selection) return;
-          startPractice({revisionId, label:scope.label, words:body});
+          startPractice({revisionId, bookName:catalog.find(book => book.revisionId === revisionId)?.displayName, label:scope.label, words:body});
         });
         words.append(practice);
       }
       status.textContent = `${scope.label} · ${body.length}개`;
     } catch {
-      if (request === selection && epoch === generation) status.textContent = '선택한 범위를 불러오지 못했습니다. 범위를 다시 선택해 주세요.';
+      if (request === selection && epoch === generation) {
+        status.textContent = '선택한 범위를 불러오지 못했습니다. 같은 범위를 다시 불러올 수 있습니다.';
+        const retry = document.createElement('button');
+        retry.type = 'button'; retry.className = 'vocab-btn secondary';
+        retry.textContent = '같은 범위 다시 불러오기';
+        retry.addEventListener('click', () => request === selection && epoch === generation ? loadScope() : undefined);
+        words.replaceChildren(retry);
+      }
     }
   }
   scopes.addEventListener('change', loadScope);
@@ -234,7 +251,13 @@
       } else {
         result = cached(searchCache, key);
         if (!result) {
-          result = await apiGet({action:'searchVoca', query:queryText, revisionId}, TIMEOUT);
+          let flight = searchFlights.get(key);
+          if (!flight) {
+            flight = Promise.resolve(apiGet({action:'searchVoca', query:queryText, revisionId}, TIMEOUT));
+            searchFlights.set(key, flight);
+            flight.finally(() => { if (searchFlights.get(key) === flight) searchFlights.delete(key); }).catch(() => {});
+          }
+          result = await flight;
           if (!current()) return;
           if (result?.success !== true || !Array.isArray(result.words) || result.words.length > 100
               || result.count != null && result.count !== result.words.length) throw Error('SEARCH');
