@@ -39,7 +39,7 @@
 
   const searchKey = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s()·_-]/g, '');
 
-  const categoryNames = { TEXTBOOK: '교과서', MOCK_EXAM: '모의고사', VOCAB: '단어장', WORD_BOOK: '단어장', SUPPLEMENTARY: '부교재', OTHER: '기타' };
+  const categoryNames = { TEXTBOOK: '교과서', MOCK_EXAM: '모의고사', VOCAB: '단어장', VOCAB_BOOK: '단어장', WORD_BOOK: '단어장', SUPPLEMENT: '부교재', SUPPLEMENTARY: '부교재', EBS: 'EBS 수능교재', OTHER: '기타' };
   const categoryName = book => categoryNames[book.categoryCode] || String(book.categoryCode || '교재');
   const bookSearch = book => searchKey([book.displayName, categoryName(book), book.publisher, book.authorLabel, book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName].filter(Boolean).join(' '));
 

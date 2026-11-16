@@ -70,7 +70,7 @@ test('published textbook, mock exam and supplementary metadata remain searchable
   const rows = [
     {revisionId:'text',displayName:'영어 1',categoryCode:'TEXTBOOK',publisher:'동아',sections:[{sectionId:'lesson',sectionType:'LESSON',sectionNo:3,wordCount:1}]},
     {revisionId:'mock',displayName:'전국연합',categoryCode:'MOCK_EXAM',publicationYear:'2026',publicationMonth:'9',sections:[{sectionId:'q18',label:'18번',sectionType:'QUESTION',wordCount:1}]},
-    {revisionId:'supp',displayName:'독해 기본',categoryCode:'SUPPLEMENTARY',sections:[]},
+    {revisionId:'supp',displayName:'독해 기본',categoryCode:'SUPPLEMENT',sections:[]},
     {revisionId:'internal',displayName:'비공개',categoryCode:'TEXTBOOK',usageScope:'SCHOOL_EXAM',sections:[]},
     {revisionId:'hidden',displayName:'미게시',studentVisible:false,sections:[]},
     {revisionId:'points',displayName:'포인트',categoryCode:'POINT_SPECIAL',sections:[]},
