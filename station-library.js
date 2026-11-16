@@ -39,13 +39,17 @@
 
   const searchKey = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s()·_-]/g, '');
 
+  const categoryNames = { TEXTBOOK: '교과서', MOCK_EXAM: '모의고사', VOCAB: '단어장', VOCAB_BOOK: '단어장', WORD_BOOK: '단어장', SUPPLEMENT: '부교재', SUPPLEMENTARY: '부교재', EBS: 'EBS 수능교재', OTHER: '기타' };
+  const categoryName = book => categoryNames[book.categoryCode] || String(book.categoryCode || '교재');
+  const bookSearch = book => searchKey([book.displayName, categoryName(book), book.publisher, book.authorLabel, book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName].filter(Boolean).join(' '));
+
   function showBooks() {
     if (!catalog) return;
     resetScope();
     resetSelect(books, '교재 선택');
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
-    const matches = catalog.filter(book => terms.every(term => searchKey(book.displayName).includes(term)));
-    for (const book of matches) books.add(new Option(book.displayName, book.revisionId));
+    const matches = catalog.filter(book => terms.every(term => bookSearch(book).includes(term)));
+    for (const book of matches) books.add(new Option(`[${categoryName(book)}] ${book.displayName}`, book.revisionId));
     books.disabled = matches.length === 0;
     status.textContent = matches.length ? `${matches.length}권 · 교재를 선택하세요.` : '일치하는 교재가 없습니다.';
   }
@@ -53,7 +57,7 @@
   panel.addEventListener('toggle', async () => {
     if (!panel.open || catalog || loading || !currentUser?.token) return;
     if (['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase())) {
-      status.textContent = '전체 공개 단어장 검색은 학생 계정에서 사용할 수 있습니다.';
+      status.textContent = '전체 공개 교재 검색은 학생 계정에서 사용할 수 있습니다.';
       return;
     }
     const request = generation;
@@ -64,7 +68,8 @@
       if (request !== generation) return;
       if (result?.success !== true || !Array.isArray(result.books)) throw new Error('CATALOG');
       catalog = result.books.filter(book => book.revisionId && book.displayName && Array.isArray(book.sections)
-        && !['POINT_SPECIAL', 'SCHOOL_EXAM'].includes(book.categoryCode));
+        && book.studentVisible !== false && String(book.usageScope || 'GENERAL').toUpperCase() !== 'SCHOOL_EXAM'
+        && !['POINT_SPECIAL', 'SCHOOL_EXAM', 'EXAM_SCOPE'].includes(String(book.categoryCode || '').toUpperCase()));
       catalog.sort((a, b) => a.displayName.localeCompare(b.displayName, 'ko', { numeric: true }));
       showBooks();
     } catch {
@@ -81,7 +86,7 @@
     if (!book) return;
     const grouped = new Map();
     for (const section of book.sections) {
-      const label = String(section.label || `Day ${section.sectionNo}`);
+      const label = String(section.label || (String(section.sectionType).toUpperCase() === 'DAY' ? `Day ${section.sectionNo}` : `범위 ${section.sectionNo || section.sectionId}`));
       const lesson = /^(\d+과)(?:\s|$)/.exec(label)?.[1];
       const key = lesson ? `lesson:${lesson}` : section.sectionId;
       if (!grouped.has(key)) grouped.set(key, { label: lesson || label, ids: [], count: 0 });
