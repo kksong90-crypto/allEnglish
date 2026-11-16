@@ -15,6 +15,38 @@
   const legacy = document.getElementById('legacy-vocab-library');
   const sectionCache = new Map(), searchCache = new Map(), sectionFlights = new Map(), searchFlights = new Map();
   const TIMEOUT = 90000, CACHE_MS = 120000;
+  let diagnosticRows = [], diagnosticPanel = null, diagnosticText = null;
+  const now = () => window.performance?.now?.() ?? Date.now();
+  function startTiming(action) {
+    if (!/[?&]vocabSpeed=1(?:&|$)/.test(window.location?.search || '') || !['admin','teacher'].includes(String(currentUser?.role || '').toLowerCase())) return null;
+    return {action, start:now(), generation, reads:0};
+  }
+  async function finishTiming(meter, success, count) {
+    if (!meter) return;
+    if (window.requestAnimationFrame) await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+    if (meter.generation !== generation || meter.current && !meter.current()) return;
+    diagnosticRows.push({action:meter.action,elapsedMs:Math.round(now()-meter.start),remoteReads:meter.reads,success,count});
+    if (diagnosticRows.length > 20) diagnosticRows.shift();
+    if (!diagnosticPanel) {
+      diagnosticPanel = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = '운영 속도 점검 결과';
+      const note = document.createElement('p'); note.textContent = '로그인한 현재 화면에서 동작 시작부터 표시 완료까지 측정합니다. 계정·검색어·교재명·단어 내용은 기록하지 않습니다.';
+      const owner = generation;
+      const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'vocab-btn secondary'; copy.textContent = '속도 결과 복사';
+      diagnosticText = document.createElement('pre'); diagnosticText.style.whiteSpace = 'pre-wrap';
+      copy.addEventListener('click', async () => {
+        if (owner !== generation || !startTiming('copy')) return;
+        try { await window.navigator.clipboard.writeText(diagnosticText.textContent); copy.textContent = '복사했습니다'; }
+        catch { copy.textContent = '아래 결과 텍스트를 선택해 복사하세요'; }
+      });
+      diagnosticPanel.append(summary,note,copy,diagnosticText); panel.append(diagnosticPanel);
+    }
+    diagnosticText.textContent = JSON.stringify({schema:'VOCAB_SPEED_V1',measure:'action-to-next-paint',results:diagnosticRows},null,2);
+  }
+  function readLibrary(params, meter) {
+    if (meter) meter.reads++;
+    return apiGet(params, TIMEOUT);
+  }
   let catalog = null, loading = null, generation = 0, selection = 0, searchSerial = 0, ranges = [], selectedWords = null;
 
   function resetSelect(select, label) {
@@ -36,6 +68,8 @@
   }
   function reset() {
     generation++;
+    diagnosticRows = [];
+    diagnosticPanel?.remove?.(); diagnosticPanel = null; diagnosticText = null;
     catalog = null;
     loading = null;
     sectionCache.clear();
@@ -87,12 +121,12 @@
   async function loadCatalog() {
     if (catalog || !currentUser?.token) return;
     if (loading) return loading;
-    const request = generation;
+    const request = generation, meter = startTiming('catalog');
     words.replaceChildren();
     status.textContent = '교재 목록을 불러오는 중입니다. 단어는 선택한 범위만 불러옵니다.';
     const task = (async () => {
       try {
-        const result = await apiGet({action:'getVocaCatalog'}, TIMEOUT);
+        const result = await readLibrary({action:'getVocaCatalog'}, meter);
         if (request !== generation) return;
         if (result?.success !== true || !Array.isArray(result.books)) throw Error('CATALOG');
         catalog = result.books.filter(book => book.revisionId && book.displayName && Array.isArray(book.sections)
@@ -101,6 +135,7 @@
         catalog.sort((a,b) => a.displayName.localeCompare(b.displayName, 'ko', {numeric:true}));
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
         showBooks();
+        void finishTiming(meter, true, catalog.length);
       } catch {
         if (request === generation) {
           catalog = null; searchIndex.clear();
@@ -110,6 +145,7 @@
           retry.textContent = '교재 목록 다시 불러오기';
           retry.addEventListener('click', () => request === generation ? loadCatalog() : undefined);
           words.replaceChildren(retry);
+          void finishTiming(meter, false, 0);
         }
       } finally {
         if (loading === task) loading = null;
@@ -142,7 +178,7 @@
   }
   books.addEventListener('change', selectBook);
   function selectedScope() { return scopes.value === '' ? null : ranges[Number(scopes.value)]; }
-  async function fetchScope(revisionId, scope) {
+  async function fetchScope(revisionId, scope, meter) {
     const key = JSON.stringify([revisionId, scope.ids]);
     const hit = cached(sectionCache, key);
     if (hit) return hit;
@@ -155,7 +191,7 @@
       const body = [];
       for (let i=0; i<batches.length; i+=2) {
         const replies = await Promise.all(batches.slice(i,i+2).map(async ids => {
-          const result = await apiGet({action:'getVocaSection', revisionId, sectionIdsJson:JSON.stringify(ids)}, TIMEOUT);
+          const result = await readLibrary({action:'getVocaSection', revisionId, sectionIdsJson:JSON.stringify(ids)}, meter);
           if (result?.success !== true || result.revisionId !== revisionId || !Array.isArray(result.words)
               || result.words.some(word => !ids.includes(word.sectionId))) throw Error('SCOPE');
           return result.words;
@@ -221,12 +257,14 @@
   }
   async function loadScope() {
     const request = ++selection, epoch = generation, revisionId = books.value, scope = selectedScope();
+    const meter = startTiming('scope');
+    if (meter) meter.current = () => request === selection && epoch === generation;
     selectedWords = null;
     words.replaceChildren(); clearSearch();
     if (!scope) return;
     status.textContent = `${scope.label} 단어를 불러오는 중입니다.`;
     try {
-      const body = await fetchScope(revisionId, scope);
+      const body = await fetchScope(revisionId, scope, meter);
       if (request !== selection || epoch !== generation) return;
       selectedWords = body;
       const page = wordList(body, () => request === selection && epoch === generation);
@@ -246,6 +284,7 @@
       }
       if (page.controls) words.append(page.controls);
       status.textContent = `${scope.label} · ${body.length}개`;
+      void finishTiming(meter, true, body.length);
     } catch {
       if (request === selection && epoch === generation) {
         status.textContent = '선택한 범위를 불러오지 못했습니다. 같은 범위를 다시 불러올 수 있습니다.';
@@ -254,6 +293,7 @@
         retry.textContent = '같은 범위 다시 불러오기';
         retry.addEventListener('click', () => request === selection && epoch === generation ? loadScope() : undefined);
         words.replaceChildren(retry);
+        void finishTiming(meter, false, 0);
       }
     }
   }
@@ -271,13 +311,15 @@
     }
     const request = searchSerial, epoch = generation, scopePin = selection, inputPin = wordQuery.value;
     const current = () => request === searchSerial && epoch === generation && scopePin === selection && inputPin === wordQuery.value;
+    const meter = startTiming('search');
+    if (meter) meter.current = current;
     const key = JSON.stringify([queryText.toLowerCase(), revisionId]);
     searchResult.textContent = '단어를 검색하는 중입니다.';
     if (searchButton) searchButton.disabled = true;
     try {
       let result;
       if (mode === 'section') {
-        const body = selectedWords || await fetchScope(revisionId, scope);
+        const body = selectedWords || await fetchScope(revisionId, scope, meter);
         const terms = queryText.toLowerCase().split(/\s+/);
         result = {words:body.filter(word => terms.every(term => `${word.word} ${word.meaning}`.normalize('NFKC').toLowerCase().includes(term))), truncated:false};
       } else {
@@ -285,7 +327,7 @@
         if (!result) {
           let flight = searchFlights.get(key);
           if (!flight) {
-            flight = Promise.resolve(apiGet({action:'searchVoca', query:queryText, revisionId}, TIMEOUT));
+            flight = Promise.resolve(readLibrary({action:'searchVoca', query:queryText, revisionId}, meter));
             searchFlights.set(key, flight);
             flight.finally(() => { if (searchFlights.get(key) === flight) searchFlights.delete(key); }).catch(() => {});
           }
@@ -322,8 +364,12 @@
         return row;
       }, current);
       searchResult.replaceChildren(caption, page.list, ...(page.controls ? [page.controls] : []));
+      void finishTiming(meter, true, result.words.length);
     } catch {
-      if (current()) searchResult.textContent = '검색하지 못했습니다. 잠시 후 다시 검색해 주세요.';
+      if (current()) {
+        searchResult.textContent = '검색하지 못했습니다. 잠시 후 다시 검색해 주세요.';
+        void finishTiming(meter, false, 0);
+      }
     } finally {
       if (request === searchSerial && searchButton) searchButton.disabled = false;
     }

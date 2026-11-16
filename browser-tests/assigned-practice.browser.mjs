@@ -225,7 +225,7 @@ async function testLibrary(browser,role,viewport,base){
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
   try{
-    await page.goto(base,{waitUntil:'domcontentloaded'});
+    await page.goto(base+(role==='admin'?'?vocabSpeed=1':''),{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>!!currentUser?.token);
     await page.evaluate(()=>showTab('vocab'));
     await page.locator('#station-library-book option[value="PUB_TEXT"]').waitFor({state:'attached'});
@@ -277,6 +277,12 @@ async function testLibrary(browser,role,viewport,base){
       await page.getByRole('button',{name:'혼자 카드·리콜·스펠링 연습',exact:true}).waitFor();
       assert.equal(await page.locator('#vocab-book-select').inputValue(),'기존 단어장');
       assert.equal(await page.locator('#vocab-day-select').inputValue(),'1');
+    }
+    if(role==='admin'){
+      const output=page.locator('#station-library > details pre');await output.waitFor({state:'attached'});
+      const timing=JSON.parse(await output.textContent());
+      assert.equal(timing.schema,'VOCAB_SPEED_V1');assert.ok(timing.results.some(r=>r.action==='scope'));
+      assert.doesNotMatch(JSON.stringify(timing),/SYNTHETIC_AUTH|PUB_MOCK|evaluate|평가|token|revisionId/);
     }
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
     if(overflow)console.log(JSON.stringify({overflowReview:role,width:viewport.width,offenders:await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>({tag:el.tagName,id:el.id,classes:el.className,left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right),width:Math.round(el.getBoundingClientRect().width)})).filter(el=>el.width>0&&(el.right>innerWidth+1||el.left< -1)).slice(-30))}));

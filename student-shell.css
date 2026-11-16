@@ -4444,3 +4444,5 @@ body.dark #station-library input[type="search"]{background:#1d2b2a;border-color:
 #station-library .control-grid>div{min-width:0}
 #station-library select,#station-library input[type="search"]{min-width:0;max-width:100%;box-sizing:border-box}
 @media(max-width:720px){#station-library .control-grid{grid-template-columns:minmax(0,1fr)}}
+/* Keep navigation buttons visible when WebKit gives the logo an intrinsic minimum. */
+.brand-wrap>.brand-logo-wide{min-width:0;flex-shrink:1}
