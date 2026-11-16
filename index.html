@@ -1358,6 +1358,10 @@ async function loadHomeContent(forceRefresh = false) {
       favoriteEditSerial += 1;
       currentFavoriteFolder = DEFAULT_FOLDER_NAME;
       vocabData = [];
+      if (typeof renderStudentProgress === 'function') {
+        renderStudentProgress.cache = new Map();
+        renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+      }
       vocabStudyView = '';
       const legacyLibrary = document.getElementById('legacy-vocab-library');
       if (legacyLibrary) legacyLibrary.open = false;
@@ -2386,29 +2390,26 @@ function isAssignedPracticeSpellingCorrect(userAnswer, row) {
     .map(assignedPracticeNormalizeSpelling).filter(Boolean);
   return choices.some(expected => expected === actual);
 }
-function assignedPracticeRecallChoices(index) {
+function assignedPracticeRecallEntries(rows) {
+  return rows.map(row => ({word:String(row[2]), looseWord:normalizeAnswer(row[2]),
+    meaning:normalizeAnswer(row[3]), strictWord:assignedPracticeNormalizeSpelling(row[2]),
+    accepted:new Set(assignedPracticeAnswerText(row).split('|').map(assignedPracticeNormalizeSpelling).filter(Boolean))}));
+}
+function assignedPracticeRecallChoices(index, preparedEntries) {
   const state = assignedPracticeState;
-  if (!state) return null;
-  const question = state.rows[index];
-  if (!question || !question[2]) return null;
-  // Prompts shared by two different words can have more than one correct meaning.
-  if (state.rows.some((other, i) =>
-    i !== index && normalizeAnswer(other[3]) === normalizeAnswer(question[3]) &&
-    normalizeAnswer(other[2]) !== normalizeAnswer(question[2]))) return null;
-  const correct = String(question[2]);
-  const seen = new Set([normalizeAnswer(correct)]);
-  const others = shuffleArray(state.rows.filter((other,i) =>
-    i !== index && normalizeAnswer(other[3]) !== normalizeAnswer(question[3])))
-    .map(other => String(other[2]))
-    .filter(value => {
-      const normalized = normalizeAnswer(value);
-      if (!normalized || seen.has(normalized) ||
-          isAssignedPracticeSpellingCorrect(value, question)) return false;
-      seen.add(normalized);
-      return true;
-    });
+  if (!state || !state.rows[index]?.[2]) return null;
+  const entries = preparedEntries || assignedPracticeRecallEntries(state.rows), question = entries[index];
+  // Loose normalization is only for ambiguous prompts/duplicate choices.
+  // Strict accepted spellings remain separate, exactly as in actual grading.
+  if (entries.some((other,i) => i !== index && other.meaning === question.meaning && other.looseWord !== question.looseWord)) return null;
+  const seen = new Set([question.looseWord]);
+  const others = shuffleArray(entries.filter((other,i) => i !== index && other.meaning !== question.meaning))
+    .filter(other => {
+      if (!other.looseWord || seen.has(other.looseWord) || question.accepted.has(other.strictWord)) return false;
+      seen.add(other.looseWord); return true;
+    }).map(other => other.word);
   if (others.length < 3) return null;
-  return shuffleArray([correct, ...others.slice(0,3)]);
+  return shuffleArray([question.word, ...others.slice(0,3)]);
 }
 function assignedPracticeHasUnsavedInput() {
   if (!isAssignedPracticeCurrent() || assignedPracticeState.finished) return false;
@@ -2453,8 +2454,9 @@ function assignedPracticeChooseMode(mode) {
   }
   const indices = state.rows.map((_,i)=>i);
   const choiceMap = new Map();
+  const recallEntries = mode === 'recall' ? assignedPracticeRecallEntries(state.rows) : null;
   const eligible = mode === "recall" ? indices.filter(index => {
-    const choices = assignedPracticeRecallChoices(index);
+    const choices = assignedPracticeRecallChoices(index, recallEntries);
     if (!choices) return false;
     choiceMap.set(index, choices);
     return true;
@@ -3739,10 +3741,17 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
 
     async function renderStudentProgress(book, day) {
       const target = document.getElementById("vocab-progress");
+      const epoch = studentSessionEpoch;
+      const serial = renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+      const cache = renderStudentProgress.cache ||= new Map();
+      const key = JSON.stringify([epoch, book, day]), previous = cache.get(key);
+      if (previous && Date.now() - previous.at < 120000) { target.innerHTML = previous.html; return; }
       target.innerHTML = "<div class='progress-box'>학습 기록을 불러오는 중입니다...</div>";
 
       try {
         const result = await apiGet({ action: "getStudentStats", book, day });
+        if (epoch !== studentSessionEpoch || serial !== renderStudentProgress.serial) return;
+        if (document.getElementById('vocab-book-select').value !== book || String(document.getElementById('vocab-day-select').value) !== String(day)) return;
 
         if (!result.success) {
           target.innerHTML = "";
@@ -3768,8 +3777,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
             </div>
           </div>
         `;
+        cache.delete(key); cache.set(key, {at:Date.now(), html:target.innerHTML});
+        if (cache.size > 12) cache.delete(cache.keys().next().value);
       } catch (err) {
-        target.innerHTML = "";
+        if (epoch === studentSessionEpoch && serial === renderStudentProgress.serial) target.innerHTML = "";
       }
     }
 
@@ -4130,6 +4141,9 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       testAlreadySaved = true;
 
       const status = document.getElementById("save-result-status");
+      const epoch = studentSessionEpoch;
+      renderStudentProgress.cache?.clear();
+      renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
       const meta = currentTestMeta || {};
       const first = currentVocabWords[0] || [];
       const book = meta.book || first[0] || "";
@@ -4154,6 +4168,10 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
           wrongJson: JSON.stringify(wrongPayload)
         });
 
+        if (epoch === studentSessionEpoch) {
+          renderStudentProgress.cache?.clear();
+          renderStudentProgress.serial = (renderStudentProgress.serial || 0) + 1;
+        }
         if (status) {
           status.textContent = result.success ? "결과가 저장되었습니다." : (result.message || "결과 저장 실패");
         }

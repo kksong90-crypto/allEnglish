@@ -4437,3 +4437,5 @@ body:has(#practice.active) #practice{padding-bottom:1.5rem}
 #practice .practice-head>.vocab-btn{margin-top:12px;font-size:.85rem;min-height:44px;padding:10px 14px}
 #practice .practice-actions button:disabled{opacity:.45;cursor:default}
 body.dark #station-library input[type="search"]{background:#1d2b2a;border-color:#425e56;color:#eef8f6}
+
+#station-library-search-result ol{max-height:360px;overflow-y:auto;overscroll-behavior:contain}

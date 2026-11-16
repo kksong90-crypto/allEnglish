@@ -180,15 +180,44 @@
     try { return await task; }
     finally { if (sectionFlights.get(key) === task) sectionFlights.delete(key); }
   }
-  function wordList(body) {
+  function pagedList(body, makeRow, current) {
     const list = document.createElement('ol');
-    for (const word of body) {
+    const size = 100;
+    let offset = 0;
+    const controls = body.length > size ? document.createElement('div') : null;
+    const previous = controls ? document.createElement('button') : null;
+    const next = controls ? document.createElement('button') : null;
+    const label = controls ? document.createElement('span') : null;
+    function show() {
+      if (!current()) return;
+      list.start = offset + 1;
+      list.replaceChildren(...body.slice(offset, offset + size).map(makeRow));
+      list.scrollTop = 0;
+      if (controls) {
+        previous.disabled = offset === 0;
+        next.disabled = offset + size >= body.length;
+        label.textContent = `${offset + 1}–${Math.min(offset + size, body.length)} / ${body.length}개`;
+      }
+    }
+    if (controls) {
+      controls.className = 'button-row';
+      previous.type = next.type = 'button';
+      previous.className = next.className = 'vocab-btn secondary';
+      previous.textContent = '← 이전 100개'; next.textContent = '다음 100개 →';
+      previous.addEventListener('click', () => { if (current() && offset > 0) {offset -= size; show();} });
+      next.addEventListener('click', () => { if (current() && offset + size < body.length) {offset += size; show();} });
+      controls.append(previous, label, next);
+    }
+    show();
+    return {list, controls};
+  }
+  function wordList(body, current) {
+    return pagedList(body, word => {
       const row = document.createElement('li'), term = document.createElement('strong');
       term.textContent = word.word;
       row.append(term, ' — ', String(word.meaning ?? ''));
-      list.append(row);
-    }
-    return list;
+      return row;
+    }, current);
   }
   async function loadScope() {
     const request = ++selection, epoch = generation, revisionId = books.value, scope = selectedScope();
@@ -200,12 +229,14 @@
       const body = await fetchScope(revisionId, scope);
       if (request !== selection || epoch !== generation) return;
       selectedWords = body;
-      words.replaceChildren(wordList(body));
+      const page = wordList(body, () => request === selection && epoch === generation);
+      words.replaceChildren(page.list);
       const staff = ['admin','teacher'].includes(String(currentUser?.role || '').toLowerCase());
       const startPractice = staff ? window.startPublicVocaPreview : window.startPublicVocaPractice;
       if (typeof startPractice === 'function') {
         const practice = document.createElement('button');
         practice.type = 'button'; practice.className = 'vocab-btn';
+        practice.id = 'station-library-practice-button';
         practice.textContent = staff ? '이 범위 학생 연습 미리보기' : '이 범위 카드·리콜·스펠링 연습';
         practice.addEventListener('click', () => {
           if (epoch !== generation || request !== selection) return;
@@ -213,6 +244,7 @@
         });
         words.append(practice);
       }
+      if (page.controls) words.append(page.controls);
       status.textContent = `${scope.label} · ${body.length}개`;
     } catch {
       if (request === selection && epoch === generation) {
@@ -271,8 +303,7 @@
       if (!current()) return;
       const caption = document.createElement('p');
       caption.textContent = result.words.length ? `검색 결과 ${result.words.length}개${result.truncated ? ' · 최대 100개입니다. 교재나 검색어를 좁혀 주세요.' : ''}` : '검색 결과가 없습니다.';
-      const list = document.createElement('ol');
-      for (const word of result.words) {
+      const page = pagedList(result.words, word => {
         const row = document.createElement('li'), text = document.createElement('span');
         text.textContent = `${word.word} — ${word.meaning} · ${word.displayName || ''} ${word.sectionLabel || ''}`;
         row.append(text);
@@ -288,9 +319,9 @@
           });
           row.append(open);
         }
-        list.append(row);
-      }
-      searchResult.replaceChildren(caption, list);
+        return row;
+      }, current);
+      searchResult.replaceChildren(caption, page.list, ...(page.controls ? [page.controls] : []));
     } catch {
       if (current()) searchResult.textContent = '검색하지 못했습니다. 잠시 후 다시 검색해 주세요.';
     } finally {
