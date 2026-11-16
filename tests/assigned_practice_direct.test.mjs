@@ -391,3 +391,24 @@ test('simulated school practice grades spaced-out spelling as wrong without savi
   assert.equal(calls(v,'saveVocabResult').length,0);
   assert.equal(calls(v,'submitPointTest').length,0);
 });
+
+test('staff public preview reuses four modes without a student request or official write', async () => {
+ const v=virtualStudent({backend:mockBackend()});await v.boot();v.read('currentUser').role='admin';
+ const before=v.requests.length;
+ v.context.window.startPublicVocaPreview({revisionId:'REV_PUBLIC',label:'3과',words:[{vocabWordId:'PUB1',bookId:'B',word:'colour',meaning:'색',allowedAnswers:['color']}]});
+ assert.equal(v.requests.length,before);
+ assert.match(v.node('practice-view').innerHTML,/학생 연습 미리보기/);
+ assert.match(v.node('practice-view').innerHTML,/암기 카드/);
+ assert.match(v.node('practice-view').innerHTML,/실전 TEST/);
+ assert.equal(v.read('assignedPracticeState.preview'),true);
+ assert.equal(v.context.isAssignedPracticeSpellingCorrect('color',v.read('assignedPracticeState.rows[0]')),true);
+ v.context.assignedPracticeChooseMode('mock');
+ assert.ok(v.node('practice-answer-0'));
+ assert.equal(calls(v,'saveVocabResult').length,0);assert.equal(calls(v,'submitPointTest').length,0);
+});
+
+test('student cannot enter staff preview and invalid public identities never render', async()=>{
+ const v=virtualStudent({backend:mockBackend()});await v.boot();
+ v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
+ v.read('currentUser').role='admin';v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
+});
