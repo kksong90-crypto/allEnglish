@@ -105,3 +105,87 @@ test('administrator can open public catalog and launch selected scope preview; s
  const button=nodes['station-library-words'].children[1];assert.match(button.textContent,/학생 연습 미리보기/);button.handlers.click();assert.equal(previews.length,1);assert.equal(previews[0].revisionId,'R');assert.equal(calls.length,2);
  window.StationLibrary.reset();button.handlers.click();assert.equal(previews.length,1);
 });
+
+test('category filtering, verified range cache and student practice preserve scope and reset on logout', async () => {
+  const nodes = Object.fromEntries(['station-library','query','category','book','scope','status','words']
+    .map(name => [name === 'station-library' ? name : `station-library-${name}`, fakeNode()]));
+  const calls = [], practices = [];
+  const window = {startPublicVocaPractice:value => practices.push(value)};
+  runInNewContext(source, {window, currentUser:{token:'student',role:'student'},
+    document:{getElementById:id=>nodes[id],createElement:fakeNode},
+    Option:function(label,value){this.label=label;this.value=value;},
+    apiGet:async params=>{
+      calls.push(params);
+      return params.action === 'getVocaCatalog' ? {success:true,books:[
+        {revisionId:'text',displayName:'교과서',categoryCode:'TEXTBOOK',sections:[]},
+        {revisionId:'book',displayName:'어휘',categoryCode:'WORD_BOOK',sections:[{sectionId:'D1',label:'Day 1',wordCount:1}]}
+      ]} : {success:true,revisionId:'book',words:[{sectionId:'D1',word:'one',meaning:'하나'}]};
+    }});
+  nodes['station-library'].open=true;await nodes['station-library'].handlers.toggle();
+  nodes['station-library-category'].value='VOCAB';nodes['station-library-category'].handlers.change();
+  const book=nodes['station-library-book'],scope=nodes['station-library-scope'];
+  assert.equal(book.children.length,2);assert.equal(book.children[1].value,'book');
+  book.value='book';book.handlers.change();scope.value='0';await scope.handlers.change();
+  const first=nodes['station-library-words'].children[1];
+  first.handlers.click();assert.equal(practices.length,1);assert.equal(practices[0].revisionId,'book');
+  scope.value='0';await scope.handlers.change();assert.equal(calls.length,2);
+  window.StationLibrary.reset();first.handlers.click();assert.equal(practices.length,1);
+  nodes['station-library'].open=true;await nodes['station-library'].handlers.toggle();
+  book.value='book';book.handlers.change();scope.value='0';await scope.handlers.change();
+  assert.equal(calls.length,4);
+});
+
+function searchLibrary(handler, role='student') {
+  const nodes = Object.fromEntries(['station-library','query','category','book','scope','status','words','word-query','word-scope','word-search','word-clear','search-result','legacy-vocab-library']
+    .map(name => [name === 'station-library' || name === 'legacy-vocab-library' ? name : `station-library-${name}`, fakeNode()]));
+  const calls=[], practices=[], window={startPublicVocaPractice:value=>practices.push(value)};
+  const catalog=[{revisionId:'R',displayName:'고2 전국연합',publicationYear:2026,publicationMonth:10,categoryCode:'MOCK_EXAM',
+    sections:[{sectionId:'S',label:'18번',wordCount:1}]}];
+  runInNewContext(source,{window,Date,currentUser:{token:'student',role},
+    document:{getElementById:id=>nodes[id],createElement:fakeNode},
+    Option:function(label,value){this.label=label;this.value=value;},loadVocabBooksOnce:()=>calls.push({action:'LEGACY_FULL'}),
+    apiGet:async params=>{calls.push(params);return handler ? handler(params,catalog) : params.action==='getVocaCatalog'?{success:true,books:catalog}:params.action==='searchVoca'?{success:true,count:1,words:[{revisionId:'R',sectionId:'S',word:'evaluate',meaning:'평가하다'}]}:{success:true,revisionId:'R',words:[{sectionId:'S',word:'evaluate',meaning:'평가하다'}]};}
+  });
+  return {nodes,calls,window,practices,catalog};
+}
+test('default vocabulary entry reads metadata only; whole-word search is bounded and cached; Korean month matches',async()=>{
+ const {nodes,calls,window}=searchLibrary();
+ await window.StationLibrary.open();assert.deepEqual(calls.map(p=>p.action),['getVocaCatalog']);
+ nodes['station-library-query'].value='고2 10월';nodes['station-library-query'].handlers.input();
+ assert.equal(nodes['station-library-book'].children.length,2);
+ nodes['station-library-word-query'].value='evaluate';nodes['station-library-word-scope'].value='all';
+ await nodes['station-library-word-search'].handlers.click();
+ assert.equal(calls[1].action,'searchVoca');assert.equal(calls[1].revisionId,'');
+ assert.match(nodes['station-library-search-result'].children[0].textContent,/1개/);
+ await nodes['station-library-word-search'].handlers.click();assert.equal(calls.length,2);
+ assert.equal(calls.some(p=>p.action==='getVocabData'||p.action==='LEGACY_FULL'),false);
+});
+test('selected-range search reuses the verified body without remote search; clearing or logout invalidates pending search',async()=>{
+ let finish;
+ const {nodes,calls,window}=searchLibrary((p,catalog)=>p.action==='getVocaCatalog'?{success:true,books:catalog}:p.action==='searchVoca'?new Promise(resolve=>finish=resolve):{success:true,revisionId:'R',words:[{sectionId:'S',word:'evaluate',meaning:'평가하다'}]});
+ await window.StationLibrary.open();nodes['station-library-book'].value='R';nodes['station-library-book'].handlers.change();nodes['station-library-scope'].value='0';await nodes['station-library-scope'].handlers.change();
+ nodes['station-library-word-scope'].value='section';nodes['station-library-word-query'].value='평가';
+ await nodes['station-library-word-search'].handlers.click();assert.equal(calls.length,2);
+ assert.match(nodes['station-library-search-result'].children[0].textContent,/1개/);
+ nodes['station-library-word-scope'].value='all';const pending=nodes['station-library-word-search'].handlers.click();
+ window.StationLibrary.reset();finish({success:true,words:[{revisionId:'R',sectionId:'S',word:'old',meaning:'old'}]});await pending;
+ assert.equal(nodes['station-library-search-result'].children.length,0);
+ assert.equal(nodes['station-library-word-search'].disabled,false);
+});
+test('a lesson with more than twenty sections is fetched in bounded batches without dropping words',async()=>{
+ const {nodes,calls,window,catalog}=searchLibrary((p,books)=>p.action==='getVocaCatalog'?{success:true,books}: {success:true,revisionId:'R',words:JSON.parse(p.sectionIdsJson).map(id=>({vocabWordId:id,sectionId:id,word:id,meaning:'뜻'}))});
+ catalog[0].sections=Array.from({length:41},(_,i)=>({sectionId:'S'+i,label:'3과 Reading '+i,wordCount:1}));
+ await window.StationLibrary.open();nodes['station-library-book'].value='R';nodes['station-library-book'].handlers.change();nodes['station-library-scope'].value='0';await nodes['station-library-scope'].handlers.change();
+ assert.equal(calls.length,4);assert.deepEqual(calls.slice(1).map(p=>JSON.parse(p.sectionIdsJson).length),[20,20,1]);
+ assert.equal(nodes['station-library-words'].children[0].children.length,41);
+ assert.match(nodes['station-library-status'].textContent,/41개/);
+});
+test('server search cannot display unpublished or unlisted revisions, and failures can retry',async()=>{
+ let bad=true;
+ const {nodes,calls,window}=searchLibrary((p,catalog)=>p.action==='getVocaCatalog'?{success:true,books:catalog}:{success:true,count:1,words:[{revisionId:bad?'PRIVATE':'R',sectionId:'S',word:'secret',meaning:'뜻'}]});
+ await window.StationLibrary.open();nodes['station-library-word-query'].value='secret';nodes['station-library-word-scope'].value='all';
+ await nodes['station-library-word-search'].handlers.click();assert.match(nodes['station-library-search-result'].textContent,/검색하지 못/);
+ assert.equal(nodes['station-library-search-result'].children.length,0);
+ bad=false;await nodes['station-library-word-search'].handlers.click();assert.equal(calls.length,3);
+ assert.equal(nodes['station-library-search-result'].children[1].children.length,1);
+});

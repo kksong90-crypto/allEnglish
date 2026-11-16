@@ -23,6 +23,13 @@ const asQuestions=()=>words.map(([en,ko],i)=>({
 const logs=[];
 let mockScenario='connected';
 let slowResolve=null;
+let legacyEnabled=false;
+const publicBooks=[
+ {revisionId:'PUB_TEXT',displayName:'고1 동아(윤)',categoryCode:'TEXTBOOK',publisher:'동아',sections:[{sectionId:'L3',label:'3과',wordCount:5}]},
+ {revisionId:'PUB_MOCK',displayName:'고2 전국연합',categoryCode:'MOCK_EXAM',publicationYear:2026,publicationMonth:10,sections:[{sectionId:'Q18',label:'18번',wordCount:5}]},
+ {revisionId:'PUB_BOOK',displayName:'시중 어휘',categoryCode:'WORD_BOOK',sections:[{sectionId:'D1',label:'Day 1',wordCount:5}]}
+];
+const publicWords=book=>words.map(([word,meaning],i)=>({vocabWordId:book.revisionId+'_W'+i,revisionId:book.revisionId,bookId:book.revisionId,sectionId:book.sections[0].sectionId,displayName:book.displayName,sectionLabel:book.sections[0].label,word,meaning,allowedAnswers:[word]}));
 const server=createServer(async(req,res)=>{
   try {
     const pathname=new URL(req.url,'http://127.0.0.1').pathname;
@@ -41,6 +48,10 @@ const listen=()=>new Promise((resolve,reject)=>{
 const close=()=>new Promise(resolve=>server.close(resolve));
 
 function responseFor(action,p){
+  if(action==='getVocaCatalog')return {success:true,books:publicBooks};
+  if(action==='getVocaSection'){const book=publicBooks.find(b=>b.revisionId===p.revisionId);return {success:true,revisionId:book.revisionId,words:publicWords(book)};}
+  if(action==='searchVoca'){const result=publicBooks.filter(b=>!p.revisionId||b.revisionId===p.revisionId).flatMap(publicWords).filter(w=>(w.word+' '+w.meaning).includes(p.query));return {success:true,count:result.length,truncated:false,words:result};}
+  if(action==='getVocabData'&&legacyEnabled)return {success:true,values:[['단어장','Day','영어','뜻','순서','book_id','허용답'],...words.map(([word,meaning],i)=>['기존 단어장',1,word,meaning,i,'B',word])]};
   if(action==='getMyLearningSchedule'){
     const day=p.fromDate||new Date().toISOString().slice(0,10);
     const scope={
@@ -204,6 +215,77 @@ async function testUncertainScope(browser,base){
     console.log('BROWSER PASS: duplicate plan fails closed, no private practice started');
   } finally { await context.close(); }
 }
+async function testLibrary(browser,role,viewport,base){
+  logs.length=0;legacyEnabled=false;
+  const context=await browser.newContext({viewport,isMobile:viewport.width<600,hasTouch:viewport.width<600,locale:'ko-KR',timezoneId:'Asia/Seoul'});
+  await context.addInitScript(({role})=>localStorage.setItem('allbarun-user',JSON.stringify({id:'FAKE_'+role,name:'가상 계정',role,token:'SYNTHETIC_AUTH_TOKEN'})),{role});
+  const page=await context.newPage();const errors=[];
+  page.on('pageerror',error=>errors.push(String(error)));
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
+  await page.route('https://script.google.com/**',routeMock);
+  await page.route('https://script.googleusercontent.com/**',routeMock);
+  try{
+    await page.goto(base,{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>!!currentUser?.token);
+    await page.evaluate(()=>showTab('vocab'));
+    await page.locator('#station-library-book option[value="PUB_TEXT"]').waitFor({state:'attached'});
+    assert.equal(logs.filter(p=>p.action==='getVocabData').length,0,'library must not download whole legacy DB');
+    await page.locator('#station-library-category').selectOption('MOCK_EXAM');
+    await page.locator('#station-library-query').fill('고2 10월');
+    assert.equal(await page.locator('#station-library-book option').count(),2);
+    await page.locator('#station-library-book').selectOption('PUB_MOCK');
+    await page.locator('#station-library-scope').selectOption('0');
+    await page.getByText('evaluate — 평가하다',{exact:false}).first().waitFor();
+    const bodies=logs.filter(p=>p.action==='getVocaSection').length;
+    await page.locator('#station-library-word-scope').selectOption('section');
+    await page.locator('#station-library-word-query').fill('평가');
+    await page.locator('#station-library-word-search').click();
+    await page.locator('#station-library-search-result').getByText('검색 결과 1개').waitFor();
+    assert.equal(logs.filter(p=>p.action==='searchVoca').length,0);
+    await page.locator('#station-library-word-scope').selectOption('all');
+    await page.locator('#station-library-word-search').click();
+    await page.locator('#station-library-search-result').getByText('검색 결과 3개').waitFor();
+    await page.locator('#station-library-word-search').click();
+    await page.locator('#station-library-search-result').getByText('검색 결과 3개').waitFor();
+    assert.equal(logs.filter(p=>p.action==='searchVoca').length,1,'repeat search must use login-scoped cache');
+    await page.locator('#station-library-words button').click();
+    await page.locator('#practice-view').getByRole('button',{name:'암기 카드',exact:true}).click();
+    await page.getByRole('button',{name:'뜻 확인하기',exact:true}).click();
+    if(process.env.CI){await mkdir(artifacts,{recursive:true});await page.screenshot({path:path.join(artifacts,'card-'+role+'-'+viewport.width+'.png'),fullPage:true});}
+    await page.getByRole('button',{name:'뜻 다시 가리기',exact:true}).click();
+    assert.equal(await page.locator('.practice-reveal').count(),0);
+    await page.getByRole('button',{name:'뜻 확인하기',exact:true}).click();
+    await page.getByRole('button',{name:'기억했어요',exact:true}).click();
+    await page.getByRole('button',{name:'← 이전 단어',exact:true}).click();
+    assert.equal(await page.locator('.practice-prompt').textContent(),'inevitable');
+    await page.locator('#app-back-button').click();
+    await page.getByRole('button',{name:'선택한 단어장으로 돌아가기',exact:true}).click();
+    assert.equal(await page.locator('#station-library-book').inputValue(),'PUB_MOCK');
+    assert.equal(await page.locator('#station-library-scope').inputValue(),'0');
+    assert.equal(logs.filter(p=>p.action==='getVocaSection').length,bodies);
+    assert.equal(logs.filter(p=>p.action==='getVocabData').length,0);
+    if(role==='admin'){
+      legacyEnabled=true;
+      await page.locator('#legacy-vocab-library summary').click();
+      await page.locator('#vocab-book-select option[value="기존 단어장"]').waitFor({state:'attached'});
+      await page.locator('#vocab-book-select').selectOption('기존 단어장');
+      await page.locator('#vocab-day-select').selectOption('1');
+      await page.getByRole('button',{name:'뜻 확인 카드',exact:true}).click();
+      await page.locator('#vocab-view').getByRole('button',{name:'뜻 보기',exact:true}).first().click();
+      await page.locator('#vocab-view').getByRole('button',{name:'뜻 가리기',exact:true}).first().click();
+      await page.locator('#app-back-button').click();
+      await page.getByRole('button',{name:'혼자 카드·리콜·스펠링 연습',exact:true}).waitFor();
+      assert.equal(await page.locator('#vocab-book-select').inputValue(),'기존 단어장');
+      assert.equal(await page.locator('#vocab-day-select').inputValue(),'1');
+    }
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+    assert.equal(overflow,false,'library must fit mobile viewport');
+    assert.equal(logs.filter(p=>['saveVocabResult','submitPointTest','saveFavoriteState'].includes(p.action)).length,0);
+    assert.deepEqual(errors,[]);
+    if(process.env.CI){await mkdir(artifacts,{recursive:true});await page.screenshot({path:path.join(artifacts,'library-'+role+'-'+viewport.width+'.png'),fullPage:true});}
+    console.log('BROWSER PASS: '+role+' library '+viewport.width+'px; categories, bounded search/cache, cards/back/source, official writes 0.');
+  }finally{legacyEnabled=false;await context.close();}
+}
 const mode=process.argv[2]||'chromium';
 if(!['chromium','webkit'].includes(mode))throw Error('Usage: node browser-tests/assigned-practice.browser.mjs chromium|webkit');
 const browserEngine=mode==='webkit'?webkit:chromium;
@@ -214,6 +296,7 @@ try {
   const sizes=mode==='webkit'?[{width:390,height:844}]:[{width:320,height:740},{width:390,height:844},{width:1365,height:850}];
   for(const size of sizes)await testViewport(browser,mode+'-'+size.width,size,size.width<600,base);
   await testUncertainScope(browser,base);
+  for(const role of ['student','admin'])for(const width of [320,390,1365])await testLibrary(browser,role,{width,height:844},base);
   console.log('ALL BROWSER SMOKE TESTS PASSED ('+mode+', synthetic API only).');
 } finally {
   if(browser)await browser.close();

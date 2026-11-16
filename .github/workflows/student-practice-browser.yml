@@ -4,6 +4,7 @@ on:
     paths:
       - 'index.html'
       - 'student-shell.css'
+      - 'station-library.js'
       - 'browser-tests/**'
       - '.github/workflows/student-practice-browser.yml'
   workflow_dispatch:
