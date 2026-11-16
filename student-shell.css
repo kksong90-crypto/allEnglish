@@ -4439,3 +4439,8 @@ body:has(#practice.active) #practice{padding-bottom:1.5rem}
 body.dark #station-library input[type="search"]{background:#1d2b2a;border-color:#425e56;color:#eef8f6}
 
 #station-library-search-result ol{max-height:360px;overflow-y:auto;overscroll-behavior:contain}
+
+/* WebKit native selects must not expand the vocabulary grid on small screens. */
+#station-library .control-grid>div{min-width:0}
+#station-library select,#station-library input[type="search"]{min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:720px){#station-library .control-grid{grid-template-columns:minmax(0,1fr)}}

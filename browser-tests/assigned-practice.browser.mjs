@@ -279,6 +279,7 @@ async function testLibrary(browser,role,viewport,base){
       assert.equal(await page.locator('#vocab-day-select').inputValue(),'1');
     }
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+    if(overflow)console.log(JSON.stringify({overflowReview:role,width:viewport.width,offenders:await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>({tag:el.tagName,id:el.id,classes:el.className,left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right),width:Math.round(el.getBoundingClientRect().width)})).filter(el=>el.width>0&&(el.right>innerWidth+1||el.left< -1)).slice(-30))}));
     assert.equal(overflow,false,'library must fit mobile viewport');
     assert.equal(logs.filter(p=>['saveVocabResult','submitPointTest','saveFavoriteState'].includes(p.action)).length,0);
     assert.deepEqual(errors,[]);
