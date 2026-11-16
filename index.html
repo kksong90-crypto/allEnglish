@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="allbarun-student-release" content="20261116-practice-public-catalog">
+<meta name="allbarun-student-release" content="20261116-admin-public-preview">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#3f6158" />
@@ -2195,6 +2195,32 @@ async function startAssignedVocaPractice(testPlanId, button) {
   }
 }
 
+// Staff preview uses only a verified public catalog response; no student impersonation.
+window.startPublicVocaPreview = function ({revisionId, label, words}) {
+  if (!currentUser?.token || !['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase())) return;
+  if (!revisionId || !Array.isArray(words) || !words.length) return showAppToast('공개 범위를 먼저 조회해 주세요.');
+  const seen = new Set();
+  const rows = words.slice(0, 200).map(word => {
+    const id = String(word.vocabWordId || '').trim();
+    if (!id || seen.has(id) || !String(word.word || '').trim() || !String(word.meaning || '').trim()) return null;
+    seen.add(id);
+    let answers = word.allowedAnswers;
+    if (!Array.isArray(answers) && typeof word.allowedAnswersJson === 'string') {
+      try { answers = JSON.parse(word.allowedAnswersJson); } catch { return null; }
+    }
+    if (answers != null && (!Array.isArray(answers) || answers.some(a => typeof a !== 'string'))) return null;
+    const aliases = [word.word, ...(answers || [])].map(a => String(a).trim()).filter(Boolean);
+    return ['[관리자 미리보기]', String(label || '공개 범위'), String(word.word), String(word.meaning),
+      0, String(word.bookId || ''), [...new Set(aliases)].join('|'), id];
+  });
+  if (rows.some(row => !row)) return showAppToast('공개 범위의 단어 정보가 불완전합니다. 다시 조회해 주세요.');
+  assignedPracticeRequestSerial++;
+  showTab('practice', {deferLoad:true});
+  assignedPracticeState = {planId:'PUBLIC_PREVIEW:' + revisionId, rows, planDate:'공개 교재 미리보기 · ' + String(label || ''),
+    preview:true, epoch:studentSessionEpoch, token:currentUser.token, mode:'', study:null, finished:true};
+  renderAssignedPracticeMenu();
+};
+
 /* Isolated in-memory practice. It never calls saveVocabResult or awards points. */
 function isAssignedPracticeCurrent() {
   return !!assignedPracticeState &&
@@ -2212,9 +2238,9 @@ function assignedPracticeHeader() {
   const data = assignedPracticeState;
   const options = [["card", "암기 카드"], ["recall", "리콜"], ["spell", "스펠링"], ["mock", "실전 TEST"]];
   return '<div class="practice-head"><div class="practice-kicker">ALLBARUN · EXAM PRACTICE</div>' +
-    '<h3>시험 전 단어 연습</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
-    ' · 확정된 시험범위 ' + data.rows.length + '문항</p>' +
-    '<p class="practice-scope-note">배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. 개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    '<h3>' + (data.preview ? '학생 연습 미리보기' : '시험 전 단어 연습') + '</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
+    (data.preview ? ' · 공개 범위 ' : ' · 확정된 시험범위 ') + data.rows.length + '문항</p>' +
+    '<p class="practice-scope-note">' + (data.preview ? '공개 범위의 앞 200단어까지 확인하는 관리자·교사 미리보기입니다. ' : '배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. ') + '개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
     '<div class="practice-modes" role="group" aria-label="시험 전 연습 방식">' +
     options.map(([value, label]) =>
       '<button type="button" class="practice-mode ' + (data.mode === value ? 'active' : '') +
@@ -5054,7 +5080,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js?v=20261116"></script>
+  <script src="station-library.js?v=20261116-admin"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>

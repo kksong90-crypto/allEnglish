@@ -94,3 +94,14 @@ test('published textbook, mock exam and supplementary metadata remain searchable
   books.value='text';books.handlers.change();assert.match(scope.children[1].label,/범위 3/);assert.doesNotMatch(scope.children[1].label,/Day/);
   query.value='부교재';query.handlers.input();assert.equal(books.children[1].value,'supp');
 });
+
+test('administrator can open public catalog and launch selected scope preview; stale button cannot launch', async()=>{
+ const nodes=Object.fromEntries(['station-library','query','book','scope','status','words'].map(name=>[name==='station-library'?name:`station-library-${name}`,fakeNode()]));
+ const calls=[],previews=[],window={startPublicVocaPreview:payload=>previews.push(payload)};
+ const rows=[{revisionId:'R',displayName:'공개 교과서',categoryCode:'TEXTBOOK',sections:[{sectionId:'L1',label:'1과',wordCount:1}]}];
+ runInNewContext(source,{window,currentUser:{token:'synthetic-admin',role:'admin'},document:{getElementById:id=>nodes[id],createElement:fakeNode},Option:function(label,value){this.label=label;this.value=value;},apiGet:params=>{calls.push(params);return params.action==='getVocaCatalog'?{success:true,books:rows}:{success:true,revisionId:'R',words:[{vocabWordId:'W1',sectionId:'L1',word:'one',meaning:'하나'}]};}});
+ nodes['station-library'].open=true;await nodes['station-library'].handlers.toggle();assert.equal(calls.length,1);
+ nodes['station-library-book'].value='R';nodes['station-library-book'].handlers.change();nodes['station-library-scope'].value='0';await nodes['station-library-scope'].handlers.change();
+ const button=nodes['station-library-words'].children[1];assert.match(button.textContent,/학생 연습 미리보기/);button.handlers.click();assert.equal(previews.length,1);assert.equal(previews[0].revisionId,'R');assert.equal(calls.length,2);
+ window.StationLibrary.reset();button.handlers.click();assert.equal(previews.length,1);
+});

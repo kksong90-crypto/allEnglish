@@ -56,10 +56,6 @@
 
   panel.addEventListener('toggle', async () => {
     if (!panel.open || catalog || loading || !currentUser?.token) return;
-    if (['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase())) {
-      status.textContent = '전체 공개 교재 검색은 학생 계정에서 사용할 수 있습니다.';
-      return;
-    }
     const request = generation;
     loading = true;
     status.textContent = '교재 목록을 불러오는 중입니다.';
@@ -122,6 +118,19 @@
         list.append(row);
       }
       words.replaceChildren(list);
+      if (['admin', 'teacher'].includes(String(currentUser?.role || '').toLowerCase()) &&
+          typeof window.startPublicVocaPreview === 'function') {
+        const preview = document.createElement('button');
+        preview.type = 'button';
+        preview.className = 'vocab-btn secondary';
+        preview.textContent = '이 범위 학생 연습 미리보기';
+        const epoch = generation, selected = selection;
+        preview.addEventListener('click', () => {
+          if (epoch !== generation || selected !== selection) return;
+          window.startPublicVocaPreview({revisionId, label: scope.label, words: result.words});
+        });
+        words.append(preview);
+      }
       status.textContent = `${scope.label} · ${result.words.length}개`;
     } catch {
       if (request === selection) status.textContent = '선택한 범위를 불러오지 못했습니다. 범위를 다시 선택해 주세요.';
