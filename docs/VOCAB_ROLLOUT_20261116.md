@@ -25,4 +25,16 @@
 
 로그인 계정·토큰·검색어·교재/판본ID·단어 내용은 결과에 기록하지 않는다. 최대20개를 로그인 메모리에만 보관하고 로그아웃 때 제거한다. 일반 URL이나 학생 계정에는 점검 UI가 나오지 않으며 자동 외부 전송/추가 측정 요청도 없다. 실제 계정 결과를 받기 전에는 운영2초 통과로 표시하지 않는다.
 
-검증 증거·최종 배포 영수증은 CI 완료와 병합/Pages 확인 뒤 아래에 기록한다.
+## 최종 배포 영수증 (KST)
+
+- 코드 PR: [#60](https://github.com/kksong90-crypto/allEnglish/pull/60), 검증 head `c28b799295081e9a5a6a49ea9ff0d617d50312f6`.
+- 최종 브라우저 CI [43921513773](https://github.com/kksong90-crypto/allEnglish/actions/runs/43921513773): 2026-11-17 02:46:53 KST 성공. Chromium/모바일 키보드/WebKit 모두 통과. verify/regression도 성공, portable37개 모듈 통과.
+- 기존 main으로 squash 병합된 코드 릴리스: `d2e96b9056872f5cbd435f18b9dedb2a27e7dab1`.
+- Pages [43922212887](https://github.com/kksong90-crypto/allEnglish/actions/runs/43922212887): 02:49:12 KST 성공. Pages build API의 commit도 위 릴리스와 같으며 status=built, 기존 URL 유지.
+- 게시 후 smoke [43922214611](https://github.com/kksong90-crypto/allEnglish/actions/runs/43922214611): 02:49:18 KST 성공. 게시된 새 release 표식/연습 코드/교재 JS 확인 및 로그인 없는 공개목록·배정 연습 요청 거절 확인. 실제 로그인 UAT와 구분한다.
+- 배포 릴리스 기준 수동 합성 성능 [43922699223](https://github.com/kksong90-crypto/allEnglish/actions/runs/43922699223): 02:52:48 KST 성공, budgetViolations=[]; 실제 운영 API 지연 측정이 아니다.
+- 이 환경의 직접 Pages HTML/JS/CSS GET은 연결 실패로 해시 비교를 마치지 못했다. 게시 확인은 위 원격 Pages/실사이트 smoke 증거로 기록하며 직접 해시 일치를 주장하지 않는다.
+
+기존 운영 코드 기준/복구 지점은 `0c391a109e2f7f652985d406a09f4c861223adf3`이다. 문제가 발생하면 PR60 코드 변경을 검토된 역변경 PR로 복구하며 기존 Student API63·Station86·DB 표·기존 URL을 임의 교체하지 않는다. Station 편집기와 후속 원격 작업은 보존한다.
+
+**학생웹 코드 배포·합성/게시 검증 완료. 실제 계정 첫 조회2초, 실기기 UAT, 전체 검색의 VocabDB 전환은 완료로 표시하지 않는다.**
