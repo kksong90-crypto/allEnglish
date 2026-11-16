@@ -210,7 +210,7 @@ const browserEngine=mode==='webkit'?webkit:chromium;
 const base=await listen();
 let browser;
 try {
-  browser=await browserEngine.launch({headless:true});
+  browser=await browserEngine.launch({headless:true, ...(mode==='chromium' && process.env.CHROMIUM_EXECUTABLE ? {executablePath:process.env.CHROMIUM_EXECUTABLE} : {})});
   const sizes=mode==='webkit'?[{width:390,height:844}]:[{width:320,height:740},{width:390,height:844},{width:1365,height:850}];
   for(const size of sizes)await testViewport(browser,mode+'-'+size.width,size,size.width<600,base);
   await testUncertainScope(browser,base);

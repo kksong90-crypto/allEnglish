@@ -381,9 +381,9 @@
     <div class="section-title">📘 단어장</div>
 
     <details id="station-library" class="control-card">
-      <summary>전체 공개 단어장 찾기</summary>
+      <summary>전체 공개 교재·범위 찾기</summary>
       <div class="control-grid">
-        <div><label class="field-label" for="station-library-query">교재명 검색</label>
+        <div><label class="field-label" for="station-library-query">교재명·출판사·유형·연도 검색</label>
           <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
         <div><label class="field-label" for="station-library-book">교재</label>
           <select id="station-library-book" disabled></select></div>
@@ -2213,7 +2213,7 @@ function assignedPracticeHeader() {
   return '<div class="practice-head"><div class="practice-kicker">ALLBARUN · EXAM PRACTICE</div>' +
     '<h3>시험 전 단어 연습</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
     ' · 확정된 시험범위 ' + data.rows.length + '문항</p>' +
-    '<p class="practice-scope-note">개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    '<p class="practice-scope-note">배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. 개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
     '<div class="practice-modes" role="group" aria-label="시험 전 연습 방식">' +
     options.map(([value, label]) =>
       '<button type="button" class="practice-mode ' + (data.mode === value ? 'active' : '') +
@@ -5053,7 +5053,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js"></script>
+  <script src="station-library.js?v=20261116"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>
