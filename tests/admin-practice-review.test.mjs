@@ -1,7 +1,14 @@
 // Scenario-based administrator/teacher review. Synthetic users/API only, not user interviews or production UAT.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { virtualStudent } from './helpers/virtual-student.mjs';
+import { virtualStudent as originalVirtualStudent } from './helpers/virtual-student.mjs';
+// Isolate legacy grading/batch contracts from ordering. Actual random order is
+// exercised with the production helper and real browser in the integration suite.
+function virtualStudent(options) {
+  const v=originalVirtualStudent(options);
+  v.context.shuffleAssignedPractice=items=>[...items];
+  return v;
+}
 const words = [
   ['apple', '사과'], ['banana', '바나나'], ['orange', '오렌지'], ['pear', '배']
 ].map(([word, meaning], i) => ({vocabWordId:'ADMIN_REVIEW_'+i, bookId:'REVIEW_BOOK', word, meaning, allowedAnswers:[word]}));

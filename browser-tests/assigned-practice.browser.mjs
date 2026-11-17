@@ -1,3 +1,4 @@
+// Legacy fallback only: deliberately fail the new experience module request.
 // Real browser engines, synthetic-only student/API. Never call real Student API.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -7,6 +8,9 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { chromium, webkit } from 'playwright';
 
+const legacyFallback=process.env.PRACTICE_LEGACY_FALLBACK==='1';
+if(!legacyFallback)throw Error('Legacy selector suite: set PRACTICE_LEGACY_FALLBACK=1 to test the explicitly unavailable-module fallback; use practice-experience.browser.mjs for the main UI.');
+console.log('LEGACY FALLBACK TEST: practice-experience.js is deliberately blocked; this does not verify the main experience UI.');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const artifacts=path.join(root,'browser-tests','artifacts');
 const words=[
@@ -66,8 +70,10 @@ function responseFor(action,p){
     return {success:true,range:p.range||'upcoming',today:day,
       days:[lesson],visibleDays:[lesson],nextPlan:lesson,startDate:day,endDate:day};
   }
-  if(action==='getAssignedVocaPracticeQuestions')
-    return {success:true,planDate:new Date().toISOString().slice(0,10),questions:asQuestions()};
+  if(action==='getAssignedVocaPracticeQuestions'){
+    const offset=Number(p.offset||0),questions=asQuestions().slice(offset,offset+200);
+    return {success:true,testPlanId:'SYNTHETIC_PLAN',mode:'MEANING_TO_WORD',coverage:'ALL',scopeVersion:'SYNTHETIC_SCOPE_V1',offset,count:questions.length,totalCount:words.length,nextOffset:null,planDate:new Date().toISOString().slice(0,10),questions};
+  }
   if(action==='getStudentContent')
     return {success:true,home:{heroTitle:'All바른 가상 학생 학습'},notices:[],homeNotices:[]};
   if(action==='getFavoriteState')
@@ -113,8 +119,10 @@ async function testViewport(browser,name,viewport,isMobile,base){
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
+  if(legacyFallback)await page.route('**/practice-experience.js*',route=>route.abort('failed'));
   try {
     await page.goto(base,{waitUntil:'domcontentloaded'});
+    assert.equal(await page.evaluate(()=>typeof window.PracticeExperience),'undefined','legacy test must exercise the unavailable-module fallback');
     await page.locator('#home-learning-content button[data-test-plan-id="SYNTHETIC_PLAN"]')
       .waitFor({state:'visible',timeout:20000});
     assert.equal(await page.locator('#home-learning-content button[data-test-plan-id]').count(),1,
@@ -137,8 +145,9 @@ async function testViewport(browser,name,viewport,isMobile,base){
     // Flashcard shows answer only after the explicit reveal action.
     await page.locator('#practice-view .practice-mode').filter({hasText:'암기 카드'}).click();
     assert.equal(await page.locator('#practice-view .practice-reveal').count(),0);
+    const firstCardWord=await page.locator('#practice-view .practice-prompt').innerText();
     await page.locator('#practice-view button').filter({hasText:'뜻 확인하기'}).click();
-    assert.match(await page.locator('#practice-view .practice-reveal').innerText(),/불가피한/);
+    assert.equal(await page.locator('#practice-view .practice-reveal').innerText(),words.find(([word])=>word===firstCardWord)[1]);
     await page.locator('#practice-view button').filter({hasText:'다시 보기'}).click();
     assert.ok((await page.locator('#practice-view').innerText()).includes('남은 시도'));
 
@@ -147,14 +156,16 @@ async function testViewport(browser,name,viewport,isMobile,base){
     assert.equal(await page.locator('#practice-view .practice-choice').count(),4);
     const options=await page.locator('#practice-view .practice-choice').allTextContents();
     assert.equal(new Set(options).size,4);
-    await page.locator('#practice-view .practice-choice').filter({hasText:'inevitable'}).click();
+    const recallWord=await page.evaluate(()=>assignedPracticeState.rows[assignedPracticeCurrentIndex()][2]);
+    await page.getByRole('button',{name:recallWord,exact:true}).click();
     assert.match(await page.locator('#practice-view .practice-feedback').innerText(),/정답입니다/);
 
     // Spelling can make a mistake, then retry without saving to official records.
     await page.locator('#practice-view .practice-mode').filter({hasText:'스펠링'}).click();
+    const spellingWord=await page.evaluate(()=>assignedPracticeState.rows[assignedPracticeCurrentIndex()][2]);
     await page.locator('#practice-spell-input').fill('bad-spelling');
     await page.locator('#practice-view button').filter({hasText:'정답 확인'}).click();
-    assert.match(await page.locator('#practice-view .practice-feedback').innerText(),/inevitable/);
+    assert.ok((await page.locator('#practice-view .practice-feedback').innerText()).includes(spellingWord));
     await page.locator('#practice-view button').filter({hasText:'다음 단어'}).click();
 
     // Typed draft is not erased by accidentally changing modes.
@@ -165,8 +176,9 @@ async function testViewport(browser,name,viewport,isMobile,base){
     page.once('dialog',dialog=>dialog.accept());
     await page.locator('#practice-view .practice-mode').filter({hasText:'실전 TEST'}).click();
 
-    await page.locator('#practice-answer-0').fill('inevitable');
-    assert.equal(await page.locator('#practice-answer-0').inputValue(),'inevitable');
+    const mockWord=await page.evaluate(()=>currentVocabWords[0][2]);
+    await page.locator('#practice-answer-0').fill(mockWord);
+    assert.equal(await page.locator('#practice-answer-0').inputValue(),mockWord);
     assert.match(await page.locator('#practice-view').innerText(),/스펠링 중심 사전 연습이며 실제 시험의 문항 유형·수·순서는 다를 수 있습니다/);
     await page.locator('#practice-view button').filter({hasText:'채점하기'}).click();
     assert.match(await page.locator('#practice-result').innerText(),/1개 정답/);
@@ -175,7 +187,8 @@ async function testViewport(browser,name,viewport,isMobile,base){
     // Station-style spelling must not accept letters separated by spaces.
     await page.locator('#practice-result button').filter({hasText:'이 범위 다시 연습하기'}).click();
     await page.locator('#practice-view .practice-mode').filter({hasText:'실전 TEST'}).click();
-    await page.locator('#practice-answer-0').fill('i n e v i t a b l e');
+    const strictMockWord=await page.evaluate(()=>currentVocabWords[0][2]);
+    await page.locator('#practice-answer-0').fill(strictMockWord.split('').join(' '));
     await page.locator('#practice-view button').filter({hasText:'채점하기'}).click();
     assert.match(await page.locator('#practice-result').innerText(),/0개 정답/);
     assert.equal(logs.filter(x=>['saveVocabResult','submitPointTest'].includes(x.action)).length,0);
@@ -207,8 +220,10 @@ async function testUncertainScope(browser,base){
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
+  if(legacyFallback)await page.route('**/practice-experience.js*',route=>route.abort('failed'));
   try {
     await page.goto(base,{waitUntil:'domcontentloaded'});
+    assert.equal(await page.evaluate(()=>typeof window.PracticeExperience),'undefined','legacy test must exercise the unavailable-module fallback');
     await page.locator('#home-learning-content .home-task-warning').waitFor({timeout:20000});
     assert.equal(await page.locator('#home-learning-content button[data-test-plan-id]').count(),0);
     assert.equal(logs.filter(x=>x.action==='getAssignedVocaPracticeQuestions').length,0);
@@ -224,6 +239,7 @@ async function testLibrary(browser,role,viewport,base){
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.abort('blockedbyclient'));
   await page.route('https://script.google.com/**',routeMock);
   await page.route('https://script.googleusercontent.com/**',routeMock);
+  if(legacyFallback)await page.route('**/practice-experience.js*',route=>route.abort('failed'));
   try{
     await page.goto(base+(role==='admin'?'?vocabSpeed=1':''),{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>!!currentUser?.token);
@@ -250,6 +266,7 @@ async function testLibrary(browser,role,viewport,base){
     assert.equal(logs.filter(p=>p.action==='searchVoca').length,1,'repeat search must use login-scoped cache');
     await page.locator('#station-library-words button').click();
     await page.locator('#practice-view').getByRole('button',{name:'암기 카드',exact:true}).click();
+    const firstPublicCard=await page.locator('.practice-prompt').textContent();
     await page.getByRole('button',{name:'뜻 확인하기',exact:true}).click();
     if(process.env.CI){await mkdir(artifacts,{recursive:true});await page.screenshot({path:path.join(artifacts,'card-'+role+'-'+viewport.width+'.png'),fullPage:true});}
     await page.getByRole('button',{name:'뜻 다시 가리기',exact:true}).click();
@@ -257,7 +274,7 @@ async function testLibrary(browser,role,viewport,base){
     await page.getByRole('button',{name:'뜻 확인하기',exact:true}).click();
     await page.getByRole('button',{name:'기억했어요',exact:true}).click();
     await page.getByRole('button',{name:'← 이전 단어',exact:true}).click();
-    assert.equal(await page.locator('.practice-prompt').textContent(),'inevitable');
+    assert.equal(await page.locator('.practice-prompt').textContent(),firstPublicCard);
     await page.locator('#app-back-button').click();
     await page.getByRole('button',{name:'선택한 단어장으로 돌아가기',exact:true}).click();
     assert.equal(await page.locator('#station-library-book').inputValue(),'PUB_MOCK');
@@ -304,7 +321,7 @@ try {
   for(const size of sizes)await testViewport(browser,mode+'-'+size.width,size,size.width<600,base);
   await testUncertainScope(browser,base);
   for(const role of ['student','admin'])for(const width of [320,390,1365])await testLibrary(browser,role,{width,height:844},base);
-  console.log('ALL BROWSER SMOKE TESTS PASSED ('+mode+', synthetic API only).');
+  console.log('ALL LEGACY FALLBACK BROWSER TESTS PASSED ('+mode+', synthetic API only).');
 } finally {
   if(browser)await browser.close();
   await close();

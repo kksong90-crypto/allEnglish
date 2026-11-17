@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'practice-experience.js'
+      - 'practice-experience.css'
       - 'install.html'
       - 'student-install.js'
       - 'student-install.css'

@@ -20,20 +20,30 @@ const questionResult = () => ({
     { questionNo: 2, prompt: '바나나', acceptedAnswers: ['banana'], sourceLabel: 'Day 30', bookId: 'B1', vocabWordId: 'W2' }
   ]
 });
+// This suite exercises the legacy answer/exit engine, independently of order.
+// The real Fisher–Yates and new UI are covered by the integration suite.
+function fixtureStudent(options) {
+  const v = virtualStudent(options);
+  v.context.shuffleAssignedPractice = items => [...items];
+  return v;
+}
 function mockBackend() {
   const backend = server();
   backend.day = makeDay('Day 30', { vocab: [item()] });
   const original = backend.answer.bind(backend);
   backend.practiceResult = questionResult();
   backend.answer = params => params.action === 'getAssignedVocaPracticeQuestions'
-    ? structuredClone(backend.practiceResult)
+    ? structuredClone({coverage:'ALL',testPlanId:'VIRTUAL_PLAN_30',mode:'MEANING_TO_WORD',
+      offset:0,nextOffset:null,scopeVersion:'synthetic-scope-v1',
+      count:backend.practiceResult.questions.length,totalCount:backend.practiceResult.questions.length,
+      ...backend.practiceResult})
     : original(params);
   return backend;
 }
 const calls = (v, action) => v.requests.filter(x => x.action === action);
 
 test('home offers practice only for a server-connected plan; duplicate and missing scope never appear as available', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   assert.match(v.node('home-learning-content').innerHTML, /이 시험범위 연습하기/);
   assert.match(v.node('home-learning-content').innerHTML, /VIRTUAL_PLAN_30/);
@@ -45,7 +55,7 @@ test('home offers practice only for a server-connected plan; duplicate and missi
 });
 
 test('practice goes directly to its own view; legacy full vocabulary read is not required', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   const fullBefore = calls(v, 'getVocabData').length;
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
@@ -69,7 +79,7 @@ test('practice goes directly to its own view; legacy full vocabulary read is not
 });
 
 test('practice grading and wrong-word retry never save official results or issue points', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -93,7 +103,7 @@ test('practice grading and wrong-word retry never save official results or issue
 test('incomplete question responses fail closed instead of silently omitting a test word', async () => {
   const backend = mockBackend();
   backend.practiceResult.questions[1].acceptedAnswers = [];
-  const v = virtualStudent({ backend });
+  const v = fixtureStudent({ backend });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   assert.match(v.node('practice-view').innerHTML, /문항이 일부 누락/);
@@ -104,7 +114,7 @@ test('incomplete question responses fail closed instead of silently omitting a t
 test('late practice response after logout does not render words into another session', async () => {
   const backend = mockBackend();
   backend.hold.add('getAssignedVocaPracticeQuestions');
-  const v = virtualStudent({ backend });
+  const v = fixtureStudent({ backend });
   await v.boot();
   const work = v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   await v.flush();
@@ -120,7 +130,7 @@ test('late practice response after logout does not render words into another ses
 test('leaving practice before a pending response prevents hidden stale test rendering', async () => {
   const backend = mockBackend();
   backend.hold.add('getAssignedVocaPracticeQuestions');
-  const v = virtualStudent({ backend });
+  const v = fixtureStudent({ backend });
   await v.boot();
   const work = v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   await v.flush();
@@ -134,7 +144,7 @@ test('leaving practice before a pending response prevents hidden stale test rend
 
 
 test('flashcard mode reveals meaning only on request and requeues a forgotten word once', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('card');
@@ -149,7 +159,7 @@ test('flashcard mode reveals meaning only on request and requeues a forgotten wo
 });
 
 test('spelling mode checks typed answers and repeats a wrong answer once', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('spell');
@@ -164,7 +174,7 @@ test('spelling mode checks typed answers and repeats a wrong answer once', async
 });
 
 test('recall never invents alternatives when a set contains too few distinct words', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('recall');
@@ -179,7 +189,7 @@ test('recall presents four distinct terms from the same assigned scope and check
     {questionNo:4,prompt:'유지하다',acceptedAnswers:['maintain'],sourceLabel:'Day 30'},
     {questionNo:5,prompt:'방해하다',acceptedAnswers:['interrupt'],sourceLabel:'Day 30'}
   );
-  const v = virtualStudent({ backend });
+  const v = fixtureStudent({ backend });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('recall');
@@ -196,7 +206,7 @@ test('recall presents four distinct terms from the same assigned scope and check
 });
 
 test('switching from an unfinished mock to cards drops the mock result owner', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -212,7 +222,7 @@ test('switching from an unfinished mock to cards drops the mock result owner', a
 
 
 test('discard confirmation protects a partially typed mock when switching modes', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -231,7 +241,7 @@ test('discard confirmation protects a partially typed mock when switching modes'
 });
 
 test('home navigation does not silently discard unfinished spelling or mock input', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('spell');
@@ -250,7 +260,7 @@ test('home navigation does not silently discard unfinished spelling or mock inpu
 });
 
 test('changing modes without typed answers requires no confirmation', async () => {
-  const v = virtualStudent({ backend: mockBackend() });
+  const v = fixtureStudent({ backend: mockBackend() });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -271,7 +281,7 @@ test('an ambiguous Korean meaning prevents unsafe recall while spelling stays av
     {questionNo:4,prompt:'중단하다',acceptedAnswers:['interrupt'],sourceLabel:'Day 30'},
     {questionNo:5,prompt:'확인하다',acceptedAnswers:['confirm'],sourceLabel:'Day 30'}
   ];
-  const v=virtualStudent({backend});
+  const v=fixtureStudent({backend});
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('recall');
@@ -286,7 +296,7 @@ test('an ambiguous Korean meaning prevents unsafe recall while spelling stays av
 test('spelling accepts the server-supplied alternate answer', async()=>{
   const backend=mockBackend();
   backend.practiceResult.questions=[{questionNo:1,prompt:'장점',acceptedAnswers:['advantage','benefit'],sourceLabel:'Day 30'}];
-  const v=virtualStudent({backend});
+  const v=fixtureStudent({backend});
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('spell');
@@ -299,7 +309,7 @@ test('spelling accepts the server-supplied alternate answer', async()=>{
 test('repeatedly missed spelling is not trapped in an endless retry cycle', async()=>{
   const backend=mockBackend();
   backend.practiceResult.questions=[{questionNo:1,prompt:'사과',acceptedAnswers:['apple'],sourceLabel:'Day 30'}];
-  const v=virtualStudent({backend});
+  const v=fixtureStudent({backend});
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('spell');
@@ -317,7 +327,7 @@ test('repeatedly missed spelling is not trapped in an endless retry cycle', asyn
 
 
 test('mobile back preserves tab history and typed answers when exit is canceled', async()=>{
-  const v=virtualStudent({backend:mockBackend()});
+  const v=fixtureStudent({backend:mockBackend()});
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -351,11 +361,11 @@ test('malformed Student API contract fails closed without misleading practice sc
     ['too many questions',result => {result.questions=Array.from({length:201},(_,i)=>({
       questionNo:i+1,prompt:'가상 뜻 '+i,acceptedAnswers:['word'+i],
       bookId:'SYNTHETIC_B',vocabWordId:'WORD_'+i
-    }));}, /허용 범위를 초과/]
+    }));}, /문항 수나 페이지/]
   ];
   for(const [label,change,expected] of cases) {
     const backend=mockBackend();change(backend.practiceResult);
-    const v=virtualStudent({backend});
+    const v=fixtureStudent({backend});
     await v.boot();
     await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
     assert.match(v.node('practice-view').innerHTML,expected,label);
@@ -368,7 +378,7 @@ test('malformed Student API contract fails closed without misleading practice sc
 
 
 test('Station spelling parity: preparatory practice does not ignore internal spaces or hyphens', async () => {
-  const v=virtualStudent({backend:mockBackend()});
+  const v=fixtureStudent({backend:mockBackend()});
   await v.boot();
   const row=['[시험범위]','Day 30','apple','사과',1,'BOOK','apple|APPLES','W1'];
   assert.equal(v.read('isAssignedPracticeSpellingCorrect(" apple ", ["x","x","apple","사과",1,"BOOK","apple|APPLES","W1"])'),true);
@@ -382,7 +392,7 @@ test('Station spelling parity: preparatory practice does not ignore internal spa
 });
 
 test('simulated school practice grades spaced-out spelling as wrong without saving', async()=>{
-  const v=virtualStudent({backend:mockBackend()});
+  const v=fixtureStudent({backend:mockBackend()});
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
   v.context.assignedPracticeChooseMode('mock');
@@ -397,7 +407,7 @@ test('simulated school practice grades spaced-out spelling as wrong without savi
 });
 
 test('staff public preview reuses four modes without a student request or official write', async () => {
- const v=virtualStudent({backend:mockBackend()});await v.boot();v.read('currentUser').role='admin';
+ const v=fixtureStudent({backend:mockBackend()});await v.boot();v.read('currentUser').role='admin';
  const before=v.requests.length;
  v.context.window.startPublicVocaPreview({revisionId:'REV_PUBLIC',label:'3과',words:[{vocabWordId:'PUB1',bookId:'B',word:'colour',meaning:'색',allowedAnswers:['color']}]});
  assert.equal(v.requests.length,before);
@@ -412,13 +422,13 @@ test('staff public preview reuses four modes without a student request or offici
 });
 
 test('student cannot enter staff preview and invalid public identities never render', async()=>{
- const v=virtualStudent({backend:mockBackend()});await v.boot();
+ const v=fixtureStudent({backend:mockBackend()});await v.boot();
  v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
  v.read('currentUser').role='admin';v.context.window.startPublicVocaPreview({revisionId:'R',words:[{word:'bad',meaning:'bad'}]});assert.equal(v.read('assignedPracticeState'),null);
 });
 
 test('cards can hide the same answer and undo a step without inflating progress or losing the scope',async()=>{
- const v=virtualStudent({backend:mockBackend()});await v.boot();await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
+ const v=fixtureStudent({backend:mockBackend()});await v.boot();await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
  v.context.assignedPracticeChooseMode('card');
  const first=v.read('assignedPracticeCurrentIndex()');
  v.context.assignedPracticeReveal();assert.equal(v.read('assignedPracticeState.study.revealed'),true);
@@ -433,7 +443,7 @@ test('cards can hide the same answer and undo a step without inflating progress 
  assert.equal(calls(v,'saveVocabResult').length,0);
 });
 test('public student practice returns to selected library; entering vocabulary never downloads legacy rows',async()=>{
- const v=virtualStudent({backend:mockBackend()});await v.boot();
+ const v=fixtureStudent({backend:mockBackend()});await v.boot();
  v.context.showTab('vocab');assert.equal(calls(v,'getVocabData').length,0);
  v.context.startPublicVocaPractice({revisionId:'R',label:'Day 1',words:[{vocabWordId:'W',word:'apple',meaning:'사과'}]});
  assert.equal(v.read('assignedPracticeState.personal'),true);assert.equal(v.read('assignedPracticeState.preview'),false);

@@ -1,7 +1,14 @@
 // Scenario review regressions: synthetic users only, no real interview or API.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {virtualStudent} from './helpers/virtual-student.mjs';
+import {virtualStudent as originalVirtualStudent} from './helpers/virtual-student.mjs';
+// Isolate legacy grading/batch contracts from ordering. Actual random order is
+// exercised with the production helper and real browser in the integration suite.
+function virtualStudent(options) {
+  const v=originalVirtualStudent(options);
+  v.context.shuffleAssignedPractice=items=>[...items];
+  return v;
+}
 
 for (const role of ['student','admin']) {
   test(`${role}: public mock result retries the loaded scope without requesting an assigned plan`, async()=>{

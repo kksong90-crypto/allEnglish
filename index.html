@@ -20,6 +20,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="All바른 English" />
 
+  <link rel="stylesheet" href="practice-experience.css?v=20261117">
   <link id="student-preparation-layout" rel="stylesheet" href="student-shell.css?v=20261116-vocab-study-webkit2" />
 
 
@@ -2157,6 +2158,15 @@ function renderScheduleDay(day, options = {}) {
   const body = [scheduleVocabItem(day.vocab, Boolean(options.readOnly)), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
   return `<div class="schedule-day-card ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}${day.hasPlan ? `<span class="schedule-pill">준비 있음</span>` : `<span class="schedule-pill">일정 없음</span>`}</div></div><div class="schedule-day-body">${body || `<div class="schedule-empty">이 날짜에 표시할 학습일정이 없습니다.</div>`}</div></div>`;
 }
+// Fisher–Yates on a copy: range membership and row identity never change.
+function shuffleAssignedPractice(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
 async function startAssignedVocaPractice(testPlanId, button) {
   const planId = String(testPlanId || "").trim();
   if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
@@ -2169,30 +2179,47 @@ async function startAssignedVocaPractice(testPlanId, button) {
   showTab("practice", { deferLoad: true });
   const target = document.getElementById("practice-view");
   if (!target) return showAppToast("개인 연습 화면을 찾지 못했습니다.");
+  assignedPracticeState = null;
   target.innerHTML = '<div class="card" role="status">배정된 시험범위를 확인하고 있습니다…</div>';
   const current = () => epoch === studentSessionEpoch &&
     request === assignedPracticeRequestSerial && getActiveTabId() === "practice";
   try {
-    const result = await apiPost({
-      action: "getAssignedVocaPracticeQuestions",
-      testPlanId: planId,
-      mode: "MEANING_TO_WORD",
-      limit: "200",
-      randomize: "true"
-    }, API_LONG_TIMEOUT_MS);
-    if (!current()) return;
-    if (result?.success !== true) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
-    const questions = Array.isArray(result.questions) ? result.questions : [];
-    if (!questions.length) throw new Error("이 계획에 연습할 시험범위 단어가 없습니다.");
-    // The backend owns plan identity and answer aliases. Refuse unexpected
-    // or conflicting metadata instead of silently presenting a different test.
-    if (result.testPlanId && String(result.testPlanId) !== planId) {
-      throw new Error("시험범위 계획이 변경되었습니다. 학습일정을 새로 확인해 주세요.");
+    const questions = [];
+    let offset = 0, scopeVersion = '', totalCount = null, result;
+    // Collect one consistent server-owned scope. Never treat a legacy sample as full coverage.
+    while (true) {
+      result = await apiPost({
+        action: "getAssignedVocaPracticeQuestions",
+        testPlanId: planId,
+        mode: "MEANING_TO_WORD",
+        coverage: "ALL", offset: String(offset), scopeVersion,
+        limit: "200", randomize: "false"
+      }, API_LONG_TIMEOUT_MS);
+      if (!current()) return;
+      if (result?.success !== true) throw new Error(result?.message || "시험범위 연습문제를 불러오지 못했습니다.");
+      if (result.coverage !== "ALL") throw new Error("전체 시험범위 연습 API가 아직 업데이트되지 않았습니다. 일부 문항으로는 시작하지 않습니다.");
+      if (String(result.testPlanId || '') !== planId) throw new Error("시험범위 계획이 변경되었습니다. 학습일정을 새로 확인해 주세요.");
+      if (result.mode !== "MEANING_TO_WORD") throw new Error("시험범위 연습 유형이 일치하지 않습니다.");
+      const page = Array.isArray(result.questions) ? result.questions : [];
+      const version = String(result.scopeVersion || '');
+      if (!Number.isInteger(result.totalCount) || result.totalCount < 1 || result.totalCount > 5000 ||
+          result.offset !== offset || !version || version.length > 160 ||
+          !page.length || page.length > 200 || result.count !== page.length) {
+        throw new Error("전체 시험범위의 문항 수나 페이지 정보가 올바르지 않습니다.");
+      }
+      if (totalCount !== null && (result.totalCount !== totalCount || version !== scopeVersion)) {
+        throw new Error("불러오는 동안 시험범위가 변경되었습니다. 다시 시작해 주세요.");
+      }
+      totalCount = result.totalCount; scopeVersion = version;
+      const end = offset + page.length;
+      if (end > totalCount || (end < totalCount ? result.nextOffset !== end : result.nextOffset !== null)) {
+        throw new Error("시험범위 페이지가 누락되었거나 중복되었습니다. 다시 불러와 주세요.");
+      }
+      questions.push(...page);
+      target.innerHTML = '<div class="card" role="status">전체 시험범위 ' + questions.length + '/' + totalCount + '단어를 불러왔습니다…</div>';
+      if (end === totalCount) break;
+      offset = end;
     }
-    if (result.mode && String(result.mode).toUpperCase() !== "MEANING_TO_WORD") {
-      throw new Error("시험범위 연습 유형이 일치하지 않습니다.");
-    }
-    if (questions.length > 200) throw new Error("시험범위 문항 수가 허용 범위를 초과했습니다.");
     const identities = new Set();
     let duplicated = false;
     const rows = questions.map(question => {
@@ -2212,9 +2239,11 @@ async function startAssignedVocaPractice(testPlanId, button) {
     if (rows.some(row => !row)) throw new Error("시험범위 문항이 일부 누락되었습니다. 최신 학습일정을 확인해 주세요.");
     if (duplicated) throw new Error("시험범위 문항이 중복되어 있습니다. 학습일정을 다시 확인해 주세요.");
     assignedPracticeState = {
-      planId, rows, planDate: String(result.planDate || ""), epoch,
+      planId, sourceRows: shuffleAssignedPractice(rows), batchStart: 0, rows: [],
+      coverage: "ALL", scopeVersion, totalCount, planDate: String(result.planDate || ""), epoch,
       token: currentUser.token, mode: "", study: null, finished: true
     };
+    assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
     renderAssignedPracticeMenu();
   } catch (error) {
     if (!current()) return;
@@ -2228,7 +2257,7 @@ async function startAssignedVocaPractice(testPlanId, button) {
 
 // Personal practice uses the selected legacy rows and never saves official grades.
 function startSelectedVocaPractice() {
-  const rows = getSelectedVocabWords();
+  const rows = shuffleAssignedPractice(getSelectedVocabWords());
   if (!currentUser?.token || !rows.length) return showAppToast('단어장과 범위를 먼저 선택하세요.');
   assignedPracticeRequestSerial++;
   showTab('practice', {deferLoad:true});
@@ -2252,7 +2281,7 @@ function startPublicVocaPractice({revisionId, bookName, label, words}) {
   const staffPreview = ['admin', 'teacher'].includes(String(currentUser.role || '').toLowerCase());
   if (!revisionId || !Array.isArray(words) || !words.length) return showAppToast('공개 범위를 먼저 조회해 주세요.');
   const seen = new Set();
-  const rows = words.map(word => {
+  const rows = shuffleAssignedPractice(words.map(word => {
     const id = String(word.vocabWordId || '').trim();
     if (!id || seen.has(id) || !String(word.word || '').trim() || !String(word.meaning || '').trim()) return null;
     seen.add(id);
@@ -2264,7 +2293,7 @@ function startPublicVocaPractice({revisionId, bookName, label, words}) {
     const aliases = [word.word, ...(answers || [])].map(a => String(a).trim()).filter(Boolean);
     return [staffPreview ? '[관리자 미리보기]' : '[공개 교재 연습]', String(label || '공개 범위'), String(word.word), String(word.meaning),
       0, String(word.bookId || ''), [...new Set(aliases)].join('|'), id];
-  });
+  }));
   if (rows.some(row => !row)) return showAppToast('공개 범위의 단어 정보가 불완전합니다. 다시 조회해 주세요.');
   assignedPracticeRequestSerial++;
   showTab('practice', {deferLoad:true});
@@ -2299,7 +2328,8 @@ function assignedPracticeChangeBatch(direction) {
   const state = assignedPracticeState;
   if (!state.sourceRows) return;
   const start = (state.batchStart || 0) + direction * 200;
-  if (start < 0 || start >= state.sourceRows.length || !confirmAssignedPracticeExit()) return;
+  if (start < 0 || start >= state.sourceRows.length) return;
+  if (!window.PracticeExperience && !confirmAssignedPracticeExit()) return;
   if (currentTestMeta?.targetId === 'practice-view') { currentTestMeta = null; testAlreadySaved = true; }
   state.batchStart = start;
   state.rows = state.sourceRows.slice(start, start + 200);
@@ -2312,7 +2342,7 @@ function assignedPracticeHeader() {
   return '<div class="practice-head"><div class="practice-kicker">ALLBARUN · EXAM PRACTICE</div>' +
     '<h3>' + (data.preview ? '학생 연습 미리보기' : data.personal ? '혼자 단어 연습' : '시험 전 단어 연습') + '</h3><p>' + escapeHtml(data.planDate || "배정 시험일 미확인") +
     (data.preview || data.personal ? ' · 선택 범위 ' : ' · 확정된 시험범위 ') + data.rows.length + '문항</p>' +
-    '<p class="practice-scope-note">' + (data.preview ? '공개 범위를 한 번에 최대 200단어씩 확인하는 관리자·교사 미리보기입니다. ' : data.personal ? '선택 범위를 한 번에 최대 200단어씩 혼자 연습합니다. ' : '배정 범위에서 한 번에 최대 200문항을 무작위로 불러옵니다. ') + '개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
+    '<p class="practice-scope-note">' + (data.preview ? '공개 범위를 한 번에 최대 200단어씩 확인하는 관리자·교사 미리보기입니다. ' : data.personal ? '선택 범위를 한 번에 최대 200단어씩 혼자 연습합니다. ' : '배정 시험범위 전체를 불러온 뒤 200단어씩 나누어 연습합니다. ') + '개인 연습 결과는 공식 시험·포인트에 반영되지 않습니다.</p>' +
     assignedPracticeBatchControls() +
     '<div class="practice-modes" role="group" aria-label="시험 전 연습 방식">' +
     options.map(([value, label]) =>
@@ -2321,6 +2351,7 @@ function assignedPracticeHeader() {
     ).join("") + '</div><button type="button" class="vocab-btn secondary" onclick="assignedPracticeBackToMenu()">← 학습 방식 선택</button></div>';
 }
 function renderAssignedPracticeMenu() {
+  if (window.PracticeExperience) return PracticeExperience.render();
   if (!isAssignedPracticeCurrent()) return;
   assignedPracticeState.mode = "";
   assignedPracticeState.finished = true;
@@ -2335,6 +2366,7 @@ function renderAssignedPracticeMenu() {
     '<button type="button" class="vocab-btn secondary" onclick="assignedPracticeReturnToSource()">' + (assignedPracticeState.returnTab === 'vocab' ? '선택한 단어장으로 돌아가기' : '학습일정으로 돌아가기') + '</button></div>';
 }
 function assignedPracticeBackToMenu() {
+  if (window.PracticeExperience?.back()) return;
   if (!isAssignedPracticeCurrent() || !confirmAssignedPracticeExit()) return;
   if (currentTestMeta?.targetId === 'practice-view') {
     currentTestMeta = null;
@@ -2347,7 +2379,7 @@ function assignedPracticeRestartRange() {
   const state = assignedPracticeState;
   // Only published assignments have a server-owned plan ID. Public/Day study
   // keeps its verified words locally, including after a wrong-word-only retry.
-  if (!state.personal && !state.preview) return startAssignedVocaPractice(state.planId);
+  if (!state.personal && !state.preview && !state.sourceRows) return startAssignedVocaPractice(state.planId);
   if (currentTestMeta?.targetId === 'practice-view') {
     currentTestMeta = null;
     testAlreadySaved = true;
@@ -2412,6 +2444,7 @@ function assignedPracticeRecallChoices(index, preparedEntries) {
   return shuffleArray([question.word, ...others.slice(0,3)]);
 }
 function assignedPracticeHasUnsavedInput() {
+  if (window.PracticeExperience?.hasDraft()) return true;
   if (!isAssignedPracticeCurrent() || assignedPracticeState.finished) return false;
   const state = assignedPracticeState;
   if (state.mode === "mock" && currentTestMeta?.targetId === "practice-view" && !testAlreadySaved) {
@@ -2441,7 +2474,7 @@ function assignedPracticeChooseMode(mode) {
   state.finished = false;
   if (mode === "mock") {
     state.study = null;
-    renderTest([...state.rows], {
+    renderTest(shuffleAssignedPractice(state.rows), {
       mode: "meaning", modeLabel: state.personal || state.preview ? "선택 범위 주관식 모의연습" : "배정 범위 주관식 모의연습",
       targetId: "practice-view", source: "ASSIGNED_TEST_PLAN",
       book: "[시험범위]", day: state.planDate || "배정 계획",
@@ -5255,6 +5288,7 @@ function escapeHtmlForPointRank(text) {
 }
   </script>
 
+  <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
