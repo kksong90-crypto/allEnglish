@@ -19,7 +19,7 @@ function fixture(count=8,randomValues=null){
   document:{getElementById:id=>id==='practice-view'?root:null,addEventListener:(type,fn)=>handlers[type]=fn,querySelector:()=>null},
   renderTest:(words,meta)=>{ctx.mockOrders.push({words,meta});ctx.currentVocabWords=words;ctx.currentTestMeta=meta;},mockOrders:[]};
  ctx.window=ctx;runInNewContext(shuffleSource+'\n'+mockSource+'\n'+moduleSource,ctx);ctx.PracticeExperience.render();
- const click=(pe,dataset={})=>handlers.click({target:{closest:()=>({disabled:false,dataset:{pe,...dataset}})}});
+ const click=(pe,dataset={},detail=0)=>handlers.click({detail,target:{closest:()=>({disabled:false,dataset:{pe,...dataset}})}});
  return {ctx,state,rows,root,click,draws:()=>draws};
 }
 const sameMembers=(actual,expected)=>assert.deepEqual([...actual].sort((a,b)=>a-b),[...expected].sort((a,b)=>a-b));
@@ -82,4 +82,26 @@ test('whole-range restart from a later 401-word batch preserves all 401 identiti
  h.click('all');assert.equal(h.state.batchStart,0);assert.equal(h.state.sourceRows.length,401);assert.equal(h.state.rows.length,200);
  assert.equal(new Set(h.state.sourceRows).size,401);assert.ok(h.state.sourceRows.every(row=>canonical.includes(row)));
  assert.deepEqual([...h.rows],canonical);sameMembers(h.state.experience.queue,Array.from({length:200},(_,i)=>i));
+});
+
+
+test('opening a Studio card preserves another stage word and shuffled order',()=>{
+ const h=fixture(),w=h.state.experience,order=[...w.queue];
+ w.positions.spell=2;const pending=order[2];
+ h.click('view',{view:'studio'});h.click('inspect',{index:'3'});
+ assert.deepEqual([...w.queue],order);assert.equal(w.queue[w.positions.spell],pending);
+ assert.equal(w.queue[w.positions.card],3);
+});
+test('inspecting outside a weak subset preserves other-stage identity and parent return',()=>{
+ const h=fixture(),w=h.state.experience,parent=[...w.queue];
+ w.cards.set(1,false);w.cards.set(4,false);w.positions.card=2;
+ h.click('weak');w.positions.spell=1;const pending=w.queue[1];
+ h.click('inspect',{index:'6'});
+ assert.equal(w.queue[w.positions.card],6);assert.equal(w.queue[w.positions.spell],pending);
+ h.click('restore');assert.deepEqual([...w.queue],parent);assert.equal(w.positions.card,2);
+});
+test('second pointer activation is ignored while keyboard activation works',()=>{
+ const h=fixture(),w=h.state.experience;h.click('start');
+ h.click('overview',{},2);assert.equal(w.screen,'study');
+ h.click('overview',{},0);assert.equal(w.screen,'overview');
 });

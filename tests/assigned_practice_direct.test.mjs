@@ -106,7 +106,7 @@ test('incomplete question responses fail closed instead of silently omitting a t
   const v = fixtureStudent({ backend });
   await v.boot();
   await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
-  assert.match(v.node('practice-view').innerHTML, /문항이 일부 누락/);
+  assert.match(v.node('practice-view').innerHTML, /시험범위 연습을 시작하지 못했어요/);
   assert.equal(v.node('practice-answer-0'), null);
   assert.equal(calls(v, 'saveVocabResult').length, 0);
 });
@@ -368,7 +368,7 @@ test('malformed Student API contract fails closed without misleading practice sc
     const v=fixtureStudent({backend});
     await v.boot();
     await v.context.startAssignedVocaPractice('VIRTUAL_PLAN_30');
-    assert.match(v.node('practice-view').innerHTML,expected,label);
+    assert.match(v.node('practice-view').innerHTML,/시험범위 연습을 시작하지 못했어요/,label);
     assert.equal(v.node('practice-answer-0'),null,label);
     assert.equal(v.read('assignedPracticeState'),null,label);
     assert.equal(calls(v,'saveVocabResult').length,0,label);

@@ -9,7 +9,7 @@ function extract(name) {
   const next = /\n\s*(?:async )?function \w+\(/.exec(html.slice(start+1));
   return html.slice(start,next ? start+1+next.index : html.indexOf('</script>',start));
 }
-const context = vm.createContext({});
+const context = vm.createContext({currentUser:{role:'student'}});
 for (const name of ['escapeHtml','formatMultilineHtml','scheduleHasValue','scheduleVocabItem']) vm.runInContext(extract(name),context);
 const item = {displayText:'[단어장] Day 1',testPlanId:'P',sourceRanges:[{}]};
 test('학생과 관리자 모두 중복 상태를 표시하고 개인연습은 차단',()=>{
@@ -34,4 +34,13 @@ test('자료의 HTML은 이스케이프하고 새 요청·저장·인쇄는 없�
   assert.doesNotMatch(output,/<img/);
   assert.match(output,/&lt;img/);
   assert.doesNotMatch(extract('scheduleVocabItem'),/apiPost|fetch\(|localStorage|sessionStorage|\.print\(|claim|lease/);
+});
+
+test('개인범위 매핑 실패는 학생에게만 재확인 안내를 표시',()=>{
+ const failed={...item,vocaScopeState:'PERSONAL_SCOPE_UNLINKED',sourceRanges:[],personalScopeErrorCode:'PRIVATE_CODE'};
+ context.currentUser={role:'student'};
+ const output=context.scheduleVocabItem([failed]);assert.match(output,/지금은 연습을 시작할 수 없어요/);assert.match(output,/최신 범위 다시 확인/);assert.doesNotMatch(output,/PRIVATE_CODE|startAssignedVocaPractice/);
+ assert.doesNotMatch(context.scheduleVocabItem([failed],true),/지금은 연습을 시작할 수 없어요/);
+ context.currentUser={role:'admin'};assert.doesNotMatch(context.scheduleVocabItem([failed]),/지금은 연습을 시작할 수 없어요/);
+ context.currentUser={role:'student'};
 });
