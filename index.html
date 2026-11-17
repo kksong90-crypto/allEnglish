@@ -3405,25 +3405,32 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
      ************************************************************/
     async function loadVocabBooks(epoch = studentSessionEpoch) {
       const target = document.getElementById("vocab-view");
+      const bookSelect = document.getElementById("vocab-book-select");
+      const daySelect = document.getElementById("vocab-day-select");
+      function unavailable(message) {
+        vocabData = [];
+        bookSelect.innerHTML = '<option value="">단어장 선택</option>';
+        daySelect.innerHTML = '<option value="">Day 선택</option>';
+        document.getElementById("vocab-progress").innerHTML = "";
+        document.getElementById("vocab-search-result").innerHTML = "";
+        target.innerHTML = `<div class="card" role="status">${escapeHtml(message)}<div class="button-row"><button type="button" class="vocab-btn secondary" data-testid="vocab-retry" onclick="loadVocabBooksOnce(true)">단어장 다시 불러오기</button></div></div>`;
+        // An empty or invalid read must remain retryable, never a completed catalog.
+        return false;
+      }
 
       try {
         const vocabResult = await apiGet({ action: "getVocabData" });
         if (epoch !== studentSessionEpoch) return false;
 
-        if (!vocabResult.success) {
-          target.innerHTML = `<div class='card'>${escapeHtml(vocabResult.message || "단어장 데이터를 불러오지 못했습니다.")}</div>`;
-          return false;
+        if (!vocabResult || vocabResult.success !== true) {
+          return unavailable("단어장을 불러오지 못했어요. 잠시 후 다시 불러와 주세요.");
         }
 
         vocabData = vocabResult.values || [];
 
         if (!Array.isArray(vocabData) || vocabData.length < 2) {
-          target.innerHTML = "<div class='card'>Vocab 시트에 단어 데이터가 없습니다.</div>";
-          return true;
+          return unavailable("정규 단어장 목록을 아직 확인하지 못했어요. 다시 불러오거나 위의 공개 교재에서 찾아보세요.");
         }
-
-        const bookSelect = document.getElementById("vocab-book-select");
-        const daySelect = document.getElementById("vocab-day-select");
 
         const bookMap = new Map();
         vocabData.slice(1).forEach(row => {
@@ -3439,8 +3446,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
           .map(item => item[0]);
 
         if (books.length === 0) {
-          target.innerHTML = "<div class='card'>단어장 이름이 없습니다. Vocab 시트 A열을 확인하세요.</div>";
-          return true;
+          return unavailable("단어장 목록을 확인하지 못했어요. 다시 불러와 주세요.");
         }
 
         bookSelect.innerHTML =
@@ -3455,8 +3461,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         return true;
       } catch (err) {
         if (epoch !== studentSessionEpoch) return false;
-        target.innerHTML = "<div class='card'>Vocab 시트를 불러오지 못했습니다. CoreDB VocabBooks/VocabWords 데이터를 확인하세요.</div>";
-        return false;
+        return unavailable("단어장 연결을 확인하지 못했어요. 인터넷 연결을 확인한 뒤 다시 불러와 주세요.");
       }
     }
 
@@ -4928,6 +4933,44 @@ function renderPointResult(result) {
     });
 
 
+
+    // Default favorites hydrate their existing legacy keys only when needed.
+    // Explicit native pilots keep their own selected-body/favorite transports.
+    if (new URLSearchParams(window.location.search).get('vocabNativePilot') !== '1') {
+      (function () {
+        const render = showFavorites, test = startFavoriteTest, meaning = startFavoriteMeaningCheck;
+        let requestSerial = 0;
+        async function prepare(action, force = false) {
+          const epoch = studentSessionEpoch, token = currentUser?.token, folder = currentFavoriteFolder;
+          const keys = [...new Set(favoriteFolders[folder] || [])];
+          const pin = JSON.stringify(favoriteFolders[folder] || []), request = ++requestSerial;
+          const current = () => request === requestSerial && epoch === studentSessionEpoch &&
+            token && token === currentUser?.token && folder === currentFavoriteFolder &&
+            pin === JSON.stringify(favoriteFolders[folder] || []) && getActiveTabId() === 'favorites';
+          if (!current()) return;
+          if (!keys.length) return action();
+          const target = document.getElementById('favorites-view');
+          const unavailable = message => {
+            target.innerHTML = `<div class="card" role="status">${escapeHtml(message)}<div class="button-row"><button type="button" class="vocab-btn secondary" data-testid="favorites-retry" onclick="showFavorites(true)">저장한 단어 다시 불러오기</button></div></div>`;
+          };
+          if (force || !vocabLoadedOnce) {
+            target.innerHTML = '<div class="card" role="status">저장한 단어를 불러오는 중입니다…</div>';
+            let loaded = false;
+            try { loaded = await loadVocabBooksOnce(force); } catch (ignore) {}
+            if (!current()) return;
+            if (!loaded) return unavailable('저장한 단어를 불러오지 못했어요. 잠시 후 다시 불러와 주세요.');
+          }
+          if (!current()) return;
+          if (getFavoriteRows().length !== keys.length) {
+            return unavailable('저장한 단어를 현재 목록에서 모두 확인하지 못했어요. 다시 불러와 주세요.');
+          }
+          return action();
+        }
+        showFavorites = (force = false) => prepare(render, force === true);
+        startFavoriteTest = () => prepare(test);
+        startFavoriteMeaningCheck = () => prepare(meaning);
+      })();
+    }
 
     // Read-only staged native browse. Default route remains byte-preserved.
     if (new URLSearchParams(window.location.search).get('vocabNativePilot') === '1') {

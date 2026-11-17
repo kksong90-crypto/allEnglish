@@ -33,11 +33,15 @@ jobs:
         run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Verify fourteen main UI journeys with synthetic identities and APIs
         run: node browser-tests/practice-experience.browser.mjs ${{ matrix.browser }}
+      - name: Verify role entry, retry and strict ALL failure journeys
+        run: node browser-tests/vocab-entry-recovery.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: practice-main-ui-${{ matrix.browser }}
-          path: browser-tests/artifacts/practice-experience/
+          path: |
+            browser-tests/artifacts/practice-experience/
+            browser-tests/artifacts/vocab-recovery/
           retention-days: 7
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
