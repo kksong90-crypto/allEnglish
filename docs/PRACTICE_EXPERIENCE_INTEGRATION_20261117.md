@@ -6,7 +6,7 @@
 
 | 대상 | 확인된 결과 | 증거 |
 | --- | --- | --- |
-| 학생웹 구현 | [PR #62](https://github.com/kksong90-crypto/allEnglish/pull/62), `81878ec53b6d925e0b6d0c117eff8a2c074352`, 2026-11-17 14:33:10 KST 병합 | 세 경험과 전체 범위 연습 통합 |
+| 학생웹 구현 | [PR #62](https://github.com/kksong90-crypto/allEnglish/pull/62), `81878ec53b6d925e0b6d0d6c117eff8a2c074352`, 2026-11-17 14:33:10 KST 병합 | 세 경험과 전체 범위 연습 통합 |
 | GitHub Pages | 같은 커밋 배포 성공, 14:33:49 KST 완료 | [Pages 배포 44024909544](https://github.com/kksong90-crypto/allEnglish/actions/runs/44024909544) |
 | 배포 후 검증 | 같은 커밋의 공개 자산·로그인 없는 요청 거부 검사 성공 | [Published release smoke 44024909389](https://github.com/kksong90-crypto/allEnglish/actions/runs/44024909389) |
 | Student API | 학습 배포 **65** → DB 전환 후 **66** | 기존 배포 URL 보존, 불변 소스·선택된 버전 읽기 대조 |
