@@ -2118,7 +2118,7 @@ function scheduleVocabItem(items, readOnly = false) {
     const planId = String(item?.testPlanId || "");
     const connected = !readOnly && planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
     const warning = item?.vocaScopeState === "DUPLICATE" ? '<div role="status">⚠ 학교 시험범위 계획이 중복되어 확인이 필요합니다. 표시된 학교범위는 확정 범위로 사용하지 마세요. 선생님께 문의해 주세요.</div>' : "";
-    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey)">시험범위 개인 연습</button>` : ""}</div>`;
+    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" data-personal-scope-fingerprint="${escapeHtml(String(item.personalScopeFingerprint || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">시험범위 개인 연습</button>` : ""}</div>`;
   }).join("");
   return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
 }
@@ -2176,7 +2176,8 @@ function shuffleAssignedPractice(items) {
   }
   return result;
 }
-async function startAssignedVocaPractice(testPlanId, button, slotKey = "") {
+async function startAssignedVocaPractice(testPlanId, button, slotKey = "", personalScopeFingerprint = "") {
+  const selectedFingerprint = String(personalScopeFingerprint || "").trim();
   const selectedSlot = String(slotKey || "").trim();
   const planId = String(testPlanId || "").trim();
   if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
@@ -2201,6 +2202,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "") {
       result = await apiPost({
         action: "getAssignedVocaPracticeQuestions",
         testPlanId: planId, ...(selectedSlot ? {slotKey: selectedSlot} : {}),
+        ...(selectedFingerprint ? {personalScopeFingerprint: selectedFingerprint} : {}),
         mode: "MEANING_TO_WORD",
         coverage: "ALL", offset: String(offset), scopeVersion,
         limit: "200", randomize: "false"
@@ -2249,7 +2251,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "") {
     if (rows.some(row => !row)) throw new Error("시험범위 문항이 일부 누락되었습니다. 최신 학습일정을 확인해 주세요.");
     if (duplicated) throw new Error("시험범위 문항이 중복되어 있습니다. 학습일정을 다시 확인해 주세요.");
     assignedPracticeState = {
-      planId, slotKey: selectedSlot, sourceRows: shuffleAssignedPractice(rows), batchStart: 0, rows: [],
+      planId, slotKey: selectedSlot, personalScopeFingerprint: selectedFingerprint, sourceRows: shuffleAssignedPractice(rows), batchStart: 0, rows: [],
       coverage: "ALL", scopeVersion, totalCount, planDate: String(result.planDate || ""), epoch,
       token: currentUser.token, mode: "", study: null, finished: true
     };
@@ -2389,7 +2391,7 @@ function assignedPracticeRestartRange() {
   const state = assignedPracticeState;
   // Only published assignments have a server-owned plan ID. Public/Day study
   // keeps its verified words locally, including after a wrong-word-only retry.
-  if (!state.personal && !state.preview && !state.sourceRows) return startAssignedVocaPractice(state.planId, null, state.slotKey);
+  if (!state.personal && !state.preview && !state.sourceRows) return startAssignedVocaPractice(state.planId, null, state.slotKey, state.personalScopeFingerprint);
   if (currentTestMeta?.targetId === 'practice-view') {
     currentTestMeta = null;
     testAlreadySaved = true;
@@ -2755,7 +2757,7 @@ function renderHomeVocabTask(item) {
     (school ? '<div class="home-task-school"><small>학교 시험 범위</small><p>' + escapeHtml(school) + '</p></div>' : '') +
     (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') +
     (connected ? '<button class="home-panel-action" type="button" data-test-plan-id="' + escapeHtml(planId) +
-      '" data-slot-key="' + escapeHtml(String(item.slotKey || '')) + '" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey)">이 시험범위 연습하기</button>' : '') + '</article>';
+      '" data-slot-key="' + escapeHtml(String(item.slotKey || '')) + '" data-personal-scope-fingerprint="' + escapeHtml(String(item.personalScopeFingerprint || '')) + '" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">이 시험범위 연습하기</button>' : '') + '</article>';
 }
 function renderHomeLearningPreview(payload) {
   const target = document.getElementById("home-learning-content");
