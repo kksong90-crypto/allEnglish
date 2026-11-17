@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'practice-experience.js'
+      - 'practice-experience.css'
       - 'student-shell.css'
       - 'station-library.js'
       - 'browser-tests/**'
@@ -11,28 +13,61 @@ on:
 permissions:
   contents: read
 jobs:
-  browser-smoke:
+  experience-main-ui:
+    name: Main experience UI (${{ matrix.browser }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Install isolated browser test package
-        run: npm --prefix browser-tests install --no-audit --no-fund
-      - name: Install headless Chromium and WebKit engines
+        run: npm --prefix browser-tests ci --no-audit --no-fund
+      - name: Install selected headless engine
         working-directory: browser-tests
-        run: npx playwright install --with-deps chromium webkit
-      - name: Android-sized Chromium and desktop browser flow
-        run: node browser-tests/assigned-practice.browser.mjs chromium
-      - name: Keyboard and accessible learning feedback
-        run: node browser-tests/mobile-review.browser.mjs
-      - name: iPhone-sized WebKit browser flow
-        run: node browser-tests/assigned-practice.browser.mjs webkit
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Verify fourteen main UI journeys with synthetic identities and APIs
+        run: node browser-tests/practice-experience.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: practice-browser-synthetic-screenshots
+          name: practice-main-ui-${{ matrix.browser }}
+          path: browser-tests/artifacts/practice-experience/
+          retention-days: 7
+  legacy-unavailable-module-fallback:
+    name: Explicit unavailable-module fallback (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      # Only these fallback tests may deliberately abort practice-experience.js.
+      PRACTICE_LEGACY_FALLBACK: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser test package
+        run: npm --prefix browser-tests ci --no-audit --no-fund
+      - name: Install selected headless engine
+        working-directory: browser-tests
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Verify legacy four-mode UI when the experience module is unavailable
+        run: node browser-tests/assigned-practice.browser.mjs ${{ matrix.browser }}
+      - name: Verify legacy keyboard and feedback fallback
+        if: matrix.browser == 'chromium'
+        run: node browser-tests/mobile-review.browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: practice-legacy-fallback-${{ matrix.browser }}
           path: browser-tests/artifacts/
           retention-days: 7

@@ -1,10 +1,14 @@
-// Scenario review only. Synthetic account and API; no real user interview or operational writes.
+// Legacy fallback keyboard review only; deliberately block the new experience module.
+// Synthetic account and API; no real user interview or operational writes.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import fs from 'node:fs';
+const legacyFallback=process.env.PRACTICE_LEGACY_FALLBACK==='1';
+if(!legacyFallback)throw Error('Legacy keyboard suite: set PRACTICE_LEGACY_FALLBACK=1; use practice-experience.browser.mjs for main UI focus checks.');
+console.log('LEGACY FALLBACK KEYBOARD TEST: new experience module is deliberately unavailable.');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const origin='https://mobile-review.invalid';
 const errors=[],actions=[],observations=[];
@@ -14,6 +18,7 @@ try {
  await context.addInitScript(()=>localStorage.setItem('allbarun-user',JSON.stringify({id:'SYNTHETIC_MOBILE',name:'가상 학생',role:'student',token:'SYNTHETIC_ONLY'})));
  await context.route('**/*',async route=>{
   const url=new URL(route.request().url());
+  if(legacyFallback&&url.pathname.endsWith('/practice-experience.js'))return route.abort('failed');
   if(url.origin===origin){
    const target=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
    if(!target.startsWith(root+path.sep))return route.abort();
@@ -28,6 +33,7 @@ try {
  });
  const page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));
  await page.goto(origin,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!currentUser?.token);
+ assert.equal(await page.evaluate(()=>typeof window.PracticeExperience),'undefined','keyboard review must exercise the explicitly unavailable-module fallback');
  await page.evaluate(()=>startPublicVocaPractice({revisionId:'SYNTHETIC_REV',label:'테스트 Day 1',words:[
   {vocabWordId:'W1',word:'apple',meaning:'사과'},
   {vocabWordId:'W2',word:'banana',meaning:'바나나'},
@@ -36,13 +42,15 @@ try {
  await page.getByRole('button',{name:'스펠링',exact:true}).click();
  const input=page.locator('#practice-spell-input');
  observations.push({scenario:'spelling-mode-entry',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,inputVisible:!!document.getElementById('practice-spell-input'),horizontalOverflow:document.documentElement.scrollWidth>innerWidth+1}))});
- await input.fill('apple');await input.press('Enter');
+ const firstSpelling=await page.evaluate(()=>assignedPracticeState.rows[assignedPracticeCurrentIndex()][2]);
+ await input.fill(firstSpelling);await input.press('Enter');
  observations.push({scenario:'spelling-submit',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,feedback:document.querySelector('.practice-feedback')?.textContent}))});
  await page.getByRole('button',{name:'다음 단어',exact:true}).click();
  observations.push({scenario:'spelling-next',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,prompt:document.querySelector('.practice-prompt')?.textContent,inputTop:document.getElementById('practice-spell-input')?.getBoundingClientRect().top,viewport:innerHeight}))});
  await page.keyboard.press('Tab');
  observations.push({scenario:'keyboard-tab-after-next',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,label:document.activeElement?.getAttribute('aria-label')||document.activeElement?.textContent}))});
  await page.getByRole('button',{name:'암기 카드',exact:true}).click();
+ const secondCard=await page.evaluate(()=>assignedPracticeState.rows[assignedPracticeState.study.queue[1]][2]);
  await page.getByRole('button',{name:'뜻 확인하기',exact:true}).click();
  observations.push({scenario:'card-reveal',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,revealLive:document.querySelector('.practice-reveal')?.getAttribute('aria-live'),revealRole:document.querySelector('.practice-reveal')?.getAttribute('role'),modeSelection:document.querySelector('.practice-mode.active')?.getAttribute('aria-pressed'),visibleActions:[...document.querySelectorAll('.practice-actions button')].map(b=>({label:b.textContent,top:b.getBoundingClientRect().top,bottom:b.getBoundingClientRect().bottom,height:b.getBoundingClientRect().height})),viewport:innerHeight}))});
  await page.getByRole('button',{name:'뜻 다시 가리기',exact:true}).click();
@@ -55,7 +63,7 @@ try {
  observations.push({scenario:'study-finish',...await page.evaluate(()=>({active:document.activeElement?.id||document.activeElement?.tagName,title:document.querySelector('.practice-finished h3')?.textContent}))});
  assert.deepEqual(errors,[]);
  assert.equal(actions.some(a=>['saveVocabResult','submitPointTest','saveFavoriteState'].includes(a)),false);
- console.log(JSON.stringify({type:'synthetic-mobile-review',observations,errors,officialWrites:0},null,2));
+ console.log(JSON.stringify({type:'synthetic-legacy-fallback-mobile-review',observations,errors,officialWrites:0},null,2));
  // Regression expectation: after advancing spelling, the next answer box owns keyboard focus.
  const scenario=name=>observations.find(o=>o.scenario===name);
  assert.equal(scenario('spelling-mode-entry').active,'practice-spell-input','Entering spelling must focus its answer box.');
@@ -69,7 +77,7 @@ try {
  assert.equal(scenario('card-hide').active,'practice-reveal-button');
  assert.equal(scenario('card-hide').revealCount,0);
  assert.equal(scenario('card-next').active,'practice-reveal-button');
- assert.equal(scenario('card-next').prompt,'banana');
+ assert.equal(scenario('card-next').prompt,secondCard);
  assert.equal(scenario('study-finish').active,'practice-finished-heading');
  assert.equal(scenario('study-finish').title,'이번 연습 완료');
 } finally {await browser.close();}

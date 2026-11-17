@@ -2,7 +2,7 @@ name: Student published release smoke
 on:
   push:
     branches: [main]
-    paths: ['index.html', 'station-library.js', '.github/workflows/student-release-smoke.yml']
+    paths: ['practice-experience.js', 'practice-experience.css', 'scripts/check-published-student.mjs', 'index.html', 'station-library.js', '.github/workflows/student-release-smoke.yml']
 permissions:
   contents: read
 jobs:
