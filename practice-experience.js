@@ -72,14 +72,27 @@
       s.experience=null;s.experienceBatches=new Map();const fresh=workspace(s);fresh.view=view;fresh.stage=stage;begin(fresh,s.rows.map((_,n)=>n));
     }
     else if(action==='advance'){w.stage=w.stage==='card'?'recall':'spell';w.positions[w.stage]=0;w.screen='study';}
-    else if(action==='inspect'){const n=Number(el.dataset.index);w.queue=s.rows.map((_,n)=>n);w.positions[w.stage]=n;w.screen='study';w.started=true;}
+    else if(action==='inspect'){
+      const n=Number(el.dataset.index);
+      if(!w.queue.includes(n)){
+        // Inspecting beyond a weak subset must not silently change another stage's word.
+        const previous=w.queue;
+        w.queue=w.parent?.queue.slice()||s.rows.map((_,i)=>i);
+        for(const stage of Object.keys(stages)){
+          const position=w.positions[stage];
+          w.positions[stage]=position>=previous.length?w.queue.length:Math.max(0,w.queue.indexOf(previous[position]));
+        }
+      }
+      w.positions[w.stage]=w.queue.indexOf(n);w.screen='study';w.started=true;
+    }
     else if(action==='page-prev'){w.page=Math.max(0,w.page-1);selector='[data-pe="page-next"]';}
     else if(action==='page-next'){w.page=Math.min(Math.ceil(s.rows.length/6)-1,w.page+1);selector='[data-pe="page-prev"]';}
     else if(action==='source'){assignedPracticeReturnToSource();return;}
     else if(action==='mock'){w.enteringMock=true;try{assignedPracticeChooseMode('mock');}finally{w.enteringMock=false;}return;}
     render(selector);
   }
-  document.addEventListener('click',event=>{const el=event.target.closest('#practice-view [data-pe]');if(el&&!el.disabled)dispatch(el);});
+  // A rerender can move a different button under the second click. Keep keyboard clicks.
+  document.addEventListener('click',event=>{const el=event.target.closest('#practice-view [data-pe]');if(el&&!el.disabled&&!(event.detail>1))dispatch(el);});
   document.addEventListener('input',event=>{if(event.target.id!=='pe-answer'||!current())return;const w=workspace(current());w.drafts.set(key(w,index(w)),event.target.value);});
   document.addEventListener('keydown',event=>{if(event.target.id!=='pe-answer'||event.key!=='Enter'||event.isComposing)return;event.preventDefault();const s=current();if(!s)return;const w=workspace(s);const action=w.feedback.has(key(w,index(w)))?'next':'check';const el=document.querySelector(`#practice-view [data-pe="${action}"]`);if(el&&!el.disabled)dispatch(el);});
   window.PracticeExperience={render,hasDraft(){const s=current();if(!s?.experience||s.mode==='mock'||s.experience.enteringMock)return false;return [...s.experience.drafts].some(([k,v])=>String(v).trim()&&!s.experience.feedback.has(k));},back(){const s=current();if(!s?.experience||s.mode==='mock')return false;workspace(s).screen='overview';render('[data-pe="start"]');return true;}};

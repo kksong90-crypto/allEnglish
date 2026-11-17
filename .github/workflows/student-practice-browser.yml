@@ -37,6 +37,8 @@ jobs:
         run: node browser-tests/vocab-entry-recovery.browser.mjs ${{ matrix.browser }}
       - name: Verify home preparation remains visible across login, reload and navigation
         run: node browser-tests/home-preparation-visibility.browser.mjs ${{ matrix.browser }}
+      - name: Verify repeated interactions, cancellation, offline recovery and inspect order
+        run: node browser-tests/additional-practice-audit.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,6 +47,7 @@ jobs:
             browser-tests/artifacts/practice-experience/
             browser-tests/artifacts/vocab-recovery/
             browser-tests/artifacts/home-visibility/
+            browser-tests/artifacts/additional-practice/
           retention-days: 7
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
