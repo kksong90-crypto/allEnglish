@@ -1455,6 +1455,9 @@ async function loadHomeContent(forceRefresh = false) {
 
     function afterLogin() {
   document.getElementById("login-screen").style.display = "none";
+  if (getActiveTabId() === "practice" && !assignedPracticeState) {
+    showTab("home", { skipHistory: true, deferLoad: true });
+  }
   updateUserLabel();
   if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.syncPanel();
 
@@ -1766,6 +1769,9 @@ function printMyScoreReport() {
 }
     
     function showTab(tabId, options = {}) {
+      // Practice is memory-only. A stale history entry cannot restore its private scope.
+      // deferLoad permits the existing asynchronous practice entry before state arrives.
+      if (tabId === "practice" && !assignedPracticeState && !options.deferLoad) tabId = "home";
       const section = document.getElementById(tabId);
       if (!section) return;
 
@@ -1784,9 +1790,9 @@ function printMyScoreReport() {
       }
 
       if (!options.skipHistory && previousTab && previousTab !== tabId) {
-        appTabHistory.push(previousTab);
+        if (previousTab !== "practice") appTabHistory.push(previousTab);
         if (appTabHistory.length > 30) appTabHistory.shift();
-        setBrowserHistoryState(tabId, "push");
+        setBrowserHistoryState(tabId, previousTab === "practice" ? "replace" : "push");
       }
 
       currentTabId = tabId;
@@ -1895,13 +1901,16 @@ updateAppBackButton();
     function initAppBackHandling() {
       try {
         const savedHistory = JSON.parse(sessionStorage.getItem("allbarun-tab-history") || "[]");
-        appTabHistory = Array.isArray(savedHistory) ? savedHistory : [];
+        appTabHistory = Array.isArray(savedHistory)
+          ? savedHistory.filter(tab => typeof tab === "string" && tab !== "practice" && document.getElementById(tab)?.tagName === "SECTION")
+          : [];
       } catch (err) {
         appTabHistory = [];
       }
 
       const savedTab = sessionStorage.getItem("allbarun-current-tab");
-      const startTab = document.getElementById(savedTab) ? savedTab : getActiveTabId();
+      const startTab = savedTab !== "practice" && document.getElementById(savedTab)?.tagName === "SECTION"
+        ? savedTab : "home";
 
       currentTabId = startTab || "home";
       showTab(currentTabId, { skipHistory: true, keepScroll: true, deferLoad: true });
