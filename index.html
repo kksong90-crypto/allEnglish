@@ -2118,7 +2118,9 @@ function scheduleVocabItem(items, readOnly = false) {
     const planId = String(item?.testPlanId || "");
     const connected = !readOnly && planId && item?.vocaScopeState === "CONNECTED" && Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
     const warning = item?.vocaScopeState === "DUPLICATE" ? '<div role="status">⚠ 학교 시험범위 계획이 중복되어 확인이 필요합니다. 표시된 학교범위는 확정 범위로 사용하지 마세요. 선생님께 문의해 주세요.</div>' : "";
-    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" data-personal-scope-fingerprint="${escapeHtml(String(item.personalScopeFingerprint || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">시험범위 개인 연습</button>` : ""}</div>`;
+    const personalUnavailable = !readOnly && String(currentUser?.role || '').toLowerCase() === 'student' && !connected && item.vocaScopeState === 'PERSONAL_SCOPE_UNLINKED'
+      ? '<div role="status">시험범위를 확인하지 못해 지금은 연습을 시작할 수 없어요. 최신 범위를 다시 확인하고, 계속 표시되면 선생님께 문의해 주세요.<button type="button" class="vocab-btn secondary" onclick="loadMySchedule(myScheduleCurrentRange,true)">최신 범위 다시 확인</button></div>' : '';
+    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${personalUnavailable}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" data-personal-scope-fingerprint="${escapeHtml(String(item.personalScopeFingerprint || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">시험범위 개인 연습</button>` : ""}</div>`;
   }).join("");
   return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
 }
@@ -2259,9 +2261,11 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
     renderAssignedPracticeMenu();
   } catch (error) {
     if (!current()) return;
-    target.innerHTML = '<div class="card">' + escapeHtml(error?.message || "연습을 시작하지 못했습니다.") +
+    target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.</p>' +
       '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\')">홈에서 최신 시험범위 확인</button></div></div>';
-    showAppToast("시험범위 개인 연습을 시작하지 못했습니다.");
+    const heading = document.getElementById('practice-load-error-heading');
+    heading?.focus?.({preventScroll:true});
+    heading?.scrollIntoView?.({block:'nearest',behavior:'instant'});
   } finally {
     if (button) { button.disabled = false; button.textContent = originalText; }
   }
@@ -2751,11 +2755,14 @@ function renderHomeVocabTask(item) {
   const connected = String(currentUser?.role || "student").toLowerCase() === "student" &&
     planId && item?.vocaScopeState === "CONNECTED" &&
     Array.isArray(item?.sourceRanges) && item.sourceRanges.length > 0;
+  const personalUnavailable = String(currentUser?.role || '').toLowerCase() === 'student' && !connected &&
+    item.vocaScopeState === 'PERSONAL_SCOPE_UNLINKED' && (regular || school || fallback)
+    ? '<div role="status">시험범위를 확인하지 못해 지금은 연습을 시작할 수 없어요. 최신 범위를 다시 확인하고, 계속 표시되면 선생님께 문의해 주세요.<button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">최신 범위 다시 확인</button></div>' : '';
   return '<article class="home-task"><h3>이번 시험 단어</h3>' +
     (book ? '<p class="home-task-book">' + escapeHtml(book) + '</p>' : '') +
     (regular ? '<p class="home-task-scope">' + escapeHtml(regular) + '</p>' : '') +
     (school ? '<div class="home-task-school"><small>학교 시험 범위</small><p>' + escapeHtml(school) + '</p></div>' : '') +
-    (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') +
+    (fallback ? '<p>' + escapeHtml(fallback) + '</p>' : '') + personalUnavailable +
     (connected ? '<button class="home-panel-action" type="button" data-test-plan-id="' + escapeHtml(planId) +
       '" data-slot-key="' + escapeHtml(String(item.slotKey || '')) + '" data-personal-scope-fingerprint="' + escapeHtml(String(item.personalScopeFingerprint || '')) + '" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">이 시험범위 연습하기</button>' : '') + '</article>';
 }

@@ -159,7 +159,7 @@ if(preview){
    assert.equal(await page.getByRole('button',{name:'다음 묶음 →',exact:true}).isDisabled(),true);await shot('assigned-full-scope-'+count+'-last-batch');
   });
   for(const [apiScenario,message] of [['legacy',/전체 시험범위 연습 API가 아직 업데이트/],['metadata',/문항 수나 페이지 정보/],['mutation',/시험범위가 변경/],['totalMutation',/시험범위가 변경/],['duplicate',/문항이 중복/],['pageGap',/페이지가 누락되었거나 중복/]])await run('reject-'+apiScenario,{count:401,apiScenario},async({page,assigned})=>{
-   await assigned(message);assert.equal(await page.locator('.practice-experience').count(),0);assert.equal(await page.evaluate(()=>assignedPracticeState),null,'partial or mixed scope cannot become a usable practice state');
+   await assigned(/시험범위 연습을 시작하지 못했어요/);assert.equal(await page.locator('.practice-experience').count(),0);assert.equal(await page.evaluate(()=>assignedPracticeState),null,'partial or mixed scope cannot become a usable practice state');
   });
   await run('admin-205-batch-preservation',{role:'admin',count:205},async({page,pe,publicScope,shot})=>{
    await publicScope();assert.match(await page.locator('.pe-aside').textContent(),/미리보기/);await pe('start').click();await page.locator('#practice-view [data-pe="stage"][data-stage="spell"]').click();await page.locator('#pe-answer').fill('saved-batch-draft');
