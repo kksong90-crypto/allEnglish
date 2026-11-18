@@ -5,11 +5,11 @@
   const originalDays = loadVocabDays, originalSearch = searchVocab;
   const originalFavorites = showFavorites, originalTest = startFavoriteTest, originalMeaning = startFavoriteMeaningCheck;
   const originalReset = resetUserScopedState;
-  let owner = '', catalog = null, catalogTicket = 0, bookTicket = 0, searchTicket = 0;
+  let owner = '', catalog = null, catalogTicket = 0, bookTicket = 0, searchTicket = 0, favoriteTicket = 0;
   let fullRows = null, fullFlight = null, fullTicket = 0;
   const books = new Map(), flights = new Map();
   const identity = () => studentSessionEpoch + '|' + String(currentUser?.token || '');
-  function clear() { catalog = null; books.clear(); flights.clear(); fullRows = null; fullFlight = null; fullTicket++; catalogTicket++; bookTicket++; searchTicket++; }
+  function clear() { catalog = null; books.clear(); flights.clear(); fullRows = null; fullFlight = null; fullTicket++; catalogTicket++; bookTicket++; searchTicket++; favoriteTicket++; }
   function sync() { const next = identity(); if (owner !== next) { clear(); owner = next; } return next; }
   const node = id => document.getElementById(id);
   function failure(target, text, action) {
@@ -59,7 +59,7 @@
   resetUserScopedState = function () { clear(); owner = ''; return originalReset(); };
   loadVocabBooks = async function (epoch = studentSessionEpoch) {
     const session = sync(), ticket = ++catalogTicket; bookTicket++; searchTicket++;
-    catalog = null; books.clear(); flights.clear(); vocabData = [header];
+    catalog = null; books.clear(); flights.clear(); fullRows = null; fullFlight = null; fullTicket++; vocabData = [header];
     node('vocab-book-select').innerHTML = '<option value="">단어장 선택</option>';
     node('vocab-day-select').innerHTML = '<option value="">Day 선택</option>';
     try {
@@ -120,12 +120,19 @@
     return sortWordsByOrder((fullRows || [header]).slice(1).filter(row => keys.has(makeWordKey(row))));
   };
   async function favorites(action, force = false) {
-    const session = sync(), folder = currentFavoriteFolder, pin = JSON.stringify(favoriteFolders[folder] || []);
+    const session = sync(), ticket = ++favoriteTicket, folder = currentFavoriteFolder, pin = JSON.stringify(favoriteFolders[folder] || []);
+    const current = () => session === identity() && ticket === favoriteTicket && folder === currentFavoriteFolder && pin === JSON.stringify(favoriteFolders[folder] || []);
     if (!(favoriteFolders[folder] || []).length) return action();
-    try { await compatibilityRows(force); if (session === identity() && folder === currentFavoriteFolder && pin === JSON.stringify(favoriteFolders[folder] || [])) return action(); }
-    catch (error) { if (session === identity() && folder === currentFavoriteFolder) failure('favorites-view',error.message,'showFavorites(true)'); }
+    try {
+      if (force || !vocabLoadedOnce || !catalog) {
+        const loaded = await loadVocabBooksOnce(force || !catalog);
+        if (!current()) return;
+        if (!loaded) throw Error('단어장 목록을 불러오지 못했습니다. 다시 시도해 주세요.');
+      }
+      await compatibilityRows(force); if (current()) return action();
+    } catch (error) { if (current()) failure('favorites-view',error.message,'showFavorites(true)'); }
   }
-  showFavorites = (force = false) => favorites(() => originalFavorites(force), force === true);
+  showFavorites = (force = false) => favorites(() => originalFavorites(false), force === true);
   startFavoriteTest = () => favorites(originalTest);
   startFavoriteMeaningCheck = () => favorites(originalMeaning);
 })();
