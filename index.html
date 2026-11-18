@@ -2754,7 +2754,7 @@ function invalidateStudentPreparation() {
   if (target) target.innerHTML = '<div class="card" role="status">최신 계획을 다시 확인하고 있어요.</div>';
   if (summary) summary.innerHTML = "";
 }
-function renderHomeVocabTask(item) {
+function renderHomeVocabTask(item, testDay = null) {
   if (item.vocaScopeState === "DUPLICATE") return '<article class="home-task home-task-warning"><h3>단어 범위 확인이 필요해요.</h3><p>확정 범위를 확인한 뒤 준비해 주세요.</p></article>';
   const regular = String(item.regularText || "").trim();
   const school = String(item.schoolVocabText || "").trim();
@@ -2767,7 +2767,9 @@ function renderHomeVocabTask(item) {
   const personalUnavailable = String(currentUser?.role || '').toLowerCase() === 'student' && !connected &&
     item.vocaScopeState === 'PERSONAL_SCOPE_UNLINKED' && (regular || school || fallback)
     ? '<div role="status">시험범위를 확인하지 못해 지금은 연습을 시작할 수 없어요. 최신 범위를 다시 확인하고, 계속 표시되면 선생님께 문의해 주세요.<button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">최신 범위 다시 확인</button></div>' : '';
-  return '<article class="home-task"><h3>이번 시험 단어</h3>' +
+  return '<article class="home-task"><h3>' + (testDay ? (testDay.date === getTodayString() ? '오늘 단어시험' : '예정된 단어시험') : '이번 시험 단어') + '</h3>' +
+    (testDay ? '<p><time>' + escapeHtml(testDay.displayDate || testDay.date) + '</time>' +
+      (item.lessonTime ? ' · ' + escapeHtml(item.lessonTime) : '') + '</p>' : '') +
     (book ? '<p class="home-task-book">' + escapeHtml(book) + '</p>' : '') +
     (regular ? '<p class="home-task-scope">' + escapeHtml(regular) + '</p>' : '') +
     (school ? '<div class="home-task-school"><small>학교 시험 범위</small><p>' + escapeHtml(school) + '</p></div>' : '') +
@@ -2788,10 +2790,15 @@ function renderHomeLearningPreview(payload) {
   }
   const date = day.displayDate || day.date || "";
   const tasks = [];
-  const vocab = Array.isArray(day.vocab) ? day.vocab : [];
+  // The next lesson can have no test. Find the earliest published vocabulary
+  // scope independently, keeping all assignments on that date and each slot key.
+  const examDay = [day, ...futurePayload.days, ...futurePayload.visibleDays]
+    .filter(candidate => !candidate.closed && !candidate.personalDayOff && candidate.vocab?.length)
+    .sort((left, right) => left.date.localeCompare(right.date))[0];
+  const vocab = examDay?.vocab || [];
   if (day.closed) tasks.push('<article class="home-task"><h3>' + escapeHtml(day.closure?.type || "휴원") + '</h3><p>' + escapeHtml(day.closure?.memo || "이번 날짜에는 수업이 없습니다.") + '</p></article>');
-  else if (vocab.length) tasks.push(vocab.map(renderHomeVocabTask).join(""));
-  else tasks.push('<article class="home-task"><h3>단어 시험</h3><p class="home-task-note">' +
+  if (vocab.length) tasks.push(vocab.map(item => renderHomeVocabTask(item, examDay)).join(""));
+  else if (!day.closed) tasks.push('<article class="home-task"><h3>단어 시험</h3><p class="home-task-note">' +
     (day.preparationStatus?.vocab === "EXEMPT" ? "이번 수업 단어시험 없음" : "단어 범위 안내가 아직 없습니다.") + '</p></article>');
   const listening = formatListeningScheduleText(day.listening);
   const listeningEmpty = day.preparationStatus?.listening === "EXEMPT" ? "듣기 면제" :
@@ -2851,8 +2858,10 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   const normalized = normalizeScheduleRange(range);
   const epoch = studentSessionEpoch;
   const requestSerial = ++myScheduleRequestSerial;
-  homeScheduleRequestSerial += 1;
-  if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
+  if (normalized !== "today") {
+    homeScheduleRequestSerial += 1;
+    if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
+  }
   const priorSummary = document.getElementById("schedule-summary-view");
   if (priorSummary) priorSummary.innerHTML = "";
   myScheduleCurrentRange = normalized;
@@ -2866,16 +2875,16 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   setScheduleButtonsDisabled(true);
 
   try {
-    const payload = await fetchMyLearningSchedule(normalized, true);
+    const payload = await fetchMyLearningSchedule(normalized, forceRefresh || normalized !== "today");
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     renderMySchedule(payload);
     // The explicit read superseded older home responses before the request began.
-    renderHomeLearningPreview(payload);
+    if (normalized !== "today") renderHomeLearningPreview(payload);
   } catch (err) {
     console.error(err);
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
-    if (typeof renderHomePreparationState === "function") renderHomePreparationState("error");
+    if (normalized !== "today" && typeof renderHomePreparationState === "function") renderHomePreparationState("error");
   } finally {
     if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
     if (target) delete target.dataset.loading;
