@@ -1,0 +1,120 @@
+Browser tab: 25, Title: "All바른 통합 STAGING", URL: "https://script.google.com/macros/s/AKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A/exec?ui=1&build=integrated35".
+1 AXWebArea All바른 통합 STAGING, URL: script.google.com/macros/s/AKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A/exec?ui=1&build=integrated35
+	2 container warning-bar-table
+		5 container 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다.
+			6 container 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다., ID: warning
+				7 text 이 애플리케이션은 Google Apps Script 사용자가 만들었습니다.
+				8 link Description: 악용사례 신고, Value: drive.google.com/abuse?id=AFS7Ads6cqh1si9oc3jQsIwBewyrdUdj36AdZDbWA8w0xVD-CZ9ipgv42TelogPaZfw14FpfuDhl5Br_QMVHUzhNkmMxORlvyz1ix-VQ%3A0&docurl=https%3A%2F%2Fscript.google.com%2Fmacros%2Fs%2FAKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A%2Fexec%3Fui%3D1%26build%3Dintegrated35
+				9 link Description: 자세히 알아보기, Value: developers.google.com/apps-script
+				10 button 닫기
+		3 container All바른 통합 STAGING
+			4 container Description: All바른 통합 STAGING, ID: sandboxFrame
+				11 AXWebArea n-v3qknmnmoqbmk2hve4mnzfssw3mge3kr2fnw6ea-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true
+					12 container Description: All바른 통합 STAGING, ID: userHtmlFrame
+						13 AXWebArea All바른 녹음체크, URL: n-v3qknmnmoqbmk2hve4mnzfssw3mge3kr2fnw6ea-0lu-script.googleusercontent.com/userCodeAppPanel?createOAuthDialog=true
+							14 container
+								15 heading <경근T> 녹음체크, Value: 1
+									16 text <경근T> 녹음체크
+								17 text 11월 16일 월요일
+								18 text 온라인
+								19 text 서버 상태 재확인 완료
+								20 button 설정
+							21 container
+								22 container 업무 선택
+									23 checkbox 녹음체크, Value: 1
+									24 checkbox 예정결석, Value: 0
+									25 checkbox 학교시험 성적, Value: 0
+								26 container Description: 녹음체크, ID: workspace-recording
+									27 container Description: 녹음 대상 날짜, ID: date-strip
+										28 button 11/12(목)2명
+											29 text 11/12(목)
+											30 text 2명
+										31 button 11/16(월)30명
+											32 text 11/16(월)
+											33 text 30명
+									34 container 녹음 제출 현황
+										35 text 대상
+										36 text 30
+										37 text 제출
+										38 text 30
+										39 text 미확인
+										40 text 0
+										41 progress indicator Description: 녹음 제출 완료율, Value: 100, ID: recording-progress
+									42 container notice-banner
+										43 text 전원 제출 완료
+										44 button (collapsed) 공지 안내, Secondary Actions: Expand
+											45 text 공지 안내
+										46 text 마감 15:00
+									47 container
+										48 text 학생 또는 반 검색
+										49 search text field (settable) 학생 또는 반 검색, ID: recording-search
+									50 checkbox 미확인만, Value: 0, ID: pending-only
+									51 container
+										52 heading [검증전용] 녹음 저장 QA, Value: 2
+											53 text [검증전용] 녹음 저장 QA
+										54 text 학생별 확정 범위는 아래에서 확인하세요 30/30
+										55 checkbox (settable, integer) Description: 검증학생1 저장 당시 범위 · 검증용 Day 1 제출 · 11/14 01:13, Value: 1
+										56 text 검증학생1 저장 당시 범위  · 검증용 Day 1 제출 · 11/14 01:13
+										57 checkbox (settable, integer) Description: 검증학생2 저장 당시 범위 · 검증용 Day 1 제출 · 11/14 01:13, Value: 1
+										58 text 검증학생2 저장 당시 범위  · 검증용 Day 1 제출 · 11/14 01:13
+										59 checkbox (settable, integer) Description: 규모검증01 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										60 text 규모검증01 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										61 checkbox (settable, integer) Description: 규모검증02 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										62 text 규모검증02 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										63 checkbox (settable, integer) Description: 규모검증03 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										64 text 규모검증03 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										65 checkbox (settable, integer) Description: 규모검증04 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										66 text 규모검증04 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										67 checkbox (settable, integer) Description: 규모검증05 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										68 text 규모검증05 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										69 checkbox (settable, integer) Description: 규모검증06 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										70 text 규모검증06 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										71 checkbox (settable, integer) Description: 규모검증07 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										72 text 규모검증07 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										73 checkbox (settable, integer) Description: 규모검증08 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										74 text 규모검증08 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										75 checkbox (settable, integer) Description: 규모검증09 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										76 text 규모검증09 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										77 checkbox (settable, integer) Description: 규모검증10 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										78 text 규모검증10 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										79 checkbox (settable, integer) Description: 규모검증11 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										80 text 규모검증11 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										81 checkbox (settable, integer) Description: 규모검증12 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										82 text 규모검증12 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										83 checkbox (settable, integer) Description: 규모검증13 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										84 text 규모검증13 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										85 checkbox (settable, integer) Description: 규모검증14 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										86 text 규모검증14 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										87 checkbox (settable, integer) Description: 규모검증15 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										88 text 규모검증15 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										89 checkbox (settable, integer) Description: 규모검증16 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										90 text 규모검증16 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										91 checkbox (settable, integer) Description: 규모검증17 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										92 text 규모검증17 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										93 checkbox (settable, integer) Description: 규모검증18 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										94 text 규모검증18 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										95 checkbox (settable, integer) Description: 규모검증19 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										96 text 규모검증19 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										97 checkbox (settable, integer) Description: 규모검증20 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										98 text 규모검증20 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										99 checkbox (settable, integer) Description: 규모검증21 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										100 text 규모검증21 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										101 checkbox (settable, integer) Description: 규모검증22 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:14, Value: 1
+										102 text 규모검증22 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:14
+										103 checkbox (settable, integer) Description: 규모검증23 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										104 text 규모검증23 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+										105 checkbox (settable, integer) Description: 규모검증24 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										106 text 규모검증24 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+										107 checkbox (settable, integer) Description: 규모검증25 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										108 text 규모검증25 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+										109 checkbox (settable, integer) Description: 규모검증26 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										110 text 규모검증26 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+										111 checkbox (settable, integer) Description: 규모검증27 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										112 text 규모검증27 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+										113 checkbox (settable, integer) Description: 규모검증28 저장 당시 범위 · 범위 확인 필요 제출 · 11/14 01:15, Value: 1
+										114 text 규모검증28 저장 당시 범위  · 범위 확인 필요 제출 · 11/14 01:15
+								115 text 최근 동기화 01:15:21
+								116 text v8.2.22
+							117 text 다른 화면에서 이 학생의 체크가 변경되었습니다. 최신 상태를 다시 확인합니다.
+
+The focused UI element is 1 AXWebArea All바른 통합 STAGING, URL: script.google.com/macros/s/AKfycbz5m2VgIPcI8ltqSqpL74YS7vX8iD9pgYFOYZRBglkpd-mCQsevvrZHo9T6RPRd9B4G2A/exec?ui=1&build=integrated35

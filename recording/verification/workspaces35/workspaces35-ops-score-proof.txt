@@ -1,0 +1,46 @@
+												534 cell
+													535 checkbox (settable, integer) 0
+												536 cell
+													537 text 검증학생1
+													538 text RECQA_20261112_S1
+												539 cell
+													540 text [검증전용] 통합테스트학교 · 1
+												541 cell
+													542 text [검증전용] 녹음 저장 QA
+												543 cell
+													544 stepper (settable, float) 84.5
+												545 cell
+													546 stepper (settable) 위 공통값에서 수정
+												547 cell
+													548 stepper (settable)
+												549 cell
+													550 stepper (settable) 위 공통값에서 수정
+												551 cell
+													552 checkbox (settable, integer) 0
+												553 cell
+													554 text field (settable)
+											555 row
+												556 cell
+												556 cell
+													557 checkbox (settable, integer) 0
+												558 cell
+													559 text 검증학생2
+													560 text RECQA_20261112_S2
+												561 cell
+													562 text [검증전용] 통합테스트학교 · 1
+												563 cell
+													564 text [검증전용] 녹음 저장 QA
+												565 cell
+													566 stepper (settable, integer) 0
+												567 cell
+													568 stepper (settable) 위 공통값에서 수정
+												569 cell
+													570 stepper (settable)
+												571 cell
+													572 stepper (settable) 위 공통값에서 수정
+												573 cell
+													574 checkbox (settable, integer) 0
+												575 cell
+													576 text field (settable)
+											577 row
+												578 cell

@@ -1,0 +1,4 @@
+								182 container 2번째 로그 오전 2:28:18. 정보. {"probe":"WORKSPACES35_READBACK","exams":[{"id":"EXAM_0C78C596479453F632AE19B6","status":"완료","hidden":false}],"scores":[{"studentId":"RECQA_20261112_S2","score":0,"hidden":false},{"studentId":"RECQA_20261112_S1","score":84.5,"hidden":false}],"absences":[{"id":"ABS_E208C737D1AD4BA6AF035C6F","status":"CANCELLED","studentId":"RECQA_20261112_S1"}]}.
+									185 text {"probe":"WORKSPACES35_READBACK","exams":[{"id":"EXAM_0C78C596479453F632AE19B6","status":"완료","hidden":false}],"scores":[{"studentId":"RECQA_20261112_S2","score":0,"hidden":false},{"studentId":"RECQA_20261112_S1","score":84.5,"hidden":false}],"absences":[{"id":"ABS_E208C737D1AD4BA6AF035C6F","status":"CANCELLED","studentId":"RECQA_20261112_S1"}]}
+								186 container 3번째 로그 오전 2:28:19. 알림. 실행이 완료됨.
+									189 text 실행이 완료됨

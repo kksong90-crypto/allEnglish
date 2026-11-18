@@ -1,0 +1,216 @@
+{
+  "source": "Google Drive Sheets connector, UNFORMATTED_VALUE",
+  "range": "RecordingChecks!A328:R357",
+  "rows": [
+    {
+      "studentId": "RECQA_20261112_S1",
+      "status": "RECEIVED",
+      "version": 80,
+      "scope": "[\"RECQA_20261112_TP1\"]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA_20261112_S2",
+      "status": "RECEIVED",
+      "version": 58,
+      "scope": "[\"RECQA_20261112_TP1\"]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_01",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_02",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_03",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_04",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_05",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_06",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_07",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_08",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_09",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_10",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_11",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_12",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_13",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_14",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_15",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_16",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_17",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_18",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_19",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_20",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_21",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_22",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_23",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_24",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_25",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_26",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_27",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    },
+    {
+      "studentId": "RECQA30_20261114_28",
+      "status": "RECEIVED",
+      "version": 3,
+      "scope": "[]",
+      "memo": ""
+    }
+  ]
+}
