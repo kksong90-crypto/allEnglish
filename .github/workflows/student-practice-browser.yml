@@ -16,6 +16,9 @@ jobs:
   experience-main-ui:
     name: Main experience UI (${{ matrix.browser }})
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
     timeout-minutes: 18
     strategy:
       fail-fast: false
@@ -28,9 +31,6 @@ jobs:
           node-version: '22'
       - name: Install isolated browser test package
         run: npm --prefix browser-tests ci --no-audit --no-fund
-      - name: Install selected headless engine
-        working-directory: browser-tests
-        run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Verify fourteen main UI journeys with synthetic identities and APIs
         run: node browser-tests/practice-experience.browser.mjs ${{ matrix.browser }}
       - name: Verify role entry, retry and strict ALL failure journeys
@@ -55,6 +55,9 @@ jobs:
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
     timeout-minutes: 18
     strategy:
       fail-fast: false
@@ -70,9 +73,6 @@ jobs:
           node-version: '22'
       - name: Install isolated browser test package
         run: npm --prefix browser-tests ci --no-audit --no-fund
-      - name: Install selected headless engine
-        working-directory: browser-tests
-        run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Verify legacy four-mode UI when the experience module is unavailable
         run: node browser-tests/assigned-practice.browser.mjs ${{ matrix.browser }}
       - name: Verify legacy keyboard and feedback fallback
