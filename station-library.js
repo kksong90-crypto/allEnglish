@@ -375,7 +375,9 @@
           open.type = 'button'; open.className = 'small-btn secondary'; open.textContent = '이 범위 열기';
           open.addEventListener('click', () => {
             if (!current()) return;
-            query.value = ''; if (category) category.value = ''; showBooks();
+            query.value = ''; if (category) category.value = '';
+            for (const [, select] of metadataFilters) if (select) select.value = '';
+            showBooks();
             books.value = word.revisionId; selectBook();
             scopes.value = String(ranges.findIndex(range => range.ids.includes(word.sectionId)));
             loadScope();

@@ -43,6 +43,10 @@ jobs:
         run: node browser-tests/session-interleaving.browser.mjs ${{ matrix.browser }}
       - name: Verify scoped legacy catalog, selected books and matching search rows
         run: node browser-tests/legacy-vocab-scoped.browser.mjs ${{ matrix.browser }}
+      - name: Verify public metadata filters without additional reads
+        run: node browser-tests/public-vocab-filters.browser.mjs ${{ matrix.browser }}
+      - name: Verify vocabulary priority, categories and local card practice
+        run: node browser-tests/vocab-library-priority.browser.mjs ${{ matrix.browser }}
       - name: Verify fast vocabulary before delayed full schedules
         run: node browser-tests/home-vocab-first.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4

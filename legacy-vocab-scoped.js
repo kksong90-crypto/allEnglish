@@ -57,6 +57,18 @@
     return fullFlight;
   }
   resetUserScopedState = function () { clear(); owner = ''; return originalReset(); };
+  function renderBookChoices() {
+    const kind = node('vocab-library-kind')?.value || '';
+    const selected = node('vocab-book-select').value;
+    const groups = [['regular','정규 단어장'],['point','이번 주 포인트 단어장']];
+    node('vocab-book-select').innerHTML = '<option value="">단어장 선택</option>' + groups.filter(([key])=>!kind||kind===key).map(([key,label])=>{
+      const matches = (catalog?.books || []).filter(book=>Boolean(book.isPoint)===(key==='point'));
+      return matches.length ? `<optgroup label="${label}">` + matches.map(book=>`<option value="${escapeHtml(book.name)}">${escapeHtml(book.name)}</option>`).join('') + '</optgroup>' : '';
+    }).join('');
+    const remains = (catalog?.books || []).some(book=>book.name===selected&&(!kind||Boolean(book.isPoint)===(kind==='point')));
+    node('vocab-book-select').value = remains ? selected : '';
+    if (!remains) return loadVocabDays();
+  }
   loadVocabBooks = async function (epoch = studentSessionEpoch) {
     const session = sync(), ticket = ++catalogTicket; bookTicket++; searchTicket++;
     catalog = null; books.clear(); flights.clear(); fullRows = null; fullFlight = null; fullTicket++; vocabData = [header];
@@ -67,13 +79,14 @@
       if (epoch !== studentSessionEpoch || session !== identity() || ticket !== catalogTicket) return false;
       if (oldResponse(reply)) reply = oldCatalog(reply);
       const seenIds = new Set(), seenNames = new Set();
-      if (reply?.success !== true || reply.schema !== 'STUDENT_SCOPED_VOCAB_CATALOG_V1' || !Array.isArray(reply.books) || !reply.books.length) throw Error('단어장 목록을 확인하지 못했어요. 다시 불러오거나 위의 공개 교재에서 찾아보세요.');
+      if (reply?.success !== true || reply.schema !== 'STUDENT_SCOPED_VOCAB_CATALOG_V1' || !Array.isArray(reply.books) || !reply.books.length) throw Error('단어장 목록을 확인하지 못했어요. 다시 불러오거나 아래의 공개 교재에서 찾아보세요.');
       for (const book of reply.books) {
         if (typeof book.bookId !== 'string' || !book.bookId.trim() || typeof book.name !== 'string' || !book.name.trim() || seenIds.has(book.bookId) || seenNames.has(book.name)) throw Error('단어장 목록을 확인하지 못했습니다.');
         seenIds.add(book.bookId); seenNames.add(book.name);
       }
       catalog = reply;
-      node('vocab-book-select').innerHTML += reply.books.map(book => `<option value="${escapeHtml(book.name)}">${escapeHtml(book.name)}</option>`).join('');
+      renderBookChoices();
+      if (node('vocab-library-kind')) node('vocab-library-kind').onchange = renderBookChoices;
       node('vocab-book-select').onchange = loadVocabDays; node('vocab-day-select').onchange = showVocabList;
       node('vocab-view').innerHTML = '<div class="card">단어장을 선택하세요.</div>'; return true;
     } catch (error) {
@@ -84,6 +97,7 @@
   loadVocabDays = async function () {
     const session = sync(), ticket = ++bookTicket, name = node('vocab-book-select').value;
     searchTicket++; vocabStudyView = ''; vocabData = [header];
+    const cardAction = node('legacy-card-practice'); if (cardAction) cardAction.disabled = true;
     node('vocab-day-select').innerHTML = '<option value="">Day 선택</option>';
     node('vocab-progress').innerHTML = ''; node('vocab-search-result').innerHTML = '';
     const book = bookForName(name);

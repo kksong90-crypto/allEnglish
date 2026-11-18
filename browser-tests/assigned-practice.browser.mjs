@@ -92,7 +92,7 @@ const routeMock=async route=>{
   const url=new URL(req.url());
   const params=new URLSearchParams(req.method()==='POST'?(req.postData()||''):url.search.slice(1));
   const p=Object.fromEntries(params);
-  logs.push({action:p.action||'',method:req.method(),planId:p.testPlanId||'',token:p.token||''});
+  logs.push({action:p.action||'',method:req.method(),planId:p.testPlanId||'',token:p.token||'',view:p.view||'',valuesOnly:p.valuesOnly||''});
   if(url.hostname==='script.google.com'||url.hostname==='script.googleusercontent.com'){
     const body=responseFor(p.action,p);
     await route.fulfill({status:200,contentType:'application/json',
@@ -270,8 +270,9 @@ async function testLibrary(browser,role,viewport,base){
     await page.goto(base+(role==='admin'?'?vocabSpeed=1':''),{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>!!currentUser?.token);
     await page.evaluate(()=>showTab('vocab'));
+    if(!await page.locator('#station-library').evaluate(el=>el.open))await page.locator('#station-library > summary').click();
     await page.locator('#station-library-book option[value="PUB_TEXT"]').waitFor({state:'attached'});
-    assert.equal(logs.filter(p=>p.action==='getVocabData').length,0,'library must not download whole legacy DB');
+    assert.ok(logs.filter(p=>p.action==='getVocabData').every(p=>p.view==='CATALOG'&&p.valuesOnly==='Y'),'default assigned library may read catalog metadata, never word bodies');
     await page.locator('#station-library-category').selectOption('MOCK_EXAM');
     await page.locator('#station-library-query').fill('고2 10월');
     assert.equal(await page.locator('#station-library-book option').count(),2);
@@ -306,10 +307,11 @@ async function testLibrary(browser,role,viewport,base){
     assert.equal(await page.locator('#station-library-book').inputValue(),'PUB_MOCK');
     assert.equal(await page.locator('#station-library-scope').inputValue(),'0');
     assert.equal(logs.filter(p=>p.action==='getVocaSection').length,bodies);
-    assert.equal(logs.filter(p=>p.action==='getVocabData').length,0);
+    assert.equal(logs.filter(p=>p.action==='getVocabData'&&p.view!=='CATALOG').length,0);
     if(role==='admin'){
       legacyEnabled=true;
-      await page.locator('#legacy-vocab-library summary').click();
+      assert.equal(await page.locator('#legacy-vocab-library').evaluate(el=>el.open),true);
+      await page.locator('#vocab-view').getByRole('button',{name:'다시 불러오기',exact:true}).click();
       await page.locator('#vocab-book-select option[value="기존 단어장"]').waitFor({state:'attached'});
       await page.locator('#vocab-book-select').selectOption('기존 단어장');
       await page.locator('#vocab-day-select').selectOption('1');
