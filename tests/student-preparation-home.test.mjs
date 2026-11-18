@@ -33,3 +33,33 @@ test('all nine routes remain and mobile keeps the existing full menu',()=>{for(c
 test('all embedded scripts compile',()=>{for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new vm.Script(m[1]);});
 
 test("ordinary home entry may reuse the server schedule cache",async()=>{const h=harness();const work=h.ctx.loadHomeLearningPreview(false);assert.equal(h.forces[0],false);h.pending[0].resolve(payload(day()));await work;assert.match(h.nodes["home-learning-content"].innerHTML,/Day 30/);});
+
+test('today’s test takes priority and retains each assigned slot', () => {
+  const h = harness();
+  const item = {regularText:'Day 12', testPlanId:'TEST_12', vocaScopeState:'CONNECTED', sourceRanges:[{}]};
+  const today = day({date:'2026-10-18',vocab:[{...item,slotKey:'a'},{...item,slotKey:'b'}]});
+  const next = day();
+  h.ctx.renderHomeLearningPreview({nextPlan:next,days:[today,next]});
+  const rendered = h.nodes['home-learning-content'].innerHTML;
+  assert.match(rendered,/오늘 단어시험/);
+  assert.match(rendered,/data-slot-key="a"/);
+  assert.match(rendered,/data-slot-key="b"/);
+  assert.doesNotMatch(rendered,/Day 30/);
+});
+
+test('a lesson without a test still shows the next scheduled vocabulary scope', () => {
+  const h = harness();
+  const today = day({date:'2026-10-18',vocab:[]});
+  h.ctx.renderHomeLearningPreview({nextPlan:today,days:[today,day()]});
+  assert.match(h.nodes['home-learning-content'].innerHTML,/예정된 단어시험.*Day 30/);
+});
+
+test('today view uses the server cache and does not erase the upcoming home card',async()=>{
+  const h = harness();
+  h.ctx.renderHomeLearningPreview(payload(day()));
+  const work = h.ctx.loadMySchedule('today');
+  assert.equal(h.forces[0],false);
+  h.pending[0].resolve({days:[]});
+  await work;
+  assert.match(h.nodes['home-learning-content'].innerHTML,/Day 30/);
+});
