@@ -1814,7 +1814,7 @@ function printMyScoreReport() {
           loadExamTabOnce();
         }
       if (tabId === "home" && previousTab !== "home") {
-        loadHomeLearningPreview(true);
+        loadHomeLearningPreview(options.refreshPreparation === true);
         if (Date.now() - homeContentLastVerifiedAt >= 60000) loadHomeContent(true);
       }
       if (tabId === "notice" && previousTab !== "notice") loadHomeContent(true);
@@ -2271,7 +2271,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   } catch (error) {
     if (!current()) return;
     target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.</p>' +
-      '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\')">홈에서 최신 시험범위 확인</button></div></div>';
+      '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\',{refreshPreparation:true})">홈에서 최신 시험범위 확인</button></div></div>';
     const heading = document.getElementById('practice-load-error-heading');
     heading?.focus?.({preventScroll:true});
     heading?.scrollIntoView?.({block:'nearest',behavior:'instant'});
@@ -2801,7 +2801,7 @@ function renderHomeLearningPreview(payload) {
     if (value) tasks.push('<article class="home-task"><h3>' + label + '</h3><p>' + escapeHtml(value) + '</p></article>');
   }
   target.innerHTML = '<div class="home-preparation-meta"><div><time>' + escapeHtml(date) + '</time>' +
-    (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">방금 확인한 계획</span></div>' + tasks.join("");
+    (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">게시된 계획</span></div>' + tasks.join("");
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
@@ -2815,7 +2815,7 @@ async function loadHomeLearningPreview(forceRefresh = false) {
   myScheduleRequestSerial += 1;
   if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
   try {
-    const payload = await fetchMyLearningSchedule("upcoming", true);
+    const payload = await fetchMyLearningSchedule("upcoming", forceRefresh);
     if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
     renderHomeLearningPreview(payload);
   } catch (err) {
@@ -3862,43 +3862,54 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         return;
       }
 
-      let rows = vocabData.slice(1).filter(row => hasVocabText(row[2]) && hasVocabText(row[3]));
-
-      if (scope === "current-day") {
-        rows = rows.filter(row => String(row[0]) === String(selectedBook) && String(row[1]) === String(selectedDay));
-      } else if (scope === "current-book") {
-        rows = rows.filter(row => String(row[0]) === String(selectedBook));
-      } else if (scope === "point-current") {
-        rows = rows.filter(row => String(row[0]) === "🎯 이번주 포인트 단어");
+      const matching = [];
+      for (let index = 1; index < vocabData.length; index++) {
+        const row = vocabData[index];
+        if (scope === "current-day" && (String(row[0]) !== selectedBook || String(row[1]) !== selectedDay)) continue;
+        if (scope === "current-book" && String(row[0]) !== selectedBook) continue;
+        if (scope === "point-current" && String(row[0]) !== "🎯 이번주 포인트 단어") continue;
+        if (!hasVocabText(row[2]) || !hasVocabText(row[3])) continue;
+        if (String(row[2]).toLowerCase().includes(query) || String(row[3]).toLowerCase().includes(query)) matching.push(row);
       }
+      renderLegacyVocabSearchResults(target, sortWordsByOrder(matching));
+    }
 
-      const found = sortWordsByOrder(rows.filter(row =>
-        String(row[2]).toLowerCase().includes(query) ||
-        String(row[3]).toLowerCase().includes(query)
-      ));
-
+    function renderLegacyVocabSearchResults(target, found) {
       if (found.length === 0) {
         target.innerHTML = "<div class='mini-card'>검색 결과가 없습니다.</div>";
         return;
       }
 
-      let html = `<div class="mini-card"><b>검색 결과 ${found.length}개</b></div>`;
-      html += "<table><tr><th>단어장</th><th>Day</th><th>영어</th><th>발음</th><th>뜻</th></tr>";
-
-      found.forEach(row => {
-        html += `
-          <tr>
-            <td>${escapeHtml(row[0])}</td>
-            <td>${escapeHtml(row[1])}</td>
-            <td><span class="speak-word" onclick='speakWord(${JSON.stringify(String(row[2]))})'>${escapeHtml(row[2])}</span></td>
-            <td><button class="speak-btn" onclick='speakWord(${JSON.stringify(String(row[2]))})'>🔊</button></td>
-            <td>${escapeHtml(row[3])}</td>
-          </tr>
-        `;
-      });
-
-      html += "</table>";
-      target.innerHTML = html;
+      const pageSize = 100;
+      let offset = 0;
+      function render() {
+        const end = Math.min(offset + pageSize, found.length);
+        const rows = found.slice(offset, end).map((row, index) =>
+          `<tr><td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td>
+            <td>${escapeHtml(row[2])}</td>
+            <td><button type="button" class="speak-btn" data-word-index="${index}" aria-label="발음 듣기">🔊</button></td>
+            <td>${escapeHtml(row[3])}</td></tr>`
+        ).join("");
+        target.innerHTML = `<div class="mini-card"><b>검색 결과 ${found.length}개</b> · ${offset + 1}–${end}</div>
+          <table><tr><th>단어장</th><th>Day</th><th>영어</th><th>발음</th><th>뜻</th></tr>${rows}</table>
+          ${found.length > pageSize ? '<div class="button-row"><button type="button" class="vocab-btn secondary" data-search-prev>이전</button><button type="button" class="vocab-btn secondary" data-search-next>다음</button></div>' : ''}`;
+        target.querySelectorAll('[data-word-index]').forEach(button => {
+          button.onclick = () => speakWord(String(found[offset + Number(button.dataset.wordIndex)][2]));
+        });
+        for (const [selector, step] of [['[data-search-prev]', -pageSize], ['[data-search-next]', pageSize]]) {
+          const button = target.querySelector(selector);
+          if (!button) continue;
+          const next = offset + step;
+          button.disabled = next < 0 || next >= found.length;
+          button.onclick = () => {
+            offset = next;
+            render();
+            const replacement = target.querySelector(selector);
+            (replacement.disabled ? target.querySelector('button[data-search-prev]:enabled, button[data-search-next]:enabled') : replacement)?.focus();
+          };
+        }
+      }
+      render();
     }
 
     function clearVocabSearch() {
