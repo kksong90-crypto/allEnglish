@@ -4,6 +4,11 @@
   if (!panel) return;
   const query = document.getElementById('station-library-query');
   const category = document.getElementById('station-library-category');
+  const metadataFilters = [
+    ['schoolLevel', document.getElementById('station-library-school-level')],
+    ['gradeNo', document.getElementById('station-library-grade')],
+    ['publisher', document.getElementById('station-library-publisher')]
+  ];
   const books = document.getElementById('station-library-book');
   const scopes = document.getElementById('station-library-scope');
   const status = document.getElementById('station-library-status');
@@ -78,6 +83,7 @@
     searchFlights.clear();
     searchIndex.clear();
     if (category) category.value = '';
+    for (const [, select] of metadataFilters) if (select) resetSelect(select, '전체');
     if (wordQuery) wordQuery.value = '';
     if (wordScope) wordScope.value = 'all';
     panel.open = false;
@@ -105,11 +111,24 @@
     map.delete(key); map.set(key, {at:Date.now(), value});
     if (map.size > 12) map.delete(map.keys().next().value);
   }
+  const metadataValue = value => typeof value === 'string' || typeof value === 'number' && Number.isFinite(value)
+    ? String(value).trim() : '';
+  function populateMetadataFilters() {
+    for (const [field, select] of metadataFilters) {
+      if (!select) continue; // Older cached HTML keeps the existing unfiltered behavior.
+      const values = [...new Set(catalog.map(book => metadataValue(book[field])).filter(Boolean))]
+        .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
+      resetSelect(select, '전체');
+      for (const value of values) select.add(new Option(value,value));
+      select.disabled = values.length === 0;
+    }
+  }
   function showBooks() {
     if (!catalog) return;
     const previous = books.value;
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const matches = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
+      && metadataFilters.every(([field,select]) => !select?.value || metadataValue(book[field]) === select.value)
       && terms.every(term => searchIndex.get(book.revisionId).includes(term)));
     resetSelect(books, '교재 선택');
     for (const book of matches) books.add(new Option(`[${categoryName(book)}] ${book.displayName}`, book.revisionId));
@@ -133,6 +152,7 @@
           && book.studentVisible !== false && String(book.usageScope || 'GENERAL').toUpperCase() !== 'SCHOOL_EXAM'
           && !['POINT_SPECIAL','SCHOOL_EXAM','EXAM_SCOPE'].includes(String(book.categoryCode || '').toUpperCase()));
         catalog.sort((a,b) => a.displayName.localeCompare(b.displayName, 'ko', {numeric:true}));
+        populateMetadataFilters();
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
         showBooks();
         void finishTiming(meter, true, catalog.length);
@@ -157,6 +177,7 @@
   panel.addEventListener('toggle', () => panel.open ? loadCatalog() : undefined);
   query.addEventListener('input', showBooks);
   category?.addEventListener('change', showBooks);
+  for (const [, select] of metadataFilters) select?.addEventListener('change', showBooks);
   function selectBook() {
     resetScope();
     const book = catalog?.find(item => item.revisionId === books.value);
@@ -354,7 +375,9 @@
           open.type = 'button'; open.className = 'small-btn secondary'; open.textContent = '이 범위 열기';
           open.addEventListener('click', () => {
             if (!current()) return;
-            query.value = ''; if (category) category.value = ''; showBooks();
+            query.value = ''; if (category) category.value = '';
+            for (const [, select] of metadataFilters) if (select) select.value = '';
+            showBooks();
             books.value = word.revisionId; selectBook();
             scopes.value = String(ranges.findIndex(range => range.ids.includes(word.sectionId)));
             loadScope();
@@ -379,7 +402,7 @@
   wordQuery?.addEventListener('input', clearSearch);
   wordScope?.addEventListener('change', clearSearch);
   document.getElementById('station-library-word-clear')?.addEventListener('click', () => { wordQuery.value = ''; clearSearch(); });
-  legacy?.addEventListener('toggle', () => { if (legacy.open) loadVocabBooksOnce(); });
+  legacy?.addEventListener('toggle', () => { if (legacy.open && currentUser?.token && getActiveTabId() === 'vocab') loadVocabBooksOnce(); });
   window.StationLibrary = {reset, open() {panel.open = true; return loadCatalog();}};
   reset();
 })();

@@ -49,20 +49,20 @@ async function setup(role,legacy='normal',assigned='normal'){
  });
  const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(String(error)));
  await page.goto(origin,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!currentUser?.token);
- const showVocab=async()=>{await page.evaluate(()=>showTab('vocab'));await page.locator('#station-library-book option[value="REV_TEXT"]').waitFor({state:'attached'});};
- const legacyOpen=async()=>{await showVocab();await page.locator('#legacy-vocab-library>summary').click();};
+ const showVocab=async()=>{await page.evaluate(()=>showTab('vocab'));if(!await page.locator('#station-library').evaluate(el=>el.open))await page.locator('#station-library > summary').click();await page.locator('#station-library-book option[value="REV_TEXT"]').waitFor({state:'attached'});};
+ const legacyOpen=async()=>{await page.evaluate(()=>showTab('vocab'));assert.equal(await page.locator('#legacy-vocab-library').evaluate(el=>el.open),true);};
  return {context,page,config,calls,errors,showVocab,legacyOpen};
 }
 async function run(name,role,config,fn){const s=await setup(role,...config);try{await fn(s);assert.deepEqual(s.errors,[]);assert.equal(s.calls.some(p=>['saveVocabResult','submitPointTest','saveFavoriteState','saveWrongNote'].includes(p.action)),false);report.cases.push({name,role,passed:true});console.log('PASS '+name+' '+role);}catch(error){process.exitCode=1;const text=String(error);report.cases.push({name,role,passed:false,error:text});console.log('FAIL '+name+' '+role+': '+error.message);await s.page.screenshot({path:path.join(out,name+'-'+role+'.png'),fullPage:true});}finally{await s.context.close();}}
 try{
  for(const role of ['student','admin']){
   await run('public-legacy-assigned-favorites-entry',role,[],async({page,calls,showVocab,legacyOpen})=>{
-   await showVocab();assert.equal(calls.filter(p=>p.action==='getVocabData').length,0);
+   await showVocab();assert.ok(calls.filter(p=>p.action==='getVocabData').every(p=>p.view==='CATALOG'&&p.valuesOnly==='Y'));
    assert.deepEqual(await page.locator('#station-library-book option').evaluateAll(nodes=>nodes.map(n=>n.value).filter(Boolean).sort()),books.map(b=>b.revisionId).sort());
    await page.locator('#station-library-word-query').fill('evaluate');await page.locator('#station-library-word-search').click();await page.locator('#station-library-search-result').getByText('검색 결과 3개').waitFor();
    await page.locator('#station-library-book').selectOption('REV_TEXT');await page.locator('#station-library-scope').selectOption('0');await page.locator('#station-library-practice-button').waitFor();
    await page.locator('#station-library-practice-button').click();await page.locator('.practice-experience').waitFor();assert.equal(await page.evaluate(()=>assignedPracticeState.preview),role==='admin');assert.equal(calls.filter(p=>p.action==='getAssignedVocaPracticeQuestions').length,0);
-   await page.locator('[data-pe="source"]').click();await page.locator('#legacy-vocab-library>summary').click();await page.waitForFunction(()=>vocabLoadedOnce);
+   await page.locator('[data-pe="source"]').click();assert.equal(await page.locator('#legacy-vocab-library').evaluate(el=>el.open),true);await page.waitForFunction(()=>vocabLoadedOnce);
    assert.equal(await page.evaluate(()=>vocabData.slice(1).length),0,'catalog entry must not hydrate word bodies');assert.equal(await page.locator('#vocab-book-select option[value="🎯 이번주 포인트 단어"]').count(),role==='student'?1:0);
    await page.locator('#vocab-book-select').selectOption('가상 정규 단어장');await page.locator('#vocab-day-select').selectOption('1');await page.locator('#vocab-view table').waitFor();assert.deepEqual(await page.evaluate(()=>vocabData.slice(1)),regular);
    await page.locator('#vocab-search-input').fill('evaluate');await page.locator('#vocab-search-result').evaluate(()=>searchVocab());await page.locator('#vocab-search-result').getByText('검색 결과 1개').waitFor();

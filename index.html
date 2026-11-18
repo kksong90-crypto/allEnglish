@@ -382,35 +382,14 @@
   <section id="vocab">
     <div class="section-title">📘 단어장</div>
 
-    <details id="station-library" class="control-card">
-      <summary>전체 공개 교재·범위 찾기 · 카드 연습</summary>
-      <div class="control-grid">
-        <div><label class="field-label" for="station-library-query">교재명·출판사·유형·연도 검색</label>
-          <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
-        <div><label class="field-label" for="station-library-category">카테고리</label>
-          <select id="station-library-category"><option value="">전체</option><option value="TEXTBOOK">교과서</option><option value="MOCK_EXAM">모의고사</option><option value="VOCAB">시중 단어장</option><option value="SUPPLEMENT">부교재</option><option value="EBS">EBS 수능교재</option><option value="OTHER">기타</option></select></div>
-        <div><label class="field-label" for="station-library-book">교재</label>
-          <select id="station-library-book" disabled></select></div>
-        <div><label class="field-label" for="station-library-scope">과·Day·범위</label>
-          <select id="station-library-scope" disabled></select></div>
-      </div>
-      <div class="control-grid">
-        <div><label class="field-label" for="station-library-word-query">영어·뜻 검색</label>
-          <input id="station-library-word-query" type="search" placeholder="예: evaluate, 평가" maxlength="80" autocomplete="off"></div>
-        <div><label class="field-label" for="station-library-word-scope">단어 검색 범위</label>
-          <select id="station-library-word-scope"><option value="all">전체 공개 교재</option><option value="book">선택한 교재</option><option value="section">선택한 범위</option></select></div>
-      </div>
-      <div class="button-row"><button id="station-library-word-search" type="button" class="vocab-btn">단어 검색</button>
-        <button id="station-library-word-clear" type="button" class="vocab-btn secondary">검색 초기화</button></div>
-      <p id="station-library-status" role="status"></p>
-      <div id="station-library-search-result" aria-live="polite"></div>
-      <div id="station-library-words"></div>
-    </details>
-
-    <details id="legacy-vocab-library" class="control-card">
-      <summary>기존 정규·포인트 단어장 / 중요단어 관리</summary>
+    <details id="legacy-vocab-library" class="control-card" open>
+      <summary>내 단어장 · 정규·포인트 · 카드 연습</summary>
     <div class="control-card">
       <div class="control-grid">
+        <div>
+          <label class="field-label" for="vocab-library-kind">단어장 분류</label>
+          <select id="vocab-library-kind"><option value="">정규·포인트 전체</option><option value="regular">정규 단어장</option><option value="point">이번 주 포인트 단어장</option></select>
+        </div>
         <div>
           <label class="field-label" for="vocab-book-select">단어장 선택</label>
           <select id="vocab-book-select"></select>
@@ -422,6 +401,7 @@
       </div>
 
       <div class="button-row">
+        <button type="button" id="legacy-card-practice" class="vocab-btn" onclick="startSelectedVocaPractice()" disabled>선택한 Day 전체 카드 연습</button>
         <button class="vocab-btn secondary" onclick="moveDay(-1)">← 이전 Day</button>
         <button class="vocab-btn secondary" onclick="moveDay(1)">다음 Day →</button>
       </div>
@@ -459,6 +439,34 @@
 
     <div id="vocab-progress"></div>
     <div id="vocab-view"></div>
+    </details>
+
+    <details id="station-library" class="control-card">
+      <summary>전체 공개 교재·범위 찾기 · 카드 연습</summary>
+      <div class="control-grid">
+        <div><label class="field-label" for="station-library-query">교재명·출판사·유형·연도 검색</label>
+          <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
+        <div><label class="field-label" for="station-library-category">카테고리</label>
+          <select id="station-library-category"><option value="">전체</option><option value="TEXTBOOK">교과서</option><option value="MOCK_EXAM">모의고사</option><option value="VOCAB">시중 단어장</option><option value="SUPPLEMENT">부교재</option><option value="EBS">EBS 수능교재</option><option value="OTHER">기타</option></select></div>
+        <div><label class="field-label" for="station-library-school-level">학교급</label><select id="station-library-school-level" disabled><option value="">전체</option></select></div>
+        <div><label class="field-label" for="station-library-grade">학년</label><select id="station-library-grade" disabled><option value="">전체</option></select></div>
+        <div><label class="field-label" for="station-library-publisher">출판사</label><select id="station-library-publisher" disabled><option value="">전체</option></select></div>
+        <div><label class="field-label" for="station-library-book">교재</label>
+          <select id="station-library-book" disabled></select></div>
+        <div><label class="field-label" for="station-library-scope">과·Day·범위</label>
+          <select id="station-library-scope" disabled></select></div>
+      </div>
+      <div class="control-grid">
+        <div><label class="field-label" for="station-library-word-query">영어·뜻 검색</label>
+          <input id="station-library-word-query" type="search" placeholder="예: evaluate, 평가" maxlength="80" autocomplete="off"></div>
+        <div><label class="field-label" for="station-library-word-scope">단어 검색 범위</label>
+          <select id="station-library-word-scope"><option value="all">전체 공개 교재</option><option value="book">선택한 교재</option><option value="section">선택한 범위</option></select></div>
+      </div>
+      <div class="button-row"><button id="station-library-word-search" type="button" class="vocab-btn">단어 검색</button>
+        <button id="station-library-word-clear" type="button" class="vocab-btn secondary">검색 초기화</button></div>
+      <p id="station-library-status" role="status"></p>
+      <div id="station-library-search-result" aria-live="polite"></div>
+      <div id="station-library-words"></div>
     </details>
   </section>
 
@@ -1365,7 +1373,11 @@ async function loadHomeContent(forceRefresh = false) {
       }
       vocabStudyView = '';
       const legacyLibrary = document.getElementById('legacy-vocab-library');
-      if (legacyLibrary) legacyLibrary.open = false;
+      if (legacyLibrary) legacyLibrary.open = true;
+      const libraryKind = document.getElementById("vocab-library-kind");
+      if (libraryKind) libraryKind.value = "";
+      const cardAction = document.getElementById("legacy-card-practice");
+      if (cardAction) cardAction.disabled = true;
       currentVocabWords = [];
       wrongWords = [];
       currentTestMeta = null;
@@ -1829,7 +1841,6 @@ function printMyScoreReport() {
 }
 
 if (tabId === "vocab") {
-  if (window.StationLibrary) window.StationLibrary.open();
   if (document.getElementById('legacy-vocab-library')?.open) loadVocabBooksOnce();
 }
 
@@ -3556,7 +3567,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
         vocabData = vocabResult.values || [];
 
         if (!Array.isArray(vocabData) || vocabData.length < 2) {
-          return unavailable("정규 단어장 목록을 아직 확인하지 못했어요. 다시 불러오거나 위의 공개 교재에서 찾아보세요.");
+          return unavailable("정규 단어장 목록을 아직 확인하지 못했어요. 다시 불러오거나 아래의 공개 교재에서 찾아보세요.");
         }
 
         const bookMap = new Map();
@@ -3794,6 +3805,8 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
      *  8. 단어장 표시 / 검색 / 진행률
      ************************************************************/
     function showVocabList() {
+      const cardAction = document.getElementById("legacy-card-practice");
+      if (cardAction) cardAction.disabled = !getSelectedVocabWords().length;
       vocabStudyView = '';
       const target = document.getElementById("vocab-view");
       const selectedBook = document.getElementById("vocab-book-select").value;
@@ -5469,12 +5482,12 @@ function escapeHtmlForPointRank(text) {
 }
   </script>
 
-  <script src="legacy-vocab-scoped.js?v=20261118"></script>
+  <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js?v=20261116-speed-check"></script>
+  <script src="station-library.js?v=20261118-priority"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>

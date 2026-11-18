@@ -1,3 +1,5 @@
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { virtualStudent, makeDay, server } from './helpers/virtual-student.mjs';
@@ -442,14 +444,19 @@ test('cards can hide the same answer and undo a step without inflating progress 
  v.context.assignedPracticeChooseMode('spell');assert.equal(v.read('assignedPracticeState.history.length'),0);
  assert.equal(calls(v,'saveVocabResult').length,0);
 });
-test('public student practice returns to selected library; entering vocabulary never downloads legacy rows',async()=>{
- const v=fixtureStudent({backend:mockBackend()});await v.boot();
- v.context.showTab('vocab');assert.equal(calls(v,'getVocabData').length,0);
+test('public practice returns to the library; default vocabulary entry requests only the legacy catalog',async()=>{
+ const backend=mockBackend(), answer=backend.answer.bind(backend);
+ backend.answer=p=>p.action==='getVocabData'&&p.view==='CATALOG'?{success:true,schema:'STUDENT_SCOPED_VOCAB_CATALOG_V1',books:[{bookId:'B',name:'가상 단어장'}]}:answer(p);
+ const v=fixtureStudent({backend});await v.boot();
+ vm.runInContext(readFileSync(new URL('../legacy-vocab-scoped.js',import.meta.url),'utf8'),v.context);
+ v.context.showTab('vocab');await v.context.loadVocabBooksOnce();
+ assert.deepEqual(calls(v,'getVocabData').map(p=>p.view),['CATALOG']);
+ assert.equal(calls(v,'getVocaCatalog').length,0);
  v.context.startPublicVocaPractice({revisionId:'R',label:'Day 1',words:[{vocabWordId:'W',word:'apple',meaning:'사과'}]});
  assert.equal(v.read('assignedPracticeState.personal'),true);assert.equal(v.read('assignedPracticeState.preview'),false);
  assert.match(v.node('practice-view').innerHTML,/혼자 단어 연습/);
  v.context.assignedPracticeChooseMode('card');v.context.goBackInApp();
  assert.equal(v.read('getActiveTabId()'),'practice');assert.equal(v.read('assignedPracticeState.mode'),'');
  v.context.assignedPracticeReturnToSource();assert.equal(v.read('getActiveTabId()'),'vocab');
- assert.equal(calls(v,'getVocabData').length,0);assert.equal(calls(v,'saveVocabResult').length,0);
+ assert.deepEqual(calls(v,'getVocabData').map(p=>p.view),['CATALOG']);assert.equal(calls(v,'saveVocabResult').length,0);
 });

@@ -54,8 +54,8 @@ async function setup(role,legacy='normal',assigned='normal',options={}){
  });
  const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(String(error)));
  await page.goto(origin+(options.hash?'#'+options.hash:options.savedTab?'#'+options.savedTab:''),{waitUntil:'domcontentloaded'});if(options.saved!==false)await page.waitForFunction(()=>!!currentUser?.token);
- const showVocab=async()=>{await page.evaluate(()=>showTab('vocab'));await page.locator('#station-library-book option[value="REV_TEXT"]').waitFor({state:'attached'});};
- const legacyOpen=async()=>{await showVocab();await page.locator('#legacy-vocab-library>summary').click();};
+ const showVocab=async()=>{await page.evaluate(()=>showTab('vocab'));if(!await page.locator('#station-library').evaluate(el=>el.open))await page.locator('#station-library > summary').click();await page.locator('#station-library-book option[value="REV_TEXT"]').waitFor({state:'attached'});};
+ const legacyOpen=async()=>{await page.evaluate(()=>showTab('vocab'));assert.equal(await page.locator('#legacy-vocab-library').evaluate(el=>el.open),true);};
  return {context,page,config,calls,errors,showVocab,legacyOpen};
 }
 async function run(name,role,config,fn){const s=await setup(role,...config);try{await fn(s);assert.deepEqual(s.errors,[]);assert.equal(s.calls.some(p=>['saveVocabResult','submitPointTest','saveFavoriteState','saveWrongNote'].includes(p.action)),false);report.cases.push({name,role,passed:true});console.log('PASS '+name+' '+role);}catch(error){process.exitCode=1;const text=String(error);report.cases.push({name,role,passed:false,error:text});console.log('FAIL '+name+' '+role+': '+error.message);await s.page.screenshot({path:path.join(out,name+'-'+role+'-failure.png'),fullPage:true});}finally{await s.context.close();}}
