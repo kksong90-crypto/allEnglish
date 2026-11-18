@@ -2777,7 +2777,7 @@ function renderHomeVocabTask(item, testDay = null) {
     (connected ? '<button class="home-panel-action" type="button" data-test-plan-id="' + escapeHtml(planId) +
       '" data-slot-key="' + escapeHtml(String(item.slotKey || '')) + '" data-personal-scope-fingerprint="' + escapeHtml(String(item.personalScopeFingerprint || '')) + '" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">이 시험범위 연습하기</button>' : '') + '</article>';
 }
-function renderHomeLearningPreview(payload) {
+function renderHomeLearningPreview(payload, vocabPayload = null) {
   const target = document.getElementById("home-learning-content");
   if (!target) return;
   const futurePayload = sanitizeFuturePreparationSchedule(payload || {});
@@ -2785,6 +2785,7 @@ function renderHomeLearningPreview(payload) {
     (futurePayload.days || []).find(item => item.hasPlan || item.closed) || null;
   target.setAttribute("aria-busy", "false");
   if (!day) {
+    if (vocabPayload) { renderHomeVocabPreparation(vocabPayload); const other=document.getElementById('home-other-preparation'); if(other) other.textContent='다음 수업의 듣기·퀴즈·과제 안내가 아직 없습니다.'; return; }
     target.innerHTML = '<div class="home-preparation-state"><b>다음 수업 계획이 아직 없어요.</b><p>새 계획이 등록되면 여기에 표시됩니다.</p><button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">다시 확인</button></div>';
     return;
   }
@@ -2792,14 +2793,15 @@ function renderHomeLearningPreview(payload) {
   const tasks = [];
   // The next lesson can have no test. Find the earliest published vocabulary
   // scope independently, keeping all assignments on that date and each slot key.
-  const examDay = [day, ...futurePayload.days, ...futurePayload.visibleDays]
+  const vocabSchedule = vocabPayload ? sanitizeFuturePreparationSchedule(vocabPayload) : futurePayload;
+  const examDay = [vocabSchedule.nextPlan, ...vocabSchedule.days, ...vocabSchedule.visibleDays].filter(Boolean)
     .filter(candidate => !candidate.closed && !candidate.personalDayOff && candidate.vocab?.length)
     .sort((left, right) => left.date.localeCompare(right.date))[0];
   const vocab = examDay?.vocab || [];
   if (day.closed) tasks.push('<article class="home-task"><h3>' + escapeHtml(day.closure?.type || "휴원") + '</h3><p>' + escapeHtml(day.closure?.memo || "이번 날짜에는 수업이 없습니다.") + '</p></article>');
   if (vocab.length) tasks.push(vocab.map(item => renderHomeVocabTask(item, examDay)).join(""));
   else if (!day.closed) tasks.push('<article class="home-task"><h3>단어 시험</h3><p class="home-task-note">' +
-    (day.preparationStatus?.vocab === "EXEMPT" ? "이번 수업 단어시험 없음" : "단어 범위 안내가 아직 없습니다.") + '</p></article>');
+    (!vocabPayload && day.preparationStatus?.vocab === "EXEMPT" ? "이번 수업 단어시험 없음" : "단어 범위 안내가 아직 없습니다.") + '</p></article>');
   const listening = formatListeningScheduleText(day.listening);
   const listeningEmpty = day.preparationStatus?.listening === "EXEMPT" ? "듣기 면제" :
     day.preparationStatus?.listening === "SKIPPED" ? "이번 수업 듣기 과제 없음" : "현재 등록된 듣기 안내가 없습니다.";
@@ -2810,9 +2812,54 @@ function renderHomeLearningPreview(payload) {
   target.innerHTML = '<div class="home-preparation-meta"><div><time>' + escapeHtml(date) + '</time>' +
     (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">게시된 계획</span></div>' + tasks.join("");
 }
+async function fetchMyVocabPreparation(forceRefresh = false, range = "upcoming") {
+  // Only coalesce in-flight reads for the same session and intent; never cache permissions.
+  const reads=fetchMyVocabPreparation.pending||(fetchMyVocabPreparation.pending=new Map());
+  const key=JSON.stringify([studentSessionEpoch,currentUser?.token,range,!!forceRefresh]);
+  if(reads.has(key))return reads.get(key);
+  const work=(async()=>{
+  const result = await apiPost({action:'getMyVocabPreparation',range,days:range==='today'?'1':'42',fromDate:getTodayString(),
+    futureOnly:'Y',includeResults:'N',forceRefresh:forceRefresh?'Y':''}, API_LONG_TIMEOUT_MS);
+  if (result?.success !== true) {
+    const error = new Error('단어 시험범위를 확인하지 못했습니다.');
+    error.unsupportedVocabPreparation = result?.code === 'UNSUPPORTED_ACTION' || result?.message === 'Unknown action: getMyVocabPreparation';
+    throw error;
+  }
+  if (result.preparationOnly !== true || !Array.isArray(result.days) || !Array.isArray(result.visibleDays)) throw new Error('단어 범위 응답을 확인하지 못했습니다.');
+  return sanitizeFuturePreparationSchedule(result);
+  })();
+  reads.set(key,work);
+  try{return await work;}finally{if(reads.get(key)===work)reads.delete(key);}
+}
+function renderHomeVocabPreparation(payload) {
+  const target = document.getElementById('home-learning-content');
+  if (!target) return;
+  const schedule = sanitizeFuturePreparationSchedule(payload);
+  const day = [schedule.nextPlan,...schedule.days,...schedule.visibleDays].filter(Boolean)
+    .filter(item=>!item.closed&&!item.personalDayOff&&item.vocab?.length)
+    .sort((a,b)=>a.date.localeCompare(b.date))[0];
+  target.setAttribute('aria-busy','false');
+  target.innerHTML = '<div id="home-vocab-preparation">' + (day
+    ? day.vocab.map(item=>renderHomeVocabTask(item,day)).join('')
+    : '<article class="home-task"><h3>단어 시험</h3><p>예정된 단어 범위 안내가 아직 없습니다.</p></article>') +
+    '</div><div id="home-other-preparation" role="status">듣기·퀴즈·과제 안내를 확인하고 있어요.</div>';
+}
+async function completeHomePreparation(payload, forceRefresh, isCurrent) {
+  try {
+    const full = await fetchMyLearningSchedule('upcoming',forceRefresh);
+    if (!isCurrent()) return;
+    // A fuller lesson response must not replace the independently selected test date.
+    renderHomeLearningPreview(full,payload);
+  } catch (_) {
+    if (!isCurrent()) return;
+    const other = document.getElementById('home-other-preparation');
+    if (other) other.innerHTML = '듣기·퀴즈·과제 안내를 지금은 확인하지 못했어요. <button type="button" class="home-panel-action" onclick="loadHomeLearningPreview(true)">다시 확인</button>';
+  }
+}
 async function loadHomeLearningPreview(forceRefresh = false) {
   if (!currentUser || !currentUser.token) return;
   const epoch = studentSessionEpoch;
+  const token = currentUser.token;
   const requestSerial = ++homeScheduleRequestSerial;
   const target = document.getElementById("home-learning-content");
   if (String(currentUser.role || "").toLowerCase() === "admin") {
@@ -2821,13 +2868,24 @@ async function loadHomeLearningPreview(forceRefresh = false) {
   }
   myScheduleRequestSerial += 1;
   if (typeof renderHomePreparationState === "function") renderHomePreparationState("loading");
+  const isCurrent = () => epoch === studentSessionEpoch && token === currentUser?.token && requestSerial === homeScheduleRequestSerial;
   try {
+    if (String(currentUser.role || '').toLowerCase() === 'student') {
+      let vocab;
+      try { vocab = await fetchMyVocabPreparation(forceRefresh); }
+      catch (error) { if (!error.unsupportedVocabPreparation) throw error; }
+      if (!isCurrent()) return;
+      if (vocab) {
+        renderHomeVocabPreparation(vocab);
+        void completeHomePreparation(vocab,forceRefresh,isCurrent);
+        return;
+      }
+    }
     const payload = await fetchMyLearningSchedule("upcoming", forceRefresh);
-    if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
+    if (!isCurrent()) return;
     renderHomeLearningPreview(payload);
-  } catch (err) {
-    console.error(err);
-    if (epoch !== studentSessionEpoch || requestSerial !== homeScheduleRequestSerial) return;
+  } catch (_) {
+    if (!isCurrent()) return;
     if (typeof renderHomePreparationState === "function") renderHomePreparationState("error");
   }
 }
@@ -2850,6 +2908,15 @@ function setScheduleButtonsDisabled(disabled) {
   });
 }
 
+function renderTodayVocabPreparation(payload) {
+  const target=document.getElementById('exam-table');
+  if(!target)return;
+  const schedule=sanitizeFuturePreparationSchedule(payload);
+  const days=schedule.visibleDays?.length?schedule.visibleDays:schedule.days;
+  target.innerHTML=(days.length?days.map(day=>'<div class="card"><h3>'+escapeHtml(day.displayDate||day.date)+'</h3>'+scheduleVocabItem(day.vocab)+'</div>').join(''):'<div class="card">오늘 게시된 단어 범위 안내가 아직 없습니다.</div>')+
+    '<div id="today-other-preparation" class="card" role="status">듣기·퀴즈·과제 안내를 확인하고 있어요.</div>';
+}
+
 async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRefresh = false) {
   if (typeof AdminClassSchedule !== "undefined" && currentUser && String(currentUser.role || '').toLowerCase() === 'admin') {
     myScheduleCurrentRange = normalizeScheduleRange(range);
@@ -2857,6 +2924,7 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
   }
   const normalized = normalizeScheduleRange(range);
   const epoch = studentSessionEpoch;
+  const token = currentUser?.token;
   const requestSerial = ++myScheduleRequestSerial;
   if (normalized !== "today") {
     homeScheduleRequestSerial += 1;
@@ -2873,20 +2941,42 @@ async function loadMySchedule(range = myScheduleCurrentRange || "week", forceRef
     target.innerHTML = `<div class="card">${escapeHtml(scheduleRangeLabel(normalized))} 학습일정을 불러오는 중입니다...</div>`;
   }
   setScheduleButtonsDisabled(true);
+  // A slow week read must not prevent a student from requesting today's fast scope.
+  if (normalized !== 'today' && String(currentUser?.role || '').toLowerCase() === 'student') {
+    const todayButton=document.getElementById('schedule-range-today');
+    if(todayButton)todayButton.disabled=false;
+  }
+
 
   try {
+    let fastVocab=null;
+    if(normalized==='today'&&String(currentUser?.role||'').toLowerCase()==='student'){
+      try{fastVocab=await fetchMyVocabPreparation(forceRefresh,'today');}
+      catch(error){if(!error.unsupportedVocabPreparation)throw error;}
+      if(epoch!==studentSessionEpoch||token!==currentUser?.token||requestSerial!==myScheduleRequestSerial)return;
+      if(fastVocab){renderTodayVocabPreparation(fastVocab);if(target)delete target.dataset.loading;setScheduleButtonsDisabled(false);setScheduleRangeActive(normalized);}
+    }
     const payload = await fetchMyLearningSchedule(normalized, forceRefresh || normalized !== "today");
-    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
+    if(fastVocab){
+      const fastDays=fastVocab.days||[];
+      const mergeDay=day=>({...day,vocab:(fastDays.find(item=>item.date===day.date)?.vocab||[])});
+      payload.days=(payload.days||[]).map(mergeDay);
+      payload.visibleDays=(payload.visibleDays||[]).map(mergeDay);
+      for(const day of fastDays)if(!payload.days.some(item=>item.date===day.date)){payload.days.push(day);payload.visibleDays.push(day);}
+    }
+    if (epoch !== studentSessionEpoch || token !== currentUser?.token || requestSerial !== myScheduleRequestSerial) return;
     renderMySchedule(payload);
     // The explicit read superseded older home responses before the request began.
     if (normalized !== "today") renderHomeLearningPreview(payload);
   } catch (err) {
     console.error(err);
-    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
-    if (target) target.innerHTML = `<div class='card'>내 학습일정을 불러오지 못했습니다.<br><br><span class="muted">${escapeHtml(err.message || String(err))}</span></div>`;
+    if (epoch !== studentSessionEpoch || token !== currentUser?.token || requestSerial !== myScheduleRequestSerial) return;
+    const remaining=document.getElementById('today-other-preparation');
+    if(normalized==='today'&&remaining)remaining.innerHTML='듣기·퀴즈·과제 안내를 지금은 확인하지 못했어요. <button class="vocab-btn secondary" type="button" onclick="loadMySchedule(\'today\',true)">다시 확인</button>';
+    else if (target) target.innerHTML = '<div class="card" role="alert">내 학습일정을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>';
     if (normalized !== "today" && typeof renderHomePreparationState === "function") renderHomePreparationState("error");
   } finally {
-    if (epoch !== studentSessionEpoch || requestSerial !== myScheduleRequestSerial) return;
+    if (epoch !== studentSessionEpoch || token !== currentUser?.token || requestSerial !== myScheduleRequestSerial) return;
     if (target) delete target.dataset.loading;
     setScheduleButtonsDisabled(false);
     setScheduleRangeActive(normalized);

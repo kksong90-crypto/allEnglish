@@ -52,6 +52,7 @@ async function setup(role,legacy='normal',assigned='normal',options={}){
   else if(p.action==='getMyPointSummary')reply={success:true,totalPoints:0,canTake:false};
   else if(p.action==='getRetestList')reply={success:true,rows:[]};
   else reply={success:false,message:'SYNTHETIC_ACTION_NOT_SUPPORTED'};
+  if(p.action==='getMyVocabPreparation')reply={success:false,code:'UNSUPPORTED_ACTION'};
   await route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(reply)});
  });
  const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(String(error)));

@@ -16,6 +16,7 @@ const sample=[['inevitable','불가피한'],['evaluate','평가하다'],['mainta
 const corpus=n=>Array.from({length:n},(_,i)=>({word:sample[i]?.[0]||'term'+i,meaning:sample[i]?.[1]||'가상 뜻 '+i,vocabWordId:'FAKE_W'+i,bookId:'FAKE_BOOK',revisionId:'FAKE_REV',sectionId:'FAKE_SCOPE',allowedAnswers:[sample[i]?.[0]||'term'+i]}));
 function answer(action,p,config){
  const words=corpus(config.count||5);
+ if(action==='getMyVocabPreparation')return {success:false,code:'UNSUPPORTED_ACTION'};
  if(action==='getAssignedVocaPracticeQuestions'){
   const offset=Number(p.offset||0),page=words.slice(offset,offset+200);
   const result={success:true,testPlanId:'FAKE_PLAN',mode:'MEANING_TO_WORD',coverage:'ALL',scopeVersion:'SYNTHETIC_SCOPE_V1',offset,count:page.length,totalCount:words.length,nextOffset:offset+page.length<words.length?offset+page.length:null,planDate:'2026-11-17 · 가상 교재 3과',questions:page.map((word,i)=>({questionNo:offset+i+1,prompt:word.meaning,acceptedAnswers:word.allowedAnswers,sourceLabel:'3과',bookId:word.bookId,vocabWordId:word.vocabWordId}))};
