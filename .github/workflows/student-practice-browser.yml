@@ -54,6 +54,9 @@ jobs:
           retention-days: 7
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
+    # Avoid overlapping installations of the same engine; keep every fallback check.
+    needs: experience-main-ui
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     strategy:
