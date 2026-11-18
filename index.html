@@ -1248,8 +1248,10 @@ async function loadHomeContent(forceRefresh = false) {
         query.set("token", currentUser.token);
       }
 
+      const requestToken = query.get("token") || "";
       const result = await studentReadonlyFetch(query, timeoutMs);
-      return epoch === studentSessionEpoch ? handleApiAuthFailure(result) : result;
+      return epoch === studentSessionEpoch && requestToken === String(currentUser && currentUser.token || "")
+        ? handleApiAuthFailure(result) : result;
     }
 
     async function apiPost(params, timeoutMs = API_TIMEOUT_MS) {
@@ -1261,12 +1263,14 @@ async function loadHomeContent(forceRefresh = false) {
         body.set("token", currentUser.token);
       }
 
+      const requestToken = body.get("token") || "";
       const result = await fetchJsonWithTimeout(SHEET_URL, {
         method: "POST",
         body
       }, timeoutMs);
 
-      return epoch === studentSessionEpoch ? handleApiAuthFailure(result) : result;
+      return epoch === studentSessionEpoch && requestToken === String(currentUser && currentUser.token || "")
+        ? handleApiAuthFailure(result) : result;
     }
 
 
@@ -5149,14 +5153,16 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
  let catalog=null,epoch=-1,generation=0,globalRows=null,globalTask=null,selectedKey='',searchGeneration=0;
  const nativeReadObservations=[];
  async function nativeReadonlyRequest(params){
+  const session=studentSessionEpoch;
   if(!['getLegacyNativeBrowseCatalog','getLegacyNativeBrowseSection','getLegacyNativeFavorites'].includes(params.action))throw Error('NATIVE_READ_ACTION_NOT_ALLOWED');
   const query=new URLSearchParams(params);
   if(currentUser&&currentUser.token&&!query.has('token'))query.set('token',currentUser.token);
+  const requestToken=query.get('token')||'';
   const url=SHEET_URL+'?'+query.toString();
   // Large favorite sets keep the existing POST body contract; never truncate
   // keys to fit a URL. Both paths are bounded and use existing authentication.
   const result=url.length<=7500?await fetchJsonWithTimeout(url,{method:'GET'},API_LONG_TIMEOUT_MS):await apiPost(params,API_LONG_TIMEOUT_MS);
-  return handleApiAuthFailure(result);
+  return session===studentSessionEpoch&&requestToken===String(currentUser&&currentUser.token||'')?handleApiAuthFailure(result):result;
  }
  async function readNative(params){
   const started=Date.now();let reply;
