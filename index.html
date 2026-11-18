@@ -3546,7 +3546,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       }
 
       try {
-        const vocabResult = await apiGet({ action: "getVocabData" });
+        const vocabResult = await apiGet({ action: "getVocabData", valuesOnly: "Y" });
         if (epoch !== studentSessionEpoch) return false;
 
         if (!vocabResult || vocabResult.success !== true) {
@@ -5170,7 +5170,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
  async function fullForCompatibility(){
   if(!current())throw Error('단어장 목록을 다시 불러오세요.');
   const session=epoch,version=generation;if(globalRows)return globalRows;
-  if(!globalTask){globalTask=apiGet({action:'getVocabData'}).then(r=>{if(session!==studentSessionEpoch||version!==generation)throw Error('단어장 목록 또는 로그인이 변경되었습니다.');if(r.success!==true||!Array.isArray(r.values))throw Error('전체 검색 자료를 불러오지 못했습니다.');return r.values;});}
+  if(!globalTask){globalTask=apiGet({action:'getVocabData',valuesOnly:'Y'}).then(r=>{if(session!==studentSessionEpoch||version!==generation)throw Error('단어장 목록 또는 로그인이 변경되었습니다.');if(r.success!==true||!Array.isArray(r.values))throw Error('전체 검색 자료를 불러오지 못했습니다.');return r.values;});}
   const task=globalTask;try{const rows=await task;if(session===epoch&&version===generation)globalRows=rows;return rows;}finally{if(globalTask===task)globalTask=null;}
  }
  loadVocabBooks=async function(session=studentSessionEpoch){
@@ -5469,6 +5469,7 @@ function escapeHtmlForPointRank(text) {
 }
   </script>
 
+  <script src="legacy-vocab-scoped.js?v=20261118"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>

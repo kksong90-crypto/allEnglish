@@ -6813,7 +6813,7 @@ async function deleteRetestRowFromWeb(rowNumber, studentName, className = "", da
       const target = document.getElementById("vocab-view");
 
       try {
-        const vocabResult = await apiGet({ action: "getVocabData" });
+        const vocabResult = await apiGet({ action: "getVocabData", valuesOnly: "Y" });
 
         if (!vocabResult.success) {
           target.innerHTML = `<div class='card'>${escapeHtml(vocabResult.message || "단어장 데이터를 불러오지 못했습니다.")}</div>`;
