@@ -189,3 +189,64 @@ test('server search cannot display unpublished or unlisted revisions, and failur
  bad=false;await nodes['station-library-word-search'].handlers.click();assert.equal(calls.length,3);
  assert.equal(nodes['station-library-search-result'].children[1].children.length,1);
 });
+
+function metadataFixture(transform = rows => rows) {
+  const names=['station-library','query','category','school-level','grade','publisher','book','scope','status','words','legacy-vocab-library'];
+  const nodes=Object.fromEntries(names.map(name=>[name==='station-library'||name==='legacy-vocab-library'?name:'station-library-'+name,fakeNode()]));
+  const section={sectionId:'D1',label:'Day 1',wordCount:1};
+  const rows=[
+    {revisionId:'M1A',displayName:'중1 교과서',categoryCode:'TEXTBOOK',schoolLevel:'중학교',gradeNo:1,publisher:'동아',sections:[section]},
+    {revisionId:'M2B',displayName:'중2 교과서',categoryCode:'TEXTBOOK',schoolLevel:'중학교',gradeNo:'2',publisher:'비상',sections:[section]},
+    {revisionId:'H1A',displayName:'고1 교과서',categoryCode:'TEXTBOOK',schoolLevel:'고등학교',gradeNo:1,publisher:'동아',sections:[]},
+    {revisionId:'UNKNOWN',displayName:'중학교 2 동아 분류 미입력',categoryCode:'TEXTBOOK',sections:[]},
+    {revisionId:'MOCK',displayName:'중1 모의고사',categoryCode:'MOCK_EXAM',schoolLevel:'중학교',gradeNo:1,publisher:'동아',sections:[]},
+    {revisionId:'HIDDEN',displayName:'숨김',studentVisible:false,schoolLevel:'SECRET',gradeNo:99,publisher:'PRIVATE',sections:[]}
+  ];
+  const calls=[],legacyCalls=[],user={token:'synthetic',role:'student'},window={};let tab='home',finish;
+  runInNewContext(source,{window,currentUser:user,getActiveTabId:()=>tab,loadVocabBooksOnce:()=>legacyCalls.push('catalog'),
+    document:{getElementById:id=>nodes[id],createElement:fakeNode},Option:function(label,value){this.label=label;this.value=value;},
+    apiGet:params=>{calls.push(params);return params.action==='getVocaCatalog'?{success:true,books:transform(rows)}:new Promise(resolve=>finish=resolve);}});
+  return{nodes,calls,legacyCalls,user,window,setTab:value=>tab=value,finish:value=>finish(value)};
+}
+const optionValues=node=>node.children.map(child=>child.value);
+test('metadata facets intersect locally; missing metadata stays in All without guessed classification',async()=>{
+  const h=metadataFixture(),n=h.nodes;n['station-library'].open=true;await n['station-library'].handlers.toggle();
+  assert.equal(h.calls.length,1);assert.equal(n['station-library-book'].children.length,6);
+  assert.deepEqual(optionValues(n['station-library-school-level']).sort(),['','고등학교','중학교'].sort());
+  assert.deepEqual(optionValues(n['station-library-grade']),['','1','2']);
+  assert.equal(optionValues(n['station-library-publisher']).includes('PRIVATE'),false);
+  n['station-library-school-level'].value='중학교';n['station-library-school-level'].handlers.change();
+  assert.equal(optionValues(n['station-library-book']).includes('UNKNOWN'),false,'a title must not infer metadata');
+  n['station-library-grade'].value='2';n['station-library-grade'].handlers.change();
+  n['station-library-publisher'].value='비상';n['station-library-publisher'].handlers.change();
+  assert.deepEqual(optionValues(n['station-library-book']),['','M2B']);
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  assert.equal(n['station-library-book'].children.length,1);assert.match(n['station-library-status'].textContent,/일치하는 교재가 없습니다/);
+  for(const id of ['school-level','grade','publisher','category']){n['station-library-'+id].value='';n['station-library-'+id].handlers.change();}
+  assert.equal(optionValues(n['station-library-book']).includes('UNKNOWN'),true);assert.equal(h.calls.length,1);
+});
+test('excluding a selected book invalidates pending words without another read',async()=>{
+  const h=metadataFixture(),n=h.nodes;n['station-library'].open=true;await n['station-library'].handlers.toggle();
+  n['station-library-book'].value='M1A';n['station-library-book'].handlers.change();n['station-library-scope'].value='0';
+  const pending=n['station-library-scope'].handlers.change();
+  n['station-library-grade'].value='2';n['station-library-grade'].handlers.change();
+  h.finish({success:true,revisionId:'M1A',words:[{sectionId:'D1',word:'stale',meaning:'오래됨'}]});await pending;
+  assert.equal(n['station-library-words'].children.length,0);assert.equal(n['station-library-scope'].value,'');assert.equal(h.calls.length,2);
+});
+test('reset removes previous-session facet options and selections',async()=>{
+  const h=metadataFixture(),n=h.nodes;n['station-library'].open=true;await n['station-library'].handlers.toggle();
+  n['station-library-publisher'].value='동아';n['station-library-publisher'].handlers.change();h.window.StationLibrary.reset();
+  for(const id of ['school-level','grade','publisher']){assert.deepEqual(optionValues(n['station-library-'+id]),['']);assert.equal(n['station-library-'+id].value,'');assert.equal(n['station-library-'+id].disabled,true);}
+});
+test('open legacy panel only reads its catalog for an authenticated active vocabulary tab',()=>{
+  const h=metadataFixture(),legacy=h.nodes['legacy-vocab-library'];legacy.open=true;h.user.token='';legacy.handlers.toggle();
+  h.user.token='synthetic';legacy.handlers.toggle();assert.equal(h.legacyCalls.length,0);assert.equal(h.calls.length,0);
+  h.setTab('vocab');legacy.handlers.toggle();assert.equal(h.legacyCalls.length,1);assert.equal(h.calls.length,0);
+});
+
+test('catalog without facet metadata keeps every visible book under disabled All-only controls',async()=>{
+  const h=metadataFixture(rows=>rows.map(({schoolLevel,gradeNo,publisher,...book})=>book)),n=h.nodes;
+  n['station-library'].open=true;await n['station-library'].handlers.toggle();
+  for(const id of ['school-level','grade','publisher']){assert.deepEqual(optionValues(n['station-library-'+id]),['']);assert.equal(n['station-library-'+id].disabled,true);}
+  assert.equal(n['station-library-book'].children.length,6);assert.equal(h.calls.length,1);
+});
