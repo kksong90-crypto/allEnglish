@@ -168,6 +168,31 @@ async function testViewport(browser,name,viewport,isMobile,base){
     assert.ok((await page.locator('#practice-view .practice-feedback').innerText()).includes(spellingWord));
     await page.locator('#practice-view button').filter({hasText:'다음 단어'}).click();
 
+    // Holding Enter cannot accept feedback through a newly focused Next button.
+    const completedBefore = await page.evaluate(()=>assignedPracticeState.study.completed);
+    const heldWord = await page.evaluate(()=>assignedPracticeState.rows[assignedPracticeCurrentIndex()][2]);
+    await page.locator('#practice-spell-input').fill(heldWord);
+    const imePrevented = await page.locator('#practice-spell-input').evaluate(input=>{
+      const event=new KeyboardEvent('keydown',{key:'Enter',repeat:true,isComposing:true,bubbles:true,cancelable:true});
+      input.dispatchEvent(event);return event.defaultPrevented;
+    });
+    assert.equal(imePrevented,false);
+    assert.equal(await page.evaluate(()=>assignedPracticeState.study.feedback),null,'IME must not submit early');
+    const repeatedPrevented = await page.locator('#practice-spell-input').evaluate(input=>{
+      const event=new KeyboardEvent('keydown',{key:'Enter',repeat:true,bubbles:true,cancelable:true});
+      input.dispatchEvent(event);return event.defaultPrevented;
+    });
+    assert.equal(repeatedPrevented,true);
+    assert.equal(await page.evaluate(()=>assignedPracticeState.study.feedback),null,'repeated Enter must not reach inline submit');
+    await page.keyboard.down('Enter');
+    assert.equal(await page.locator('#practice-next-button').evaluate(el=>el===document.activeElement),true);
+    await page.waitForTimeout(50);
+    await page.keyboard.down('Enter');await page.keyboard.up('Enter');
+    assert.equal(await page.evaluate(()=>assignedPracticeState.study.completed),completedBefore);
+    assert.notEqual(await page.evaluate(()=>assignedPracticeState.study.feedback),null);
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(()=>assignedPracticeState.study.completed),completedBefore+1);
+
     // Typed draft is not erased by accidentally changing modes.
     await page.locator('#practice-spell-input').fill('inev');
     page.once('dialog',dialog=>dialog.dismiss());

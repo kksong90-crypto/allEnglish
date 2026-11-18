@@ -1898,6 +1898,15 @@ updateAppBackButton();
       updateAppBackButton();
     }
 
+    // Cover both the main module and its unavailable-module fallback before inline handlers.
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && event.repeat && !event.isComposing &&
+          event.target?.closest?.('#practice-view')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+
     function initAppBackHandling() {
       try {
         const savedHistory = JSON.parse(sessionStorage.getItem("allbarun-tab-history") || "[]");
@@ -2595,7 +2604,7 @@ function renderAssignedPracticeStudy() {
     content += '<label class="practice-instruction" for="practice-spell-input">영어 스펠링 직접 입력</label>' +
       '<input id="practice-spell-input" type="text" autocomplete="off" autocorrect="off" ' +
       'autocapitalize="none" spellcheck="false" placeholder="영어 단어 입력" ' +
-      'onkeydown="if(event.key===\'Enter\'){event.preventDefault();assignedPracticeSubmitSpelling();}">' +
+      'onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();assignedPracticeSubmitSpelling();}">' +
       '<button type="button" class="vocab-btn" onclick="assignedPracticeSubmitSpelling()">정답 확인</button>';
   }
   if (study.feedback !== null) {
