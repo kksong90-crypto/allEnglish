@@ -8,7 +8,7 @@ import {chromium,webkit} from 'playwright';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),origin='https://vocab-recovery.invalid';
 const engine=process.argv[2]||'chromium';if(!['chromium','webkit'].includes(engine))throw Error('Use chromium or webkit');
 const out=path.join(root,'browser-tests/artifacts/vocab-recovery',engine);await mkdir(out,{recursive:true});
-const header=['단어장','Day','영어','뜻','순서','book_id','허용답'];
+const header=['단어장명','Day','영어','뜻','정렬번호','book_id','허용답'];
 const sample=[['evaluate','평가하다'],['maintain','유지하다'],['inevitable','불가피한'],['scarce','부족한'],['justify','정당화하다']];
 const regular=sample.map(([word,meaning],i)=>['가상 정규 단어장',1,word,meaning,i+1,'FAKE_BOOK',word]);
 const point=['🎯 이번주 포인트 단어','가상 이번 주','pointword','가상 포인트 뜻',1,'FAKE_POINT','pointword'];
@@ -63,8 +63,8 @@ try{
    await page.locator('#station-library-book').selectOption('REV_TEXT');await page.locator('#station-library-scope').selectOption('0');await page.locator('#station-library-practice-button').waitFor();
    await page.locator('#station-library-practice-button').click();await page.locator('.practice-experience').waitFor();assert.equal(await page.evaluate(()=>assignedPracticeState.preview),role==='admin');assert.equal(calls.filter(p=>p.action==='getAssignedVocaPracticeQuestions').length,0);
    await page.locator('[data-pe="source"]').click();await page.locator('#legacy-vocab-library>summary').click();await page.waitForFunction(()=>vocabLoadedOnce);
-   const rows=await page.evaluate(()=>vocabData.slice(1));assert.deepEqual(rows.filter(r=>r[0]==='가상 정규 단어장'),regular);assert.equal(rows.filter(r=>r[0]==='🎯 이번주 포인트 단어').length,role==='student'?1:0);
-   await page.locator('#vocab-book-select').selectOption('가상 정규 단어장');await page.locator('#vocab-day-select').selectOption('1');await page.locator('#vocab-view table').waitFor();
+   assert.equal(await page.evaluate(()=>vocabData.slice(1).length),0,'catalog entry must not hydrate word bodies');assert.equal(await page.locator('#vocab-book-select option[value="🎯 이번주 포인트 단어"]').count(),role==='student'?1:0);
+   await page.locator('#vocab-book-select').selectOption('가상 정규 단어장');await page.locator('#vocab-day-select').selectOption('1');await page.locator('#vocab-view table').waitFor();assert.deepEqual(await page.evaluate(()=>vocabData.slice(1)),regular);
    await page.locator('#vocab-search-input').fill('evaluate');await page.locator('#vocab-search-result').evaluate(()=>searchVocab());await page.locator('#vocab-search-result').getByText('검색 결과 1개').waitFor();
    await page.evaluate(()=>loadFavoriteFolders());await page.evaluate(()=>showTab('favorites'));await page.locator('#favorites-view .speak-word').waitFor();assert.equal(await page.locator('#favorites-view .speak-word').textContent(),'evaluate');
    await page.evaluate(()=>showTab('home'));
@@ -72,7 +72,7 @@ try{
    if(role==='student'){await assigned.click();await page.locator('.practice-experience').waitFor();assert.equal(await page.evaluate(()=>assignedPracticeState.totalCount),5);}else assert.equal(await assigned.count(),0);
   });
   for(const scenario of ['empty','header','nameless','network','apierror'])await run('legacy-'+scenario+'-retry',role,[scenario],async({page,calls,config,legacyOpen})=>{
-   await legacyOpen();await page.locator('[data-testid="vocab-retry"]').waitFor();assert.equal(await page.evaluate(()=>vocabLoadedOnce),false);assert.equal(await page.evaluate(()=>vocabData.length),0);assert.doesNotMatch(await page.locator('#vocab-view').innerText(),/CoreDB|Vocab|A열|private implementation/);config.legacy='normal';await page.locator('[data-testid="vocab-retry"]').click();await page.waitForFunction(()=>vocabLoadedOnce);assert.equal(calls.filter(p=>p.action==='getVocabData').length,2);
+   await legacyOpen();await page.locator('#vocab-view').getByRole('button',{name:'다시 불러오기',exact:true}).waitFor();assert.equal(await page.evaluate(()=>vocabLoadedOnce),false);assert.equal(await page.evaluate(()=>vocabData.slice(1).length),0);assert.doesNotMatch(await page.locator('#vocab-view').innerText(),/CoreDB|Vocab|A열|private implementation/);config.legacy='normal';await page.locator('#vocab-view').getByRole('button',{name:'다시 불러오기',exact:true}).click();await page.waitForFunction(()=>vocabLoadedOnce);assert.equal(calls.filter(p=>p.action==='getVocabData').length,2);
   });
   await run('expired-session-on-legacy-read',role,['expired'],async({page,legacyOpen})=>{await legacyOpen();await page.locator('#login-screen').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>currentUser),null);assert.equal(await page.evaluate(()=>vocabLoadedOnce),false);assert.equal(await page.evaluate(()=>assignedPracticeState),null);assert.equal(await page.locator('#station-library-words li').count(),0);});
   await run('favorites-before-legacy-load',role,[],async({page,calls})=>{await page.evaluate(()=>loadFavoriteFolders());assert.equal(await page.evaluate(()=>favoriteFolders['기본'].length),1);await page.evaluate(()=>showTab('favorites'));await page.waitForTimeout(100);assert.equal(await page.locator('#favorites-view .speak-word').count(),1,'A saved favorite must not be reported as empty just because legacy word rows have not loaded.');assert.ok(calls.some(p=>p.action==='getVocabData'));});

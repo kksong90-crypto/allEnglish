@@ -41,6 +41,8 @@ jobs:
         run: node browser-tests/additional-practice-audit.browser.mjs ${{ matrix.browser }}
       - name: Verify stale pages, account switches and held-key interactions
         run: node browser-tests/session-interleaving.browser.mjs ${{ matrix.browser }}
+      - name: Verify scoped legacy catalog, selected books and matching search rows
+        run: node browser-tests/legacy-vocab-scoped.browser.mjs ${{ matrix.browser }}
       - name: Verify fast vocabulary before delayed full schedules
         run: node browser-tests/home-vocab-first.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
