@@ -94,6 +94,7 @@
   // A rerender can move a different button under the second click. Keep keyboard clicks.
   document.addEventListener('click',event=>{const el=event.target.closest('#practice-view [data-pe]');if(el&&!el.disabled&&!(event.detail>1))dispatch(el);});
   document.addEventListener('input',event=>{if(event.target.id!=='pe-answer'||!current())return;const w=workspace(current());w.drafts.set(key(w,index(w)),event.target.value);});
-  document.addEventListener('keydown',event=>{if(event.target.id!=='pe-answer'||event.key!=='Enter'||event.isComposing)return;event.preventDefault();const s=current();if(!s)return;const w=workspace(s);const action=w.feedback.has(key(w,index(w)))?'next':'check';const el=document.querySelector(`#practice-view [data-pe="${action}"]`);if(el&&!el.disabled)dispatch(el);});
+  // Holding Enter must not activate the Next button when feedback moves focus to it.
+  document.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.repeat&&!event.isComposing&&event.target.closest('#practice-view')){event.preventDefault();return;}if(event.target.id!=='pe-answer'||event.key!=='Enter'||event.isComposing)return;event.preventDefault();const s=current();if(!s)return;const w=workspace(s);const action=w.feedback.has(key(w,index(w)))?'next':'check';const el=document.querySelector(`#practice-view [data-pe="${action}"]`);if(el&&!el.disabled)dispatch(el);});
   window.PracticeExperience={render,hasDraft(){const s=current();if(!s?.experience||s.mode==='mock'||s.experience.enteringMock)return false;return [...s.experience.drafts].some(([k,v])=>String(v).trim()&&!s.experience.feedback.has(k));},back(){const s=current();if(!s?.experience||s.mode==='mock')return false;workspace(s).screen='overview';render('[data-pe="start"]');return true;}};
 })();
