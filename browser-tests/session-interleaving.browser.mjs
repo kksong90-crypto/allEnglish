@@ -8,7 +8,7 @@ import {chromium,webkit} from 'playwright';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),origin='https://home-visibility.invalid';
 const engine=process.argv[2]||'chromium';if(!['chromium','webkit'].includes(engine))throw Error('Use chromium or webkit');
 const out=path.join(root,'browser-tests/artifacts/session-interleaving',engine);await mkdir(out,{recursive:true});
-const header=['단어장','Day','영어','뜻','순서','book_id','허용답'];
+const header=['단어장명','Day','영어','뜻','정렬번호','book_id','허용답'];
 const sample=[['evaluate','평가하다'],['maintain','유지하다'],['inevitable','불가피한'],['scarce','부족한'],['justify','정당화하다']];
 const regular=sample.map(([word,meaning],i)=>['가상 정규 단어장',1,word,meaning,i+1,'FAKE_BOOK',word]);
 const point=['🎯 이번주 포인트 단어','가상 이번 주','pointword','가상 포인트 뜻',1,'FAKE_POINT','pointword'];
@@ -52,6 +52,7 @@ async function setup(role,legacy='normal',assigned='normal',options={}){
   else if(p.action==='getMyPointSummary')reply={success:true,totalPoints:0,canTake:false};
   else if(p.action==='getRetestList')reply={success:true,rows:[]};
   else reply={success:false,message:'SYNTHETIC_ACTION_NOT_SUPPORTED'};
+  if(p.action==='getMyVocabPreparation')reply={success:false,code:'UNSUPPORTED_ACTION'};
   await route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(reply)});
  });
  const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(String(error)));

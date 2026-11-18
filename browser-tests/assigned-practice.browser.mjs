@@ -55,7 +55,8 @@ function responseFor(action,p){
   if(action==='getVocaCatalog')return {success:true,books:publicBooks};
   if(action==='getVocaSection'){const book=publicBooks.find(b=>b.revisionId===p.revisionId);return {success:true,revisionId:book.revisionId,words:publicWords(book)};}
   if(action==='searchVoca'){const result=publicBooks.filter(b=>!p.revisionId||b.revisionId===p.revisionId).flatMap(publicWords).filter(w=>(w.word+' '+w.meaning).includes(p.query));return {success:true,count:result.length,truncated:false,words:result};}
-  if(action==='getVocabData'&&legacyEnabled)return {success:true,values:[['단어장','Day','영어','뜻','순서','book_id','허용답'],...words.map(([word,meaning],i)=>['기존 단어장',1,word,meaning,i,'B',word])]};
+  if(action==='getVocabData'&&legacyEnabled)return {success:true,values:[['단어장명','Day','영어','뜻','정렬번호','book_id','허용답'],...words.map(([word,meaning],i)=>['기존 단어장',1,word,meaning,i,'B',word])]};
+  if(action==='getMyVocabPreparation')return {success:false,code:'UNSUPPORTED_ACTION'};
   if(action==='getMyLearningSchedule'){
     const day=p.fromDate||new Date().toISOString().slice(0,10);
     const scope={
