@@ -28,6 +28,8 @@ jobs:
           node-version: '22'
       - name: Install isolated browser test package
         run: npm --prefix browser-tests ci --no-audit --no-fund
+      - name: Use the standard Ubuntu archive for browser dependencies
+        run: sudo python3 browser-tests/prepare-ci-ubuntu-mirror.py
       - name: Install selected headless engine
         working-directory: browser-tests
         run: npx playwright install --with-deps ${{ matrix.browser }}
@@ -54,9 +56,6 @@ jobs:
           retention-days: 7
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
-    # Avoid overlapping installations of the same engine; keep every fallback check.
-    needs: experience-main-ui
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     strategy:
@@ -73,6 +72,8 @@ jobs:
           node-version: '22'
       - name: Install isolated browser test package
         run: npm --prefix browser-tests ci --no-audit --no-fund
+      - name: Use the standard Ubuntu archive for browser dependencies
+        run: sudo python3 browser-tests/prepare-ci-ubuntu-mirror.py
       - name: Install selected headless engine
         working-directory: browser-tests
         run: npx playwright install --with-deps ${{ matrix.browser }}
