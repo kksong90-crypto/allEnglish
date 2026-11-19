@@ -49,7 +49,7 @@ try{
  const page=await context.newPage();
  await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin,{waitUntil:'domcontentloaded'});
  if(publishedStatic) {
-  assert.equal(await page.locator('script[src*="station-library.js?v=20261119-library-taxonomy2"]').count(),1,'Published app must load the current library script');
+  assert.equal(await page.locator('script[src*="station-library.js?v=20261119-schoollevel3"]').count(),1,'Published app must load the current library script');
   assert.equal(await page.locator('#station-library-combined-practice').count(),1,'Published app must contain the combined-practice control');
  }
  await page.waitForFunction(()=>!!currentUser?.token);
@@ -57,6 +57,10 @@ try{
  await page.locator('#station-library').evaluate(el=>el.open=true);
  await page.locator('#station-library-book option[value="MOCK"]').waitFor({state:'attached'});
  await page.locator('#station-library-category').selectOption('MOCK_EXAM');
+ assert.equal(await page.locator('#station-library-grade-label').innerText(),'학년·시험');
+ assert.equal(await page.locator('#station-library-school-level-field').isHidden(),true,'School-level is redundant for high-school mock exams');
+ assert.deepEqual(await page.locator('#station-library-grade option').evaluateAll(os=>os.map(o=>[o.value,o.textContent])),[['','전체'],['2','고2']]);
+
  await page.locator('#station-library-year').selectOption('2026');
  assert.deepEqual(await page.locator('#station-library-month option').evaluateAll(os=>os.map(o=>o.value)),['','9']);
  await page.locator('#station-library-book').selectOption('MOCK');
