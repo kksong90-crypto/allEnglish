@@ -4446,3 +4446,22 @@ body.dark #station-library input[type="search"]{background:#1d2b2a;border-color:
 @media(max-width:720px){#station-library .control-grid{grid-template-columns:minmax(0,1fr)}}
 /* Keep navigation buttons visible when WebKit gives the logo an intrinsic minimum. */
 .brand-wrap>.brand-logo-wide{min-width:0;flex-shrink:1}
+
+
+/* Public library multi-selection: no additional reads on checkbox interactions. */
+#station-library-selection{margin:14px 0 18px;padding:12px;border:1px solid var(--brand-line,#d7e4df);border-radius:14px;min-width:0}
+#station-library-selection .vocab-library-hint{font-size:.88rem;line-height:1.55;margin:0 0 10px;color:var(--brand-muted,#60796f)}
+#station-library-range-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:8px;max-height:320px;overflow:auto;overscroll-behavior:contain;padding:3px 2px;margin:10px 0}
+#station-library-range-list .vocab-library-range{display:flex;align-items:center;gap:9px;min-width:0;min-height:46px;padding:10px;border:1px solid var(--brand-line,#d7e4df);border-radius:11px;cursor:pointer;overflow-wrap:anywhere}
+#station-library-range-list .vocab-library-range:has(input:checked){background:var(--brand-tint,#eaf6f1);border-color:var(--brand-dark,#286252)}
+#station-library-range-list input[type="checkbox"]{width:20px;height:20px;min-width:20px;accent-color:var(--brand-dark,#286252)}
+#station-library-selection-summary{font-weight:800;line-height:1.5}
+#station-library-selection-items{display:flex;flex-wrap:wrap;gap:6px;max-height:165px;overflow:auto;overscroll-behavior:contain;margin-bottom:10px}
+#station-library-selection-items .vocab-library-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--brand-line,#d7e4df);border-radius:9px;padding:5px 8px;font-size:.84rem;max-width:100%;overflow-wrap:anywhere}
+#station-library-selection-items .vocab-library-chip button{min-width:32px;min-height:32px;border:0;border-radius:7px;cursor:pointer;background:transparent;color:inherit;font-size:1.1rem}
+#station-library-combined-practice{width:100%;min-height:48px}
+#station-library-selection-status{font-size:.87rem;line-height:1.6;min-height:1.2em}
+body.dark #station-library-selection{border-color:#41574e}
+body.dark #station-library-range-list .vocab-library-range{border-color:#41574e}
+body.dark #station-library-range-list .vocab-library-range:has(input:checked){background:#17483a}
+@media(max-width:560px){#station-library-range-list{grid-template-columns:repeat(2,minmax(0,1fr))}#station-library-selection .button-row{display:flex;flex-wrap:wrap;gap:6px}#station-library-selection .button-row>button{flex:1 1 135px}}
