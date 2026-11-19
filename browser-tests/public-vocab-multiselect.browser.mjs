@@ -1,4 +1,5 @@
-// Browser UAT with actual app files and synthetic-only student/API; never writes real data.
+// Browser UAT with synthetic identity/API only. --published-static fetches real deployed HTML/JS/CSS.
+// All Google Apps Script requests are mocked, so no authenticated session or student data is used.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
@@ -6,7 +7,9 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium,webkit} from 'playwright';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const origin='https://public-multi.invalid',engine=process.argv[2]||'chromium';
+const publishedStatic=process.argv.includes('--published-static');
+const origin=publishedStatic?'https://kksong90-crypto.github.io':'https://public-multi.invalid';
+const engine=process.argv[2]||'chromium';
 assert.ok(['chromium','webkit'].includes(engine));
 const browser=await(engine==='webkit'?webkit:chromium).launch({headless:true,...(engine==='chromium'&&existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium'}:{})});
 const catalog=[
@@ -23,6 +26,7 @@ try{
  await context.route('**/*',async route=>{
   const request=route.request(),url=new URL(request.url());
   if(url.origin===origin){
+   if(publishedStatic)return route.continue(); // Actual hosted assets only. All APIs below remain synthetic.
    try{const body=await readFile(path.join(root,url.pathname==='/'?'index.html':url.pathname.slice(1)));
     return route.fulfill({status:200,body,contentType:url.pathname.endsWith('.js')?'application/javascript':url.pathname.endsWith('.css')?'text/css':'text/html; charset=utf-8'});}
    catch{return route.fulfill({status:404,body:''});}
@@ -42,7 +46,12 @@ try{
    p.action==='getStudentContent'?{success:true,home:{},notices:[],homeNotices:[]}:{success:true};
   return route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(response)});
  });
- const page=await context.newPage();await page.goto(origin,{waitUntil:'domcontentloaded'});
+ const page=await context.newPage();
+ await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin,{waitUntil:'domcontentloaded'});
+ if(publishedStatic) {
+  assert.equal(await page.locator('script[src*="station-library.js?v=20261119-library-multi1"]').count(),1,'Published app must load the current library script');
+  assert.equal(await page.locator('#station-library-combined-practice').count(),1,'Published app must contain the combined-practice control');
+ }
  await page.waitForFunction(()=>!!currentUser?.token);
  await page.evaluate(()=>showTab('vocab'));
  await page.locator('#station-library').evaluate(el=>el.open=true);
@@ -68,6 +77,6 @@ try{
  assert.deepEqual(reads.filter(x=>x.action==='getVocaSection').map(x=>x.revisionId),['MOCK','BOOK']);
  assert.equal(writes.length,0);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
- console.log(JSON.stringify({engine,passed:true,checkedRanges:3,cards:6,reads:reads.length,officialWrites:0,liveStudentData:0}));
+ console.log(JSON.stringify({engine,passed:true,publishedStaticAssets:publishedStatic,syntheticIdentityAndAPI:true,checkedRanges:3,cards:6,reads:reads.length,officialWrites:0,realStudentData:0}));
  await context.close();
 }finally{await browser.close();}
