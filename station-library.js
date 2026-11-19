@@ -5,10 +5,19 @@
   const query = document.getElementById('station-library-query');
   const category = document.getElementById('station-library-category');
   const metadataFilters = [
-    ['schoolLevel', document.getElementById('station-library-school-level')],
-    ['gradeNo', document.getElementById('station-library-grade')],
-    ['publisher', document.getElementById('station-library-publisher')]
+    ['schoolLevel', document.getElementById('station-library-school-level'), 'school-level'],
+    ['gradeNo', document.getElementById('station-library-grade'), 'grade'],
+    ['publicationYear', document.getElementById('station-library-year'), 'year'],
+    ['publicationMonth', document.getElementById('station-library-month'), 'month'],
+    ['publisher', document.getElementById('station-library-publisher'), 'publisher']
   ];
+  const rangeList = document.getElementById('station-library-range-list');
+  const basketSummary = document.getElementById('station-library-selection-summary');
+  const basketItems = document.getElementById('station-library-selection-items');
+  const selectAllButton = document.getElementById('station-library-select-all');
+  const clearBasketButton = document.getElementById('station-library-clear-selection');
+  const combinedButton = document.getElementById('station-library-combined-practice');
+  const combinedStatus = document.getElementById('station-library-selection-status');
   const books = document.getElementById('station-library-book');
   const scopes = document.getElementById('station-library-scope');
   const status = document.getElementById('station-library-status');
@@ -53,6 +62,9 @@
     return apiGet(params, TIMEOUT);
   }
   let catalog = null, loading = null, generation = 0, selection = 0, searchSerial = 0, ranges = [], selectedWords = null;
+  const basket = new Map();
+  let basketVersion = 0, combinedSerial = 0;
+  const MAX_SELECTED_RANGES = 150, MAX_SELECTED_WORDS = 5000;
 
   function resetSelect(select, label) {
     select.replaceChildren(new Option(label, ''));
@@ -67,6 +79,8 @@
     selection++;
     ranges = [];
     selectedWords = null;
+    if (rangeList) rangeList.replaceChildren();
+    if (selectAllButton) selectAllButton.disabled = true;
     resetSelect(scopes, '범위 선택');
     words.replaceChildren();
     clearSearch();
@@ -82,6 +96,10 @@
     sectionFlights.clear();
     searchFlights.clear();
     searchIndex.clear();
+    basket.clear();
+    basketVersion++;
+    combinedSerial++;
+    if (combinedStatus) combinedStatus.textContent = '';
     if (category) category.value = '';
     for (const [, select] of metadataFilters) if (select) resetSelect(select, '전체');
     if (wordQuery) wordQuery.value = '';
@@ -91,11 +109,27 @@
     status.textContent = '';
     resetSelect(books, '교재 선택');
     resetScope();
+    renderBasket();
   }
   const searchKey = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s()·_-]/g, '');
-  const categoryNames = { TEXTBOOK: '교과서', MOCK_EXAM: '모의고사', VOCAB: '시중 단어장', VOCAB_BOOK: '시중 단어장', WORD_BOOK: '시중 단어장', SUPPLEMENT: '부교재', SUPPLEMENTARY: '부교재', EBS: 'EBS 수능교재', OTHER: '기타' };
-  const categoryKey = book => ({VOCAB_BOOK:'VOCAB', WORD_BOOK:'VOCAB', SUPPLEMENTARY:'SUPPLEMENT'}[book.categoryCode] || (categoryNames[book.categoryCode] ? book.categoryCode : 'OTHER'));
-  const categoryName = book => categoryNames[book.categoryCode] || '기타';
+  // Do not mislabel published EBS or commercial supplements as academy-owned material.
+  const categoryNames = {TEXTBOOK:'학교 내신·교과서', MOCK_EXAM:'모의고사', VOCAB:'시판 단어장',
+    CUSTOM:'학원 자체자료', SUPPLEMENT:'부교재', EBS:'EBS 교재', OTHER:'분류 미확인·기타'};
+  const categoryKey = book => {
+    const code = String(book.categoryCode || '').trim().toUpperCase();
+    return ({VOCAB_BOOK:'VOCAB',WORD_BOOK:'VOCAB',SUPPLEMENTARY:'SUPPLEMENT'}[code]
+      || (categoryNames[code] ? code : 'OTHER'));
+  };
+  const categoryName = book => categoryNames[categoryKey(book)];
+  const FACETS = {
+    TEXTBOOK:['schoolLevel','gradeNo','publisher'],
+    MOCK_EXAM:['schoolLevel','gradeNo','publicationYear','publicationMonth'],
+    VOCAB:['publisher'],
+    CUSTOM:['schoolLevel','gradeNo','publisher'],
+    SUPPLEMENT:['schoolLevel','gradeNo','publisher'],
+    EBS:['schoolLevel','gradeNo','publicationYear','publisher'],
+    OTHER:['schoolLevel','gradeNo','publisher']
+  };
   const searchIndex = new Map();
   const bookSearch = book => searchKey([book.displayName, categoryName(book), book.publisher, book.authorLabel,
     book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName,
@@ -113,22 +147,52 @@
   }
   const metadataValue = value => typeof value === 'string' || typeof value === 'number' && Number.isFinite(value)
     ? String(value).trim() : '';
+  function facetValue(book, field) {
+    const value = metadataValue(book[field]);
+    if (['publicationYear','publicationMonth'].includes(field) && /^\\d+$/.test(value)) return String(Number(value));
+    return value;
+  }
+  function facetLabel(field, value) {
+    return field === 'publicationYear' ? value + '년'
+      : field === 'publicationMonth' ? value + '월'
+      : field === 'gradeNo' ? value + '학년' : value;
+  }
   function populateMetadataFilters() {
-    for (const [field, select] of metadataFilters) {
-      if (!select) continue; // Older cached HTML keeps the existing unfiltered behavior.
-      const values = [...new Set(catalog.map(book => metadataValue(book[field])).filter(Boolean))]
-        .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
-      resetSelect(select, '전체');
-      for (const value of values) select.add(new Option(value,value));
-      select.disabled = values.length === 0;
+    const active = category?.value ? (FACETS[category.value] || []) : ['schoolLevel','gradeNo','publisher'];
+    const terms = query.value.trim().split(/\\s+/).filter(Boolean).map(searchKey);
+    const base = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
+      && terms.every(term => (searchIndex.get(book.revisionId) || bookSearch(book)).includes(term)));
+    // A facet is recalculated against all the OTHER selected facets. Invalid old values
+    // are discarded rather than invisibly restricting a newly chosen category.
+    for (const [field, select, id] of metadataFilters) {
+      if (!select) continue; // Older cached HTML is still supported.
+      const visible = active.includes(field);
+      const parent = document.getElementById('station-library-' + id + '-field');
+      if (parent) parent.hidden = !visible;
+      if (!visible) { resetSelect(select,'전체'); continue; }
+    }
+    for (let pass = 0; pass < 2; pass++) {
+      for (const [field, select] of metadataFilters) {
+        if (!select || !active.includes(field)) continue;
+        const previous = select.value;
+        const values = [...new Set(base.filter(book => metadataFilters.every(([other, input]) =>
+          other === field || !input?.value || facetValue(book,other) === input.value))
+          .map(book => facetValue(book,field)).filter(Boolean))]
+          .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
+        resetSelect(select,'전체');
+        for (const value of values) select.add(new Option(facetLabel(field,value),value));
+        select.disabled = values.length === 0;
+        if (values.includes(previous)) select.value = previous;
+      }
     }
   }
   function showBooks() {
     if (!catalog) return;
+    populateMetadataFilters();
     const previous = books.value;
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const matches = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
-      && metadataFilters.every(([field,select]) => !select?.value || metadataValue(book[field]) === select.value)
+      && metadataFilters.every(([field,select]) => !select?.value || facetValue(book,field) === select.value)
       && terms.every(term => searchIndex.get(book.revisionId).includes(term)));
     resetSelect(books, '교재 선택');
     for (const book of matches) books.add(new Option(`[${categoryName(book)}] ${book.displayName}`, book.revisionId));
@@ -152,7 +216,6 @@
           && book.studentVisible !== false && String(book.usageScope || 'GENERAL').toUpperCase() !== 'SCHOOL_EXAM'
           && !['POINT_SPECIAL','SCHOOL_EXAM','EXAM_SCOPE'].includes(String(book.categoryCode || '').toUpperCase()));
         catalog.sort((a,b) => a.displayName.localeCompare(b.displayName, 'ko', {numeric:true}));
-        populateMetadataFilters();
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
         showBooks();
         void finishTiming(meter, true, catalog.length);
@@ -176,7 +239,11 @@
   }
   panel.addEventListener('toggle', () => panel.open ? loadCatalog() : undefined);
   query.addEventListener('input', showBooks);
-  category?.addEventListener('change', showBooks);
+  category?.addEventListener('change', () => {
+    // Preserve the selection basket, but reset incompatible category-specific facets.
+    for (const [, select] of metadataFilters) if (select) select.value = '';
+    showBooks();
+  });
   for (const [, select] of metadataFilters) select?.addEventListener('change', showBooks);
   function selectBook() {
     resetScope();
