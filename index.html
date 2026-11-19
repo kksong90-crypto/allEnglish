@@ -2225,7 +2225,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
     if (typeof PreparedPracticeCache !== 'undefined') {
       const client = PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
       const prepared = await client.load({testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},
-        {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),isCurrent:current});
+        {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
       if (!current()) return;
       if (prepared) {
         const {identity,words} = prepared;

@@ -89,17 +89,31 @@
     };
   }
   let persistentStore;
+  const transportFlights = new Map();
   function createClient({request,store,cryptoProvider=root.crypto}) {
     store ||= persistentStore || (persistentStore=indexedStore());
+    async function transport(params,owner,sessionKey) {
+      // Only simultaneous transport is shared. Session keys remain in memory,
+      // and each load retains its own current-session check after every await.
+      if (typeof sessionKey!=='string' || !sessionKey) return request(params);
+      const key=JSON.stringify([owner,sessionKey,Object.entries(params).sort(([a],[b])=>a.localeCompare(b))]);
+      let pending=transportFlights.get(key);
+      if (!pending) {
+        try {pending=Promise.resolve(request(params));} catch(error) {pending=Promise.reject(error);}
+        transportFlights.set(key,pending);
+      }
+      try {return JSON.parse(JSON.stringify(await pending));}
+      finally {if(transportFlights.get(key)===pending)transportFlights.delete(key);}
+    }
     async function checkedWords(words,identity) {
       const valid=validateWords(words,identity.wordCount);
       if (await contentHash(valid,cryptoProvider)!==identity.contentHash) throw failure('PREPARED_HASH_MISMATCH');
       return valid;
     }
-    return {async load(selection,{owner,isCurrent}) {
+    return {async load(selection,{owner,sessionKey,isCurrent}) {
       const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
       current();
-      const reply=await request({action:'getMyPreparedVocabManifest',...selection});current();
+      const reply=await transport({action:'getMyPreparedVocabManifest',...selection},owner,sessionKey);current();
       if (unsupported(reply)) return null;
       const identity=manifestIdentity(reply);
       if (identity.testPlanId!==selection.testPlanId || identity.slotKey!==(selection.slotKey||'') || identity.personalScopeFingerprint!==(selection.personalScopeFingerprint||'')) throw failure('PREPARED_SELECTION_CHANGED');
@@ -110,7 +124,7 @@
         try {words=await checkedWords(cached.words,identity);} catch (_) {try {await store.discard(identity.contentHash);} catch (_) {}} current();
       }
       if (!words) {
-        const response=await request({action:'getMyPreparedVocabWords',assignmentKey:identity.assignmentKey,generation:identity.generation,setId:identity.setId,contentHash:identity.contentHash});current();
+        const response=await transport({action:'getMyPreparedVocabWords',assignmentKey:identity.assignmentKey,generation:identity.generation,setId:identity.setId,contentHash:identity.contentHash},owner,sessionKey);current();
         const bodyIdentity=manifestIdentity(response);
         if (!sameIdentity(identity,bodyIdentity)) throw failure('PREPARED_SCOPE_CHANGED');
         words=await checkedWords(response.words,identity);current();
