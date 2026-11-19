@@ -1,0 +1,4 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {virtualStudent,server} from './helpers/virtual-student.mjs';
+test('a missing prepared module cannot fall back when server marks a range ready, preparing or cancelled',async()=>{for(const status of ['READY','PREPARING','CANCELLED']){const backend=server(),answer=backend.answer.bind(backend);backend.answer=p=>p.action==='getMyPreparedVocabManifest'?{success:true,status}:answer(p);const v=virtualStudent({backend});await v.boot();await v.context.startAssignedVocaPractice('SYNTH_PLAN');assert.equal(v.read('assignedPracticeState'),null);assert.equal(v.requests.filter(p=>p.action==='getAssignedVocaPracticeQuestions').length,0);assert.equal(v.requests.filter(p=>p.action==='getMyPreparedVocabManifest').length,1);assert.match(v.node('practice-view').innerHTML,status==='PREPARING'?/준비하고 있어요/:/시작하지 못했어요/);}});

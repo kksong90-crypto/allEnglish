@@ -2209,6 +2209,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
   if (!currentUser?.token) return showAppToast("로그인 후 이용하세요.");
   const epoch = studentSessionEpoch;
+  const token = currentUser.token;
   const request = ++assignedPracticeRequestSerial;
   const originalText = button?.textContent || "시험범위 개인 연습";
   if (button) { button.disabled = true; button.textContent = "불러오는 중…"; }
@@ -2218,9 +2219,32 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   if (!target) return showAppToast("개인 연습 화면을 찾지 못했습니다.");
   assignedPracticeState = null;
   target.innerHTML = '<div class="card" role="status">배정된 시험범위를 확인하고 있습니다…</div>';
-  const current = () => epoch === studentSessionEpoch &&
+  const current = () => epoch === studentSessionEpoch && token === currentUser?.token &&
     request === assignedPracticeRequestSerial && getActiveTabId() === "practice";
   try {
+    if (typeof PreparedPracticeCache !== 'undefined') {
+      const client = PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
+      const prepared = await client.load({testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},
+        {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),isCurrent:current});
+      if (!current()) return;
+      if (prepared) {
+        const {identity,words} = prepared;
+        const rows = words.map((word,i)=>['[시험범위]','배정 계획',word.word,word.meaning,i+1,word.bookId,word.acceptedAnswers.join('|'),word.vocabWordId]);
+        assignedPracticeState = {planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint,sourceRows:shuffleAssignedPractice(rows),
+          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:'',epoch,token,
+          preparedGeneration:identity.generation,preparedAssignmentKey:identity.assignmentKey,mode:'',study:null,finished:true};
+        assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
+        renderAssignedPracticeMenu();
+        return;
+      }
+    } else {
+      // A failed client asset is never permission to reuse the legacy path.
+      // Only an explicit server feature-off response permits compatibility.
+      const availability = await apiPost({action:'getMyPreparedVocabManifest',testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},API_LONG_TIMEOUT_MS);
+      if (!current()) return;
+      const unsupported = availability?.success === false && (availability.code === 'UNSUPPORTED_ACTION' || availability.error?.code === 'UNSUPPORTED_ACTION' || availability.message === 'Unknown action: getMyPreparedVocabManifest');
+      if (!unsupported) { const error = new Error('Prepared practice client unavailable');error.code=availability?.status==='PREPARING'?'PREPARED_PENDING':'PREPARED_CLIENT_UNAVAILABLE';throw error; }
+    }
     const questions = [];
     let offset = 0, scopeVersion = '', totalCount = null, result;
     // Collect one consistent server-owned scope. Never treat a legacy sample as full coverage.
@@ -2285,7 +2309,8 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
     renderAssignedPracticeMenu();
   } catch (error) {
     if (!current()) return;
-    target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.</p>' +
+    const preparationMessage = error?.code === 'PREPARED_PENDING' ? '최신 시험범위를 준비하고 있어요. 잠시 후 다시 확인해 주세요.' : '최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.';
+    target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>' + preparationMessage + '</p>' +
       '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\',{refreshPreparation:true})">홈에서 최신 시험범위 확인</button></div></div>';
     const heading = document.getElementById('practice-load-error-heading');
     heading?.focus?.({preventScroll:true});
@@ -5506,6 +5531,7 @@ function escapeHtmlForPointRank(text) {
   </script>
 
   <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
+  <script src="prepared-practice-cache.js?v=20261119"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>

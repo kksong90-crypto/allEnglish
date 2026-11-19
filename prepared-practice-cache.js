@@ -1,0 +1,122 @@
+// Prepared words are reusable content, never reusable permission. Every load starts
+// with an authenticated manifest. No credentials or student responses are stored here.
+(function (root) {
+  'use strict';
+  const MAX_WORDS = 5000, MAX_CONTENTS = 12, MAX_TOTAL_WORDS = 25000;
+  const MAX_ASSIGNMENTS = 50, MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+  const identityKeys = ['assignmentKey','generation','scopeFingerprint','setId','contentHash','wordCount','testPlanId','slotKey','personalScopeFingerprint'];
+  function failure(code) { const e = new Error(code); e.code = code; return e; }
+  function unsupported(reply) {
+    return reply?.success === false && (reply.code === 'UNSUPPORTED_ACTION' || reply.error?.code === 'UNSUPPORTED_ACTION' ||
+      reply.message === 'Unknown action: getMyPreparedVocabManifest');
+  }
+  function manifestIdentity(value) {
+    if (!value || value.success !== true || value.status !== 'READY') throw failure(value?.status === 'PREPARING' ? 'PREPARED_PENDING' : 'PREPARED_UNAVAILABLE');
+    for (const key of ['assignmentKey','generation','scopeFingerprint','setId','testPlanId']) {
+      if (typeof value[key] !== 'string' || !value[key].trim() || value[key].length > 512) throw failure('PREPARED_IDENTITY_INVALID');
+    }
+    if (!/^[a-f0-9]{64}$/.test(value.contentHash || '') || !Number.isInteger(value.wordCount) || value.wordCount < 1 || value.wordCount > MAX_WORDS ||
+        typeof value.slotKey !== 'string' || typeof value.personalScopeFingerprint !== 'string') throw failure('PREPARED_IDENTITY_INVALID');
+    return Object.fromEntries(identityKeys.map(key => [key,value[key]]));
+  }
+  function sameIdentity(a,b) { return identityKeys.every(key => a[key] === b[key]); }
+  function validateWords(words,count) {
+    if (!Array.isArray(words) || words.length !== count || count < 1 || count > MAX_WORDS) throw failure('PREPARED_INCOMPLETE');
+    const seen = new Set();
+    return words.map(w => {
+      for (const key of ['bookId','vocabWordId','word','meaning']) if (typeof w?.[key] !== 'string' || !w[key].trim()) throw failure('PREPARED_WORD_INVALID');
+      if (!Array.isArray(w.acceptedAnswers) || !w.acceptedAnswers.length || w.acceptedAnswers.some(a => typeof a !== 'string' || !a.trim())) throw failure('PREPARED_WORD_INVALID');
+      const key = JSON.stringify([w.bookId,w.vocabWordId]);
+      if (seen.has(key)) throw failure('PREPARED_DUPLICATE');
+      seen.add(key);
+      return {bookId:w.bookId,vocabWordId:w.vocabWordId,word:w.word,meaning:w.meaning,acceptedAnswers:[...w.acceptedAnswers]};
+    });
+  }
+  async function contentHash(words,cryptoProvider=root.crypto) {
+    if (!cryptoProvider?.subtle || typeof TextEncoder === 'undefined') throw failure('PREPARED_HASH_UNAVAILABLE');
+    const canonical = JSON.stringify(words.map(w => [w.bookId,w.vocabWordId,w.word,w.meaning,w.acceptedAnswers]));
+    const digest = await cryptoProvider.subtle.digest('SHA-256',new TextEncoder().encode(canonical));
+    return Array.from(new Uint8Array(digest),b => b.toString(16).padStart(2,'0')).join('');
+  }
+  function indexedStore(indexedDB=root.indexedDB, now=Date.now) {
+    let database;
+    function open() {
+      if (!indexedDB) return Promise.reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
+      if (!database) database = new Promise((resolve,reject) => {
+        const request = indexedDB.open('allbarun-prepared-practice-v1',1);
+        request.onupgradeneeded = () => {
+          for (const name of ['contents','assignments']) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name,{keyPath:'key'});
+        };
+        request.onsuccess = () => { const db=request.result; db.onversionchange=()=>{db.close();database=null;};resolve(db); };
+        request.onerror = () => reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
+        request.onblocked = () => reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
+      }).catch(e => { database=null;throw e; });
+      return database;
+    }
+    async function transaction(names,mode,work) {
+      const db=await open();
+      return new Promise((resolve,reject) => {
+        const tx=db.transaction(names,mode);let result;
+        tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
+        work(tx,value=>{result=value;});
+      });
+    }
+    return {
+      async read(hash) { return transaction(['contents'],'readonly',(tx,set)=>{const r=tx.objectStore('contents').get(hash);r.onsuccess=()=>set(r.result||null);}); },
+      async write(owner,identity,words) {
+        return transaction(['contents','assignments'],'readwrite',tx=>{
+          const stamp=now();tx.objectStore('contents').put({key:identity.contentHash,words,wordCount:words.length,lastUsed:stamp});
+          tx.objectStore('assignments').put({key:JSON.stringify([owner,identity.assignmentKey]),owner,...identity,lastUsed:stamp});
+          // GC happens in the same transaction as the write. Retain at most 12
+          // complete sets / 25k words / 50 assignment pointers, and at most 7 days.
+          for (const name of ['contents','assignments']) {
+            const store=tx.objectStore(name),request=store.getAll();
+            request.onsuccess=()=>{
+              const rows=request.result.sort((a,b)=>(Number(b.lastUsed)||0)-(Number(a.lastUsed)||0)||String(a.key).localeCompare(String(b.key)));let kept=0,total=0;
+              for (const row of rows) {
+                const limit=name==='contents'?MAX_CONTENTS:MAX_ASSIGNMENTS;
+                const size=name==='contents'&&Array.isArray(row.words)?row.words.length:0;
+                const malformed=!Number.isFinite(row.lastUsed)||typeof row.key!=='string'||(name==='contents'&&(!Array.isArray(row.words)||row.wordCount!==size||size<1||size>MAX_WORDS));
+                if (malformed || stamp-row.lastUsed>MAX_AGE || kept>=limit || total+size>MAX_TOTAL_WORDS) store.delete(row.key);
+                else {kept++;total+=size;}
+              }
+            };
+          }
+        });
+      },
+      async discard(hash) { return transaction(['contents'],'readwrite',tx=>{tx.objectStore('contents').delete(hash);}); }
+    };
+  }
+  let persistentStore;
+  function createClient({request,store,cryptoProvider=root.crypto}) {
+    store ||= persistentStore || (persistentStore=indexedStore());
+    async function checkedWords(words,identity) {
+      const valid=validateWords(words,identity.wordCount);
+      if (await contentHash(valid,cryptoProvider)!==identity.contentHash) throw failure('PREPARED_HASH_MISMATCH');
+      return valid;
+    }
+    return {async load(selection,{owner,isCurrent}) {
+      const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
+      current();
+      const reply=await request({action:'getMyPreparedVocabManifest',...selection});current();
+      if (unsupported(reply)) return null;
+      const identity=manifestIdentity(reply);
+      if (identity.testPlanId!==selection.testPlanId || identity.slotKey!==(selection.slotKey||'') || identity.personalScopeFingerprint!==(selection.personalScopeFingerprint||'')) throw failure('PREPARED_SELECTION_CHANGED');
+      let cached;
+      try {cached=await store.read(identity.contentHash);} catch (_) {} current();
+      let words;
+      if (cached) {
+        try {words=await checkedWords(cached.words,identity);} catch (_) {try {await store.discard(identity.contentHash);} catch (_) {}} current();
+      }
+      if (!words) {
+        const response=await request({action:'getMyPreparedVocabWords',assignmentKey:identity.assignmentKey,generation:identity.generation,setId:identity.setId,contentHash:identity.contentHash});current();
+        const bodyIdentity=manifestIdentity(response);
+        if (!sameIdentity(identity,bodyIdentity)) throw failure('PREPARED_SCOPE_CHANGED');
+        words=await checkedWords(response.words,identity);current();
+      }
+      current();try {await store.write(owner,identity,words);} catch (_) {} current();
+      return {identity,words};
+    }};
+  }
+  root.PreparedPracticeCache = Object.freeze({createClient,indexedStore,validateWords,contentHash,manifestIdentity});
+})(globalThis);

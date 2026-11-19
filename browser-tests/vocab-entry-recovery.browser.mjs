@@ -25,6 +25,7 @@ async function setup(role,legacy='normal',assigned='normal'){
   if(url.origin===origin){const target=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));if(!target.startsWith(root+path.sep))return route.abort();try{return route.fulfill({status:200,body:await readFile(target),contentType:target.endsWith('.js')?'application/javascript':target.endsWith('.css')?'text/css':target.endsWith('.png')?'image/png':'text/html; charset=utf-8'});}catch{return route.fulfill({status:404,body:''});}}
   if(!['script.google.com','script.googleusercontent.com'].includes(url.hostname))return route.abort();
   const p=Object.fromEntries(request.method()==='POST'?new URLSearchParams(request.postData()||''):url.searchParams);calls.push(p);
+  if(p.action==='getMyPreparedVocabManifest')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:false,code:'UNSUPPORTED_ACTION'})});
   if(config.legacy==='network'&&p.action==='getVocabData')return route.abort('failed');
   let reply;
   if(p.action==='getVocabData')reply=config.legacy==='expired'?{success:false,message:'로그인 시간이 만료되었습니다.'}:config.legacy==='empty'?{success:true,values:[]}:config.legacy==='header'?{success:true,values:[header]}:config.legacy==='nameless'?{success:true,values:[header,['',1,'evaluate','평가하다',1]]}:config.legacy==='apierror'?{success:false,message:'CoreDB VocabWords private implementation error'}:{success:true,values:[header,...regular,...(role==='student'?[point]:[])]};

@@ -71,6 +71,7 @@ function responseFor(action,p){
     return {success:true,range:p.range||'upcoming',today:day,
       days:[lesson],visibleDays:[lesson],nextPlan:lesson,startDate:day,endDate:day};
   }
+  if(action==='getMyPreparedVocabManifest')return {success:false,code:'UNSUPPORTED_ACTION'};
   if(action==='getAssignedVocaPracticeQuestions'){
     const offset=Number(p.offset||0),questions=asQuestions().slice(offset,offset+200);
     return {success:true,testPlanId:'SYNTHETIC_PLAN',mode:'MEANING_TO_WORD',coverage:'ALL',scopeVersion:'SYNTHETIC_SCOPE_V1',offset,count:questions.length,totalCount:words.length,nextOffset:null,planDate:new Date().toISOString().slice(0,10),questions};

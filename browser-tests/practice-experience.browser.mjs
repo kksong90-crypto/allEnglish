@@ -15,6 +15,7 @@ const out=path.join(root,'browser-tests/artifacts/practice-experience',...(engin
 const sample=[['inevitable','불가피한'],['evaluate','평가하다'],['maintain','유지하다'],['scarce','부족한'],['justify','정당화하다']];
 const corpus=n=>Array.from({length:n},(_,i)=>({word:sample[i]?.[0]||'term'+i,meaning:sample[i]?.[1]||'가상 뜻 '+i,vocabWordId:'FAKE_W'+i,bookId:'FAKE_BOOK',revisionId:'FAKE_REV',sectionId:'FAKE_SCOPE',allowedAnswers:[sample[i]?.[0]||'term'+i]}));
 function answer(action,p,config){
+ if(action==='getMyPreparedVocabManifest')return {success:false,code:'UNSUPPORTED_ACTION'};
  const words=corpus(config.count||5);
  if(action==='getMyVocabPreparation')return {success:false,code:'UNSUPPORTED_ACTION'};
  if(action==='getAssignedVocaPracticeQuestions'){

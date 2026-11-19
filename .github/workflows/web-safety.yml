@@ -4,6 +4,7 @@ on:
     paths:
       - 'index.html'
       - 'practice-experience.js'
+      - 'prepared-practice-cache.js'
       - 'practice-experience.css'
       - 'install.html'
       - 'student-install.js'

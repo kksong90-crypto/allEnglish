@@ -4,6 +4,7 @@ on:
     paths:
       - 'index.html'
       - 'practice-experience.js'
+      - 'prepared-practice-cache.js'
       - 'practice-experience.css'
       - 'student-shell.css'
       - 'station-library.js'
@@ -49,6 +50,8 @@ jobs:
         run: node browser-tests/vocab-library-priority.browser.mjs ${{ matrix.browser }}
       - name: Verify fast vocabulary before delayed full schedules
         run: node browser-tests/home-vocab-first.browser.mjs ${{ matrix.browser }}
+      - name: Verify fresh prepared manifests and persistent IndexedDB word sets
+        run: node browser-tests/prepared-practice.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
