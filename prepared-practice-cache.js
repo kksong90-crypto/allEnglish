@@ -144,6 +144,7 @@
       const identity=manifestIdentity(reply);
       if (identity.testPlanId!==selection.testPlanId || identity.slotKey!==(selection.slotKey||'') || identity.personalScopeFingerprint!==(selection.personalScopeFingerprint||'')) throw failure('PREPARED_SELECTION_CHANGED');
       const bundled=Object.prototype.hasOwnProperty.call(reply,'words');
+      if(reply.sourceKind==='LIVE_ASSIGNED'&&(!bundled||reply.selectionBundle!==true||reply.wordsIncluded!==true))throw failure('PREPARED_BUNDLE_INVALID');
       if ((reply.selectionBundle!==undefined&&typeof reply.selectionBundle!=='boolean') ||
           (reply.wordsIncluded!==undefined&&typeof reply.wordsIncluded!=='boolean') ||
           (reply.selectionBundle===true&&typeof reply.wordsIncluded!=='boolean') ||
@@ -170,14 +171,17 @@
       const reply=await transport({action:'getMyPreparedVocabManifest',...selection,preferBundle:'Y',knownContentHash},owner,sessionKey);current();
       if (unsupported(reply)) return null;
       return consume(reply,selection,{owner,sessionKey,isCurrent});
-    },async loadNext({owner,sessionKey,isCurrent}) {
+    },async loadNext({owner,sessionKey,isCurrent},selection=null) {
       const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
       current();let hints=[];
       if(typeof store.hints==='function'){try{hints=await store.hints(owner);}catch(_){}}
       hints=[...new Set(Array.isArray(hints)?hints:[])].filter(h=>typeof h==='string'&&/^[a-f0-9]{64}$/.test(h)).slice(0,MAX_CONTENTS);current();
-      const reply=await transport({action:'getMyNextPreparedVocabPractice',preferBundle:'Y',knownContentHashesJson:JSON.stringify(hints)},owner,sessionKey);current();
+      const selected=selection?{testPlanId:selection.testPlanId,slotKey:selection.slotKey,personalScopeFingerprint:selection.personalScopeFingerprint}:{};
+      if(selection&&(['testPlanId','slotKey','personalScopeFingerprint'].some(k=>typeof selected[k]!=='string')||!selected.testPlanId))throw failure('PREPARED_SELECTION_INVALID');
+      const reply=await transport({action:'getMyNextPreparedVocabPractice',preferBundle:'Y',knownContentHashesJson:JSON.stringify(hints),...selected},owner,sessionKey);current();
       if(unsupported(reply)||(reply?.success===false&&reply.message==='Unknown action: getMyNextPreparedVocabPractice'))return null;
       if(reply?.success===true&&reply.status==='SELECTION_REQUIRED'){
+        if(selection)throw failure('PREPARED_SELECTION_CHANGED');
         if(!Array.isArray(reply.choices)||reply.choices.length<2||reply.choices.length>32)throw failure('PREPARED_SELECTION_INVALID');
         const seen=new Set(),choices=reply.choices.map(choice=>{
           if(typeof choice?.testPlanId!=='string'||!/^[A-Za-z0-9._:-]{3,160}$/.test(choice.testPlanId)||
@@ -191,7 +195,7 @@
         return {selectionRequired:true,choices};
       }
       const identity=manifestIdentity(reply);
-      return consume(reply,{testPlanId:identity.testPlanId,slotKey:identity.slotKey,personalScopeFingerprint:identity.personalScopeFingerprint},{owner,sessionKey,isCurrent});
+      return consume(reply,selection?selected:{testPlanId:identity.testPlanId,slotKey:identity.slotKey,personalScopeFingerprint:identity.personalScopeFingerprint},{owner,sessionKey,isCurrent});
     }};
   }
   root.PreparedPracticeCache = Object.freeze({createClient,indexedStore,validateWords,contentHash,manifestIdentity});

@@ -2219,7 +2219,7 @@ function directPreparedEntryButton() {
   return String(currentUser?.role||'').toLowerCase()==='student'
     ? '<button id="home-direct-prepared-start" class="home-panel-action" type="button" onclick="startNextPreparedPractice(this)">내 시험범위 바로 연습</button>' : '';
 }
-async function startNextPreparedPractice(button) {
+async function startNextPreparedPractice(button,selection=null) {
   if(!currentUser?.token||String(currentUser.role||'').toLowerCase()!=='student')return;
   const epoch=studentSessionEpoch,token=currentUser.token,request=++assignedPracticeRequestSerial;
   if(button)button.disabled=true;
@@ -2231,7 +2231,7 @@ async function startNextPreparedPractice(button) {
   try {
     if(typeof PreparedPracticeCache==='undefined')throw new Error('PREPARED_CLIENT_UNAVAILABLE');
     const client=PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
-    const result=await client.loadNext({owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
+    const result=await client.loadNext({owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current},selection);
     if(!current())return;
     if(!result){const e=new Error('PREPARED_NEXT_UNSUPPORTED');e.code='PREPARED_NEXT_UNSUPPORTED';throw e;}
     if(result.selectionRequired){
@@ -2251,7 +2251,7 @@ function chooseNextPreparedPractice(index,button) {
   const selection=directPreparedChoices;
   if(!selection||selection.epoch!==studentSessionEpoch||selection.token!==currentUser?.token||selection.request!==assignedPracticeRequestSerial||getActiveTabId()!=='practice'||!Number.isInteger(index)||!selection.choices[index])return;
   const choice=selection.choices[index];directPreparedChoices=null;
-  return startAssignedVocaPractice(choice.testPlanId,button,choice.slotKey,choice.personalScopeFingerprint);
+  return startNextPreparedPractice(button,choice);
 }
 async function startAssignedVocaPractice(testPlanId, button, slotKey = "", personalScopeFingerprint = "") {
   const selectedFingerprint = String(personalScopeFingerprint || "").trim();
@@ -5580,7 +5580,7 @@ function escapeHtmlForPointRank(text) {
   </script>
 
   <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
-  <script src="prepared-practice-cache.js?v=20261119.4"></script>
+  <script src="prepared-practice-cache.js?v=20261119.5"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
