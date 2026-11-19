@@ -2857,7 +2857,23 @@ function renderHomeVocabPreparation(payload) {
   target.innerHTML = '<div id="home-vocab-preparation">' + (day
     ? day.vocab.map(item=>renderHomeVocabTask(item,day)).join('')
     : '<article class="home-task"><h3>단어 시험</h3><p>예정된 단어 범위 안내가 아직 없습니다.</p></article>') +
-    '</div><div id="home-other-preparation" role="status">듣기·퀴즈·과제 안내를 확인하고 있어요.</div>';
+    '</div><div id="home-other-preparation"><p>듣기·퀴즈·과제 안내는 아직 확인하지 않았어요.</p><button id="home-other-preparation-load" type="button" class="home-panel-action">듣기·과제 등 수업 준비 확인</button></div>';
+}
+function bindHomeLessonPreparation(payload, forceRefresh, isCurrent) {
+  const button = document.getElementById('home-other-preparation-load');
+  if (!button) return;
+  let pending = false;
+  const current = () => isCurrent() && getActiveTabId() === 'home';
+  button.onclick = async () => {
+    if (pending || !current()) return;
+    pending = true;
+    button.disabled = true;
+    button.textContent = '수업 준비를 확인하고 있어요…';
+    await completeHomePreparation(payload, forceRefresh, current);
+    // A later click must always recheck the server; only simultaneous clicks share work.
+    pending = false;
+    if (current()) { button.disabled = false; button.textContent = '듣기·과제 등 수업 준비 확인'; }
+  };
 }
 async function completeHomePreparation(payload, forceRefresh, isCurrent) {
   try {
@@ -2868,7 +2884,8 @@ async function completeHomePreparation(payload, forceRefresh, isCurrent) {
   } catch (_) {
     if (!isCurrent()) return;
     const other = document.getElementById('home-other-preparation');
-    if (other) other.innerHTML = '듣기·퀴즈·과제 안내를 지금은 확인하지 못했어요. <button type="button" class="home-panel-action" onclick="loadHomeLearningPreview(true)">다시 확인</button>';
+    if (other) other.innerHTML = '듣기·퀴즈·과제 안내를 지금은 확인하지 못했어요. <button id="home-other-preparation-load" type="button" class="home-panel-action">다시 확인</button>';
+    bindHomeLessonPreparation(payload, true, isCurrent);
   }
 }
 async function loadHomeLearningPreview(forceRefresh = false) {
@@ -2892,7 +2909,7 @@ async function loadHomeLearningPreview(forceRefresh = false) {
       if (!isCurrent()) return;
       if (vocab) {
         renderHomeVocabPreparation(vocab);
-        void completeHomePreparation(vocab,forceRefresh,isCurrent);
+        bindHomeLessonPreparation(vocab,forceRefresh,isCurrent);
         return;
       }
     }
