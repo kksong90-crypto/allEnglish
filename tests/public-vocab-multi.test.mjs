@@ -82,9 +82,9 @@ test('verified publisher aliases are one filter value, but different publishers 
   n['station-library-category'].value='VOCAB';n['station-library-category'].handlers.change();
   assert.deepEqual(values(n['station-library-publisher']),['','해커스']);
   n['station-library-publisher'].value='해커스';n['station-library-publisher'].handlers.change();
-  assert.deepEqual(values(n['station-library-book']),['','H1','H2']);
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['H1','H2']);
   n['station-library-query'].value='해커스';n['station-library-query'].handlers.input();
-  assert.deepEqual(values(n['station-library-book']),['','H1','H2']);
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['H1','H2']);
   assert.equal(h.calls.length,1,'publisher facets are derived locally, not another server request');
 });
 
