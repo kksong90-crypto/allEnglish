@@ -29,7 +29,8 @@ try{
   }
   if(!['script.google.com','script.googleusercontent.com'].includes(url.hostname))return route.abort();
   const p=Object.fromEntries(request.method()==='POST'?new URLSearchParams(request.postData()||''):url.searchParams);
-  if(['saveVocabResult','submitAssignedPractice','addPoint','getVocabData'].includes(p.action))writes.push(p.action);
+  // getVocabData is a legacy READ; only these actions can change official outcomes.
+  if(['saveVocabResult','submitAssignedPractice','addPoint'].includes(p.action))writes.push(p.action);
   if(['getVocaCatalog','getVocaSection'].includes(p.action))reads.push(p);
   const ids=p.action==='getVocaSection'?JSON.parse(p.sectionIdsJson||'[]'):[];
   const response=p.action==='getVocaCatalog'?{success:true,books:catalog}:
