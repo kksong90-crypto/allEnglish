@@ -94,6 +94,41 @@ test('changing a mock-exam year resets only incompatible downstream month, not t
   assert.deepEqual(values(n['station-library-book']),['','MOCK26']);
 });
 
+test('real-data-shaped CSAT with missing metadata is searchable without leaking the 수능 term into mock exams',async()=>{
+  const catalog=[
+    {revisionId:'MOCK',displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',
+      schoolLevel:'HIGH',gradeNo:'2',publicationYear:'2026',publicationMonth:'9',sections:[section('M18','18번')]},
+    {revisionId:'CSAT',displayName:'2026년 대학수학능력시험',categoryCode:'MOCK_EXAM',
+      schoolLevel:'',gradeNo:'',publicationYear:'',publicationMonth:'',sections:[section('C18','18번')]},
+    {revisionId:'OTHER',displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',
+      publisher:'해커스',sections:[section('D1','Day 1')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-query'].value='수능';n['station-library-query'].handlers.input();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT','OTHER'],
+    '수능 검색은 일반 모의고사를 포함하면 안 된다');
+  n['station-library-query'].value='';n['station-library-query'].handlers.input();
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-year']),['','2026','__METADATA_NOT_REGISTERED__']);
+  n['station-library-year'].value='__METADATA_NOT_REGISTERED__';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT'],'unknown year is explicitly selectable');
+  assert.equal(n['station-library-book'].children[1].label.includes('대학수학능력시험'),true);
+  assert.equal(h.calls.length,1,'filtering and searching catalog metadata must not read word bodies');
+});
+
+test('private and SCHOOL_EXAM scoped materials stay hidden despite public-looking category labels',async()=>{
+  const catalog=[
+    {revisionId:'PUBLIC',displayName:'고1 모의고사',categoryCode:'MOCK_EXAM',sections:[section('P18','18번')]},
+    {revisionId:'PRIVATE',displayName:'비공개 학교시험',categoryCode:'TEXTBOOK',usageScope:'SCHOOL_EXAM',sections:[section('X1','1과')]},
+    {revisionId:'CUSTOM',displayName:'비공개 자체자료',categoryCode:'CUSTOM',usageScope:'SCHOOL_EXAM',sections:[section('X2','단원')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  assert.deepEqual(values(n['station-library-book']),['','PUBLIC']);
+  n['station-library-category'].value='CUSTOM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['']);
+  assert.equal(h.calls.length,1);
+});
+
 test('multiple mock questions and commercial Day combine without checkbox reads and keep scope on book switch',async()=>{
   const h=setup(),n=h.nodes;await open(h);
   pickBook(n,'MOCK26');pickRange(n,0);pickRange(n,1);

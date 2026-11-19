@@ -212,8 +212,8 @@ const optionValues=node=>node.children.map(child=>child.value);
 test('metadata facets intersect locally; missing metadata stays in All without guessed classification',async()=>{
   const h=metadataFixture(),n=h.nodes;n['station-library'].open=true;await n['station-library'].handlers.toggle();
   assert.equal(h.calls.length,1);assert.equal(n['station-library-book'].children.length,6);
-  assert.deepEqual(optionValues(n['station-library-school-level']).sort(),['','고등학교','중학교'].sort());
-  assert.deepEqual(optionValues(n['station-library-grade']),['','1','2']);
+  assert.deepEqual(optionValues(n['station-library-school-level']).sort(),['','고등학교','중학교','__METADATA_NOT_REGISTERED__'].sort());
+  assert.deepEqual(optionValues(n['station-library-grade']),['','1','2','__METADATA_NOT_REGISTERED__']);
   assert.equal(optionValues(n['station-library-publisher']).includes('PRIVATE'),false);
   n['station-library-school-level'].value='중학교';n['station-library-school-level'].handlers.change();
   assert.equal(optionValues(n['station-library-book']).includes('UNKNOWN'),false,'a title must not infer metadata');

@@ -131,10 +131,17 @@
     OTHER:['schoolLevel','gradeNo','publisher']
   };
   const searchIndex = new Map();
-  const bookSearch = book => searchKey([book.displayName, categoryName(book), book.publisher, book.authorLabel,
-    book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName,
-    book.publicationYear && `${book.publicationYear}년`, book.publicationMonth && `${Number(book.publicationMonth)}월`
-  ].filter(Boolean).join(' '));
+  const bookSearch = book => {
+    // The visible category is "모의고사·수능", but a search for "수능" must
+    // NOT return every ordinary mock exam. Use the actual title for subtype.
+    const categorySearch = categoryKey(book) === 'MOCK_EXAM'
+      ? (/대학수학능력시험|수능/u.test(String(book.displayName || '')) ? '수능' : '모의고사')
+      : categoryName(book);
+    return searchKey([book.displayName, categorySearch, book.publisher, book.authorLabel,
+      book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName,
+      book.publicationYear && `${book.publicationYear}년`, book.publicationMonth && `${Number(book.publicationMonth)}월`
+    ].filter(Boolean).join(' '));
+  };
   function cached(map, key) {
     const entry = map.get(key);
     if (!entry || Date.now() - entry.at >= CACHE_MS) { map.delete(key); return null; }
@@ -152,8 +159,13 @@
     if (['publicationYear','publicationMonth'].includes(field) && /^\d+$/.test(value)) return String(Number(value));
     return value;
   }
+  const MISSING_FACET = '__METADATA_NOT_REGISTERED__';
+  function facetMatches(book, field, chosen) {
+    return !chosen || (chosen === MISSING_FACET ? !facetValue(book,field) : facetValue(book,field) === chosen);
+  }
   function facetLabel(field, value) {
-    return field === 'publicationYear' ? value + '년'
+    return value === MISSING_FACET ? '정보 미등록'
+      : field === 'publicationYear' ? value + '년'
       : field === 'publicationMonth' ? value + '월'
       : field === 'gradeNo' ? value + '학년'
       : field === 'schoolLevel' ? ({HIGH:'고등학교',MIDDLE:'중학교',ELEMENTARY:'초등학교'}[value] || value)
@@ -178,10 +190,14 @@
       const [field, select] = metadataFilters[index];
       if (!select || !active.includes(field)) continue;
       const previous = select.value, upstream = metadataFilters.slice(0,index);
-      const values = [...new Set(base.filter(book => upstream.every(([parent,input]) =>
-        !input?.value || facetValue(book,parent) === input.value))
-        .map(book => facetValue(book,field)).filter(Boolean))]
+      const available = base.filter(book => upstream.every(([parent,input]) =>
+        facetMatches(book,parent,input?.value)));
+      const values = [...new Set(available.map(book => facetValue(book,field)).filter(Boolean))]
         .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
+      // A missing metadata option appears only when valid values ALSO exist.
+      // This keeps unclassified official exams discoverable without inventing
+      // a school grade or guessing the actual calendar year of a CSAT title.
+      if (values.length && available.some(book => !facetValue(book,field))) values.push(MISSING_FACET);
       resetSelect(select,'전체');
       for (const value of values) select.add(new Option(facetLabel(field,value),value));
       select.disabled = values.length === 0;
@@ -194,7 +210,7 @@
     const previous = books.value;
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const matches = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
-      && metadataFilters.every(([field,select]) => !select?.value || facetValue(book,field) === select.value)
+      && metadataFilters.every(([field,select]) => facetMatches(book,field,select?.value))
       && terms.every(term => searchIndex.get(book.revisionId).includes(term)));
     resetSelect(books, '교재 선택');
     for (const book of matches) books.add(new Option(`[${categoryName(book)}] ${book.displayName}`, book.revisionId));
