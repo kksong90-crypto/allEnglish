@@ -2,7 +2,7 @@ name: Student published release smoke
 on:
   push:
     branches: [main]
-    paths: ['practice-experience.js', 'practice-experience.css', 'scripts/check-published-student.mjs', 'index.html', 'station-library.js', '.github/workflows/student-release-smoke.yml']
+    paths: ['practice-experience.js', 'practice-experience.css', 'scripts/check-published-student.mjs', 'index.html', 'station-library.js', 'student-shell.css', 'browser-tests/public-vocab-multiselect.browser.mjs', '.github/workflows/student-release-smoke.yml']
 permissions:
   contents: read
 jobs:
@@ -15,3 +15,20 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/check-published-student.mjs
+  published-library-ui:
+    name: Published student multi-range journey (synthetic Chromium)
+    needs: verify
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+      options: --ipc=host
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser tests
+        run: npm --prefix browser-tests ci --no-audit --no-fund
+      - name: Verify the actual public Pages user interface with synthetic-only student data
+        run: node browser-tests/public-vocab-multiselect.browser.mjs chromium --published-static
