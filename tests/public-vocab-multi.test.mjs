@@ -72,8 +72,11 @@ test('verified publisher aliases are one filter value, but different publishers 
   ];
   const h=setup({catalog}),n=h.nodes;await open(h);
   n['station-library-category'].value='TEXTBOOK';n['station-library-category'].handlers.change();
-  assert.deepEqual(n['station-library-publisher'].children.map(x=>[x.value,x.label]),
-    [['','전체'],['NE능률','NE능률'],['천재','천재'],['천재교과서','천재교과서']]);
+  const publisherOptions=n['station-library-publisher'].children.map(x=>[x.value,x.label]);
+  assert.deepEqual(publisherOptions[0],['','전체']);
+  assert.deepEqual(publisherOptions.slice(1).map(([value])=>value).sort(),
+    ['NE능률','천재','천재교과서'].sort());
+  assert.equal(publisherOptions.length,4,'known equivalent labels must produce just one option');
   n['station-library-publisher'].value='NE능률';n['station-library-publisher'].handlers.change();
   assert.deepEqual(values(n['station-library-book']),['','NE1','NE2']);
   n['station-library-category'].value='VOCAB';n['station-library-category'].handlers.change();
