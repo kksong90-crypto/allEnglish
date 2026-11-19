@@ -30,7 +30,7 @@ try{for(const role of ['student','admin']){
  const page=await context.newPage();await page.goto(origin,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>!!currentUser?.token);
  await page.evaluate(()=>showTab('vocab'));await page.locator('#station-library').evaluate(el=>el.open=true);
  await page.locator('#station-library-book option[value="UNKNOWN"]').waitFor({state:'attached'});
- await page.getByLabel('학교급',{exact:true}).selectOption('중학교');await page.getByLabel('학년',{exact:true}).selectOption('2');await page.getByLabel('출판사',{exact:true}).selectOption('비상');
+ await page.getByLabel('학교급',{exact:true}).selectOption('MIDDLE');await page.getByLabel('학년',{exact:true}).selectOption('2');await page.getByLabel('출판사',{exact:true}).selectOption('비상');
  assert.deepEqual(await page.locator('#station-library-book option').evaluateAll(options=>options.map(x=>x.value)),['','M2']);
  assert.deepEqual(await page.locator('#station-library-publisher option').evaluateAll(options=>options.map(x=>x.value)),['','비상'],'publisher options should follow chosen grade');
  await page.getByLabel('출판사',{exact:true}).selectOption('');
@@ -40,7 +40,7 @@ try{for(const role of ['student','admin']){
  for(const label of ['학교급','학년','출판사'])await page.getByLabel(label,{exact:true}).selectOption('');
  assert.equal(await page.locator('#station-library-book option[value="UNKNOWN"]').count(),1);assert.equal(reads.length,1,'metadata filters must not fetch another catalog');assert.equal(wordReads.length,0,'metadata filters must not fetch word bodies');
  // A whole-catalog hit must open even while metadata filters exclude its book.
- await page.getByLabel('학교급',{exact:true}).selectOption('중학교');await page.getByLabel('학년',{exact:true}).selectOption('2');await page.getByLabel('출판사',{exact:true}).selectOption('비상');
+ await page.getByLabel('학교급',{exact:true}).selectOption('MIDDLE');await page.getByLabel('학년',{exact:true}).selectOption('2');await page.getByLabel('출판사',{exact:true}).selectOption('비상');
  assert.equal(await page.locator('#station-library-book option[value="H1"]').count(),0);
  await page.locator('#station-library-word-query').fill('synthetic-target');await page.locator('#station-library-word-scope').selectOption('all');await page.locator('#station-library-word-search').click();
  await page.locator('#station-library-search-result button').getByText('이 범위 열기',{exact:true}).click();
