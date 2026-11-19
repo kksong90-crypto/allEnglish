@@ -44,7 +44,7 @@ async function setup(role,legacy='normal',assigned='normal',options={}){
   else if(p.action==='logout')reply={success:true};
   else if(p.action==='getMyLearningSchedule'&&config.schedule==='error')reply={success:false,message:'SYNTHETIC_INTERNAL_SCHEDULE_FAILURE'};
   else if(p.action==='getMyLearningSchedule'&&config.schedule==='empty')reply={success:true,days:[],visibleDays:[]};
-  else if(p.action==='getMyLearningSchedule'){const date=p.fromDate||new Date().toISOString().slice(0,10),day={date,displayDate:date,className:'가상 반',hasPlan:true,scheduled:true,vocab:[{testPlanId:'FAKE_PLAN',vocaScopeState:'CONNECTED',sourceRanges:[{bookId:'FAKE_BOOK',sectionId:'FAKE_SCOPE'}],displayText:'가상 정규 단어장 Day 1',bookName:'가상 정규 단어장',regularText:'Day 1'}],listening:null,quiz:{scope:''},homework:{text:'',public:true}};reply={success:true,range:p.range||'upcoming',days:[day],visibleDays:[day],nextPlan:day};}
+  else if(p.action==='getMyLearningSchedule'){const date=p.fromDate||new Date().toISOString().slice(0,10),day={date,displayDate:date,className:'가상 반',hasPlan:true,scheduled:true,vocab:[{testPlanId:'FAKE_PLAN',vocaScopeState:'CONNECTED',sourceRanges:[{bookId:'FAKE_BOOK',sectionId:'FAKE_SCOPE'}],displayText:'가상 정규 단어장 Day 1',bookName:'가상 정규 단어장',regularText:'Day 1'}],listening:{homework:'4',type:'LISTENING_DICTATION'},quiz:{scope:'합성 관계대명사 Quiz'},homework:{text:'합성 교재 24~27쪽',public:true}};reply={success:true,range:p.range||'upcoming',days:[day],visibleDays:[day],nextPlan:day};}
   else if(p.action==='getFavoriteState')reply={success:true,folders:{기본:['가상 정규 단어장|1|evaluate']}};
   else if(p.action==='getStudentStats')reply={success:true,testCount:0,wrongCount:0};
   else if(p.action==='getStudentContent')reply={success:true,home:{heroTitle:'합성 계정'},notices:[],homeNotices:[]};
@@ -79,7 +79,37 @@ async function home(s,hasPlan=true){
 async function login(s){await s.page.locator('#login-id').fill('SYNTHETIC_ONLY');await s.page.locator('#login-pw').fill('SYNTHETIC_ONLY');await s.page.locator('#login-screen button[onclick="checkLogin()"]').click();await s.page.waitForFunction(()=>!!currentUser?.token);}
 async function practice(s){await home(s);await s.page.locator('#home-learning-content button[data-test-plan-id="FAKE_PLAN"]').click();await s.page.locator('.practice-experience').waitFor();}
 try{
- await run('home-words-visible-through-60s-full-delay','student',['normal','normal',{fullDelay:60000,fastDateOffset:1}],async s=>{const started=Date.now();await s.page.locator('#home-vocab-preparation [data-slot-key="SECOND"]').waitFor();assert.ok(Date.now()-started<3000);assert.equal(await s.page.locator('#home-vocab-preparation [data-test-plan-id]').count(),2);assert.match(await s.page.locator('#home-other-preparation').innerText(),/確認|확인하고/);assert.doesNotMatch(await s.page.locator('#home-learning-content').innerText(),/듣기 면제|현재 등록된 듣기 안내/);await s.page.locator('#home-vocab-preparation [data-slot-key="SECOND"]').click();await s.page.locator('.practice-experience').waitFor();const request=s.calls.find(p=>p.action==='getAssignedVocaPracticeQuestions');assert.equal(request.testPlanId,'FAKE_PLAN');assert.equal(request.slotKey,'SECOND');assert.equal(request.personalScopeFingerprint,'b'.repeat(64));assert.equal(request.coverage,'ALL');console.log('FAST_SCOPE_CLICKABLE ALL-request-correct full-request-still-held');await s.page.waitForTimeout(61000);await s.page.locator('#home-other-preparation').waitFor({state:'detached'});assert.match(await s.page.locator('#home-learning-content').innerText(),/FAST_SCOPE/);assert.doesNotMatch(await s.page.locator('#home-learning-content').innerText(),/가상 정규 단어장/);const fastDate=new Date(Date.parse(s.calls.find(p=>p.action==='getMyVocabPreparation').fromDate+'T00:00:00Z')+86400000).toISOString().slice(0,10);assert.deepEqual(await s.page.locator('#home-learning-content .home-task time').allTextContents(),[fastDate,fastDate]);assert.match(await s.page.locator('#home-learning-content').innerText(),/17:00–19:00/);});
+ await run('word-only-entry-omits-full-lesson-read','student',['normal','normal',{fastDateOffset:1}],async s=>{
+  const started=Date.now();
+  await s.page.locator('#home-vocab-preparation [data-slot-key="SECOND"]').waitFor();
+  assert.ok(Date.now()-started<3000);
+  assert.equal(await s.page.locator('#home-vocab-preparation [data-test-plan-id]').count(),2);
+  assert.match(await s.page.locator('#home-other-preparation').innerText(),/아직 확인하지 않았어요/);
+  assert.equal(s.calls.filter(p=>p.action==='getMyLearningSchedule').length,0);
+  await s.page.locator('#home-vocab-preparation [data-slot-key="SECOND"]').click();
+  await s.page.locator('.practice-experience').waitFor();
+  const request=s.calls.find(p=>p.action==='getAssignedVocaPracticeQuestions');
+  assert.equal(request.testPlanId,'FAKE_PLAN');assert.equal(request.slotKey,'SECOND');
+  assert.equal(request.personalScopeFingerprint,'b'.repeat(64));assert.equal(request.coverage,'ALL');
+  assert.equal(s.calls.filter(p=>p.action==='getMyLearningSchedule').length,0);
+ });
+ await run('explicit-lesson-expansion-shares-flight-and-preserves-fast-scope','student',['normal','normal',{schedule:'slow',fastDateOffset:1}],async s=>{
+  await s.page.locator('#home-vocab-preparation [data-slot-key="SECOND"]').waitFor();
+  assert.equal(s.calls.filter(p=>p.action==='getMyLearningSchedule').length,0);
+  const button=s.page.getByRole('button',{name:'듣기·과제 등 수업 준비 확인',exact:true});
+  await Promise.all([s.page.waitForRequest(request=>new URLSearchParams(request.postData()||'').get('action')==='getMyLearningSchedule'),button.click()]);
+  assert.equal(await s.page.locator('#home-other-preparation-load').isDisabled(),true);
+  await s.page.evaluate(()=>{void document.getElementById('home-other-preparation-load').onclick();});
+  assert.equal(s.calls.filter(p=>p.action==='getMyLearningSchedule').length,1);
+  assert.equal(await s.page.locator('#home-vocab-preparation [data-test-plan-id]').count(),2);
+  s.config.schedule='normal';for(const done of s.config.scheduleWaiters||[])done();
+  await s.page.locator('#home-other-preparation').waitFor({state:'detached'});
+  const text=await s.page.locator('#home-learning-content').innerText();
+  assert.match(text,/FAST_SCOPE/);assert.doesNotMatch(text,/가상 정규 단어장/);
+  assert.match(text,/합성 교재 24~27쪽/);assert.match(text,/합성 관계대명사 Quiz/);assert.match(text,/17:00–19:00/);
+  const fastDate=new Date(Date.parse(s.calls.find(p=>p.action==='getMyVocabPreparation').fromDate+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+  assert.deepEqual(await s.page.locator('#home-learning-content .home-task time').allTextContents(),[fastDate,fastDate]);
+ });
  await run('today-words-before-full-response','student',['normal','normal',{schedule:'slow'}],async s=>{await s.page.locator('#home-vocab-preparation').waitFor();await s.page.evaluate(()=>showTab('exam'));await s.page.locator('#schedule-range-today').click();await s.page.locator('#exam-table [data-slot-key="SECOND"]').waitFor();assert.equal(await s.page.locator('#exam-table [data-test-plan-id]').count(),2);assert.match(await s.page.locator('#today-other-preparation').innerText(),/확인하고/);s.config.schedule='normal';for(const done of s.config.scheduleWaiters||[])done();await s.page.locator('#today-other-preparation').waitFor({state:'detached'});assert.match(await s.page.locator('#exam-table').innerText(),/FAST_SCOPE/);});
  for(const fast of ['denied','network'])await run('fast-'+fast+'-no-heavy-fallback','student',['normal','normal',{fast}],async s=>{await s.page.locator('#home-learning-content').getByText('지금은 계획을 확인하지 못했어요.').waitFor();assert.equal(s.calls.filter(p=>p.action==='getMyLearningSchedule').length,0);assert.doesNotMatch(await s.page.locator('#home-learning-content').innerText(),/PRIVATE_AUTH/);});
  await run('explicit-unsupported-old-server-fallback','student',['normal','normal',{fast:'unsupported'}],async s=>{await home(s);const fast=s.calls.filter(p=>p.action==='getMyVocabPreparation').length,full=s.calls.filter(p=>p.action==='getMyLearningSchedule').length;assert.ok(fast>=1&&fast<=2);assert.ok(full>=1&&full<=fast);});
