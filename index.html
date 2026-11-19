@@ -655,6 +655,7 @@ async function fetchSheet(sheetName) {
 
     // v6.2.2: 로그인 사용자 변경과 늦게 도착한 API 응답을 구분한다.
     let studentSessionEpoch = 0;
+    let preparedPracticeCapability = null;
     let myScheduleRequestSerial = 0;
     let homeScheduleRequestSerial = 0;
 
@@ -1332,6 +1333,7 @@ async function loadHomeContent(forceRefresh = false) {
       if (typeof AdminClassSchedule !== "undefined") AdminClassSchedule.reset();
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
+      preparedPracticeCapability = null;
       if (typeof StationLibrary !== "undefined") StationLibrary.reset();
       homeContentRequestSerial += 1;
       homeContentLoadPromise = null;
@@ -2222,7 +2224,9 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   const current = () => epoch === studentSessionEpoch && token === currentUser?.token &&
     request === assignedPracticeRequestSerial && getActiveTabId() === "practice";
   try {
-    if (typeof PreparedPracticeCache !== 'undefined') {
+    // This hint only selects a transport. The assigned API still rechecks current permissions.
+    const preparedSupported = preparedPracticeCapability?.epoch === epoch && preparedPracticeCapability?.token === token ? preparedPracticeCapability.supported : null;
+    if (preparedSupported !== false && typeof PreparedPracticeCache !== 'undefined') {
       const client = PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
       const prepared = await client.load({testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},
         {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
@@ -2237,7 +2241,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
         renderAssignedPracticeMenu();
         return;
       }
-    } else {
+    } else if (preparedSupported !== false) {
       // A failed client asset is never permission to reuse the legacy path.
       // Only an explicit server feature-off response permits compatibility.
       const availability = await apiPost({action:'getMyPreparedVocabManifest',testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},API_LONG_TIMEOUT_MS);
@@ -2853,9 +2857,10 @@ function renderHomeLearningPreview(payload, vocabPayload = null) {
     (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">게시된 계획</span></div>' + tasks.join("");
 }
 async function fetchMyVocabPreparation(forceRefresh = false, range = "upcoming") {
+  const epoch = studentSessionEpoch, token = currentUser?.token;
   // Only coalesce in-flight reads for the same session and intent; never cache permissions.
   const reads=fetchMyVocabPreparation.pending||(fetchMyVocabPreparation.pending=new Map());
-  const key=JSON.stringify([studentSessionEpoch,currentUser?.token,range,!!forceRefresh]);
+  const key=JSON.stringify([epoch,token,range,!!forceRefresh]);
   if(reads.has(key))return reads.get(key);
   const work=(async()=>{
   const result = await apiPost({action:'getMyVocabPreparation',range,days:range==='today'?'1':'42',fromDate:getTodayString(),
@@ -2866,6 +2871,7 @@ async function fetchMyVocabPreparation(forceRefresh = false, range = "upcoming")
     throw error;
   }
   if (result.preparationOnly !== true || !Array.isArray(result.days) || !Array.isArray(result.visibleDays)) throw new Error('단어 범위 응답을 확인하지 못했습니다.');
+  if (epoch === studentSessionEpoch && token === currentUser?.token && typeof result.preparedPracticeSupported === 'boolean') preparedPracticeCapability = {epoch,token,supported:result.preparedPracticeSupported};
   return sanitizeFuturePreparationSchedule(result);
   })();
   reads.set(key,work);
