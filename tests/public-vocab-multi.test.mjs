@@ -61,6 +61,49 @@ function pickRange(n,index){const box=n['station-library-range-list'].children[i
 const open=async h=>{h.nodes['station-library'].open=true;await h.window.StationLibrary.open();};
 const reads=h=>h.calls.filter(x=>x.action==='getVocaSection');
 
+test('verified publisher aliases are one filter value, but different publishers stay distinct',async()=>{
+  const catalog=[
+    {revisionId:'NE1',displayName:'공통영어1 능률',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'1',publisher:'능률',sections:[section('L1','1과')]},
+    {revisionId:'NE2',displayName:'공통영어2 NE능률',categoryCode:'TEXTBOOK',schoolLevel:'HIGH',gradeNo:'1',publisher:'NE능률',sections:[section('L2','2과')]},
+    {revisionId:'C1',displayName:'영어2 천재',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'2',publisher:'천재',sections:[section('L3','3과')]},
+    {revisionId:'C2',displayName:'공통영어1 천재교과서',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'1',publisher:'천재교과서',sections:[section('L4','4과')]},
+    {revisionId:'H1',displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',publisher:'해커스어학연구소',sections:[section('D1','Day 1')]},
+    {revisionId:'H2',displayName:'해커스 보카 중학 기초',categoryCode:'VOCAB_BOOK',publisher:'해커스',sections:[section('D2','Day 2')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='TEXTBOOK';n['station-library-category'].handlers.change();
+  const publisherOptions=n['station-library-publisher'].children.map(x=>[x.value,x.label]);
+  assert.deepEqual(publisherOptions[0],['','전체']);
+  assert.deepEqual(publisherOptions.slice(1).map(([value])=>value).sort(),
+    ['NE능률','천재','천재교과서'].sort());
+  assert.equal(publisherOptions.length,4,'known equivalent labels must produce just one option');
+  n['station-library-publisher'].value='NE능률';n['station-library-publisher'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','NE1','NE2']);
+  n['station-library-category'].value='VOCAB';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-publisher']),['','해커스']);
+  n['station-library-publisher'].value='해커스';n['station-library-publisher'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['H1','H2']);
+  n['station-library-query'].value='해커스';n['station-library-query'].handlers.input();
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['H1','H2']);
+  assert.equal(h.calls.length,1,'publisher facets are derived locally, not another server request');
+});
+
+test('supplement and EBS can be found together but keep their true source type',async()=>{
+  const catalog=[
+    {revisionId:'S1',displayName:'기본 독해 부교재',categoryCode:'SUPPLEMENT',schoolLevel:'HIGH',publisher:'',sections:[section('S1','Unit 1')]},
+    {revisionId:'E1',displayName:'올림포스 독해',categoryCode:'EBS',schoolLevel:'HIGH',publisher:'EBS',sections:[section('E1','1강')]},
+    {revisionId:'X1',displayName:'학원 내부',categoryCode:'CUSTOM',usageScope:'SCHOOL_EXAM',sections:[section('X1','1단원')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='SUPPORT';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','S1','E1']);
+  assert.match(n['station-library-book'].children[1].label,/부교재/);
+  assert.match(n['station-library-book'].children[2].label,/EBS 교재/);
+  n['station-library-category'].value='CUSTOM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),[''],'private academy materials are never promoted to public');
+  assert.equal(h.calls.length,1);
+});
+
 test('all registered school-level aliases collapse to one meaningful Korean option',async()=>{
   const sections=[section('ONE','단원 1',1)];
   const catalog=[
@@ -155,11 +198,35 @@ test('real-data-shaped CSAT with missing metadata is searchable without leaking 
     '수능 검색은 일반 모의고사를 포함하면 안 된다');
   n['station-library-query'].value='';n['station-library-query'].handlers.input();
   n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
-  assert.deepEqual(values(n['station-library-year']),['','2026','__METADATA_NOT_REGISTERED__']);
-  n['station-library-year'].value='__METADATA_NOT_REGISTERED__';n['station-library-year'].handlers.change();
-  assert.deepEqual(values(n['station-library-book']),['','CSAT'],'unknown year is explicitly selectable');
+  // Historical CSAT metadata stays untouched, but the year literally printed
+  // in its title is a usable display facet.
+  assert.deepEqual(values(n['station-library-year']),['','2026']);
+  n['station-library-grade'].value='CSAT';n['station-library-grade'].handlers.change();
+  assert.deepEqual(values(n['station-library-year']),['','2026']);
+  n['station-library-year'].value='2026';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT'],'CSAT title year should be selectable');
   assert.equal(n['station-library-book'].children[1].label.includes('대학수학능력시험'),true);
   assert.equal(h.calls.length,1,'filtering and searching catalog metadata must not read word bodies');
+});
+
+test('CSAT title-year facet does not invent administration dates or classify untitled years',async()=>{
+  const catalog=[
+    {revisionId:'CSAT18',displayName:'2018년 대학수학능력시험',categoryCode:'MOCK_EXAM',
+      publicationYear:'',publicationMonth:'',gradeNo:'',sections:[section('A','18번')]},
+    {revisionId:'CSAT_UNKNOWN',displayName:'대학수학능력시험 자료명 미확인',categoryCode:'MOCK_EXAM',
+      publicationYear:'',publicationMonth:'',gradeNo:'',sections:[section('B','18번')]},
+    {revisionId:'MOCK26',displayName:'고3 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',
+      gradeNo:'3',publicationYear:'2026',publicationMonth:'9',sections:[section('C','18번')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-year']),['','2018','2026','__METADATA_NOT_REGISTERED__']);
+  n['station-library-grade'].value='CSAT';n['station-library-grade'].handlers.change();
+  n['station-library-year'].value='2018';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT18']);
+  assert.equal(n['station-library-month'].disabled,true,'the title year must not guess the actual exam month');
+  n['station-library-year'].value='__METADATA_NOT_REGISTERED__';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT_UNKNOWN']);
 });
 
 test('private and SCHOOL_EXAM scoped materials stay hidden despite public-looking category labels',async()=>{

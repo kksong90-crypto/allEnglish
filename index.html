@@ -447,10 +447,10 @@
         <div><label class="field-label" for="station-library-query">교재명·출판사·유형·연도 검색</label>
           <input id="station-library-query" type="search" placeholder="예: 중1 동아, 고2 10월" autocomplete="off"></div>
         <div><label class="field-label" for="station-library-category">자료 분류</label>
-          <select id="station-library-category"><option value="">전체 공개 자료</option><option value="TEXTBOOK">학교 내신·교과서</option><option value="MOCK_EXAM">모의고사·수능</option><option value="VOCAB">시판 단어장</option><option value="CUSTOM">학원 자체자료</option><option value="SUPPLEMENT">부교재</option><option value="EBS">EBS 교재</option><option value="OTHER">분류 미확인·기타</option></select></div>
+          <select id="station-library-category"><option value="">전체 공개 자료</option><optgroup label="주요 분류"><option value="TEXTBOOK">학교 내신·교과서</option><option value="MOCK_EXAM">모의고사·수능</option><option value="VOCAB">시판 단어장</option><option value="CUSTOM">학원 자체자료</option></optgroup><optgroup label="그 밖의 교재"><option value="SUPPORT">부교재·EBS</option><option value="OTHER">미분류 자료</option></optgroup></select></div>
         <div id="station-library-school-level-field"><label class="field-label" for="station-library-school-level">학교급</label><select id="station-library-school-level" disabled><option value="">전체</option></select></div>
         <div id="station-library-grade-field"><label id="station-library-grade-label" class="field-label" for="station-library-grade">학년</label><select id="station-library-grade" disabled><option value="">전체</option></select></div>
-        <div id="station-library-year-field" hidden><label class="field-label" for="station-library-year">연도</label><select id="station-library-year" disabled><option value="">전체</option></select></div>
+        <div id="station-library-year-field" hidden><label id="station-library-year-label" class="field-label" for="station-library-year">연도</label><select id="station-library-year" disabled><option value="">전체</option></select></div>
         <div id="station-library-month-field" hidden><label class="field-label" for="station-library-month">시행 월</label><select id="station-library-month" disabled><option value="">전체</option></select></div>
         <div id="station-library-publisher-field"><label class="field-label" for="station-library-publisher">출판사</label><select id="station-library-publisher" disabled><option value="">전체</option></select></div>
         <div><label class="field-label" for="station-library-book">교재·시험</label>
@@ -5556,7 +5556,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js?v=20261119-schoollevel3"></script>
+  <script src="station-library.js?v=20261120-taxonomy4"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>

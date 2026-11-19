@@ -7,7 +7,7 @@ const requireMarkers=(text,markers)=>markers.every(marker=>text.includes(marker)
 const indexMarkers=[
   'practice-experience.js?v=20261117',
   'coverage: "ALL"',
-  'station-library.js?v=20261119-schoollevel3',
+  'station-library.js?v=20261120-taxonomy4',
   'student-shell.css?v=20261119-library-multi1',
   'id="station-library-range-list"',
   'id="station-library-combined-practice"',
@@ -21,6 +21,9 @@ const jsMarkers=[
   'const MISSING_FACET =',
   'const categorySearch = categoryKey(book)',
   'const canonicalSchoolLevel =',
+  'const canonicalPublisher =',
+  'function refreshCategoryAvailability()',
+  "SUPPLEMENT:'SUPPORT'",
   "MOCK_EXAM:['gradeNo','publicationYear','publicationMonth']",
   'function renderRangeCheckboxes()',
   "action:'getVocaSection'",
@@ -40,7 +43,7 @@ for(let attempt=0;attempt<30;attempt++){
     const html=await textFile(base+'?public_library_check='+check);
     if(requireMarkers(html,indexMarkers)){
       const [js,css]=await Promise.all([
-        textFile(base+'station-library.js?v=20261119-schoollevel3&public_library_check='+check),
+        textFile(base+'station-library.js?v=20261120-taxonomy4&public_library_check='+check),
         textFile(base+'student-shell.css?v=20261119-library-multi1&public_library_check='+check)
       ]);
       deploymentVerified=requireMarkers(js,jsMarkers)&&requireMarkers(css,cssMarkers);
