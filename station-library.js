@@ -112,24 +112,29 @@
     renderBasket();
   }
   const searchKey = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s()·_-]/g, '');
-  // Do not mislabel published EBS or commercial supplements as academy-owned material.
+  // Product taxonomy is stable in storage; the student-facing choices are
+  // grouped without pretending an EBS workbook is an academy-authored word list.
   const categoryNames = {TEXTBOOK:'학교 내신·교과서', MOCK_EXAM:'모의고사·수능', VOCAB:'시판 단어장',
-    CUSTOM:'학원 자체자료', SUPPLEMENT:'부교재', EBS:'EBS 교재', OTHER:'분류 미확인·기타'};
+    CUSTOM:'학원 자체자료', SUPPORT:'보충·EBS 교재', OTHER:'분류 미확인·기타',
+    SUPPLEMENT:'부교재', EBS:'EBS 교재'};
   const categoryKey = book => {
     const code = String(book.categoryCode || '').trim().toUpperCase();
-    return ({VOCAB_BOOK:'VOCAB',WORD_BOOK:'VOCAB',SUPPLEMENTARY:'SUPPLEMENT'}[code]
+    return ({VOCAB_BOOK:'VOCAB',WORD_BOOK:'VOCAB',SUPPLEMENTARY:'SUPPORT',
+      SUPPLEMENT:'SUPPORT',EBS:'SUPPORT'}[code]
       || (categoryNames[code] ? code : 'OTHER'));
   };
-  const categoryName = book => categoryNames[categoryKey(book)];
+  const categoryName = book => {
+    const code = String(book.categoryCode || '').trim().toUpperCase();
+    return code === 'EBS' ? 'EBS 교재'
+      : ['SUPPLEMENT','SUPPLEMENTARY'].includes(code) ? '부교재'
+      : categoryNames[categoryKey(book)];
+  };
   const FACETS = {
     TEXTBOOK:['schoolLevel','gradeNo','publisher'],
-    // Only high-school mock exams and the separately named CSAT are present in
-    // the public catalog. One grade/exam chooser is clearer than "고" vs HIGH.
     MOCK_EXAM:['gradeNo','publicationYear','publicationMonth'],
     VOCAB:['publisher'],
     CUSTOM:['schoolLevel','gradeNo','publisher'],
-    SUPPLEMENT:['schoolLevel','gradeNo','publisher'],
-    EBS:['schoolLevel','gradeNo','publicationYear','publisher'],
+    SUPPORT:['schoolLevel','gradeNo','publisher'],
     OTHER:['schoolLevel','gradeNo','publisher']
   };
   const searchIndex = new Map();
@@ -139,7 +144,7 @@
     const categorySearch = categoryKey(book) === 'MOCK_EXAM'
       ? (/대학수학능력시험|수능/u.test(String(book.displayName || '')) ? '수능' : '모의고사')
       : categoryName(book);
-    return searchKey([book.displayName, categorySearch, book.publisher, book.authorLabel,
+    return searchKey([book.displayName, categorySearch, book.publisher, canonicalPublisher(book.publisher), book.authorLabel,
       book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName,
       book.publicationYear && `${book.publicationYear}년`, book.publicationMonth && `${Number(book.publicationMonth)}월`
     ].filter(Boolean).join(' '));
@@ -166,8 +171,18 @@
     if (['ELEMENTARY','ELEMENTARYSCHOOL','PRIMARY','PRIMARYSCHOOL','초','초등','초등학교'].includes(key)) return 'ELEMENTARY';
     return original; // Unknown values are not guessed or suppressed.
   };
+  // Map only verified equivalents; labels such as 천재 and 천재교과서 are
+  // distinct publisher metadata and must NOT be merged by a substring match.
+  const canonicalPublisher = raw => {
+    const original = metadataValue(raw).normalize('NFKC');
+    const key = original.toUpperCase().replace(/[\s_.-]/g,'');
+    if (['NE능률','능률'].includes(key)) return 'NE능률';
+    if (['해커스','해커스어학연구소'].includes(key)) return '해커스';
+    return original;
+  };
   function facetValue(book, field) {
     const value = metadataValue(book[field]);
+    if (field === 'publisher') return canonicalPublisher(value);
     if (field === 'schoolLevel') return canonicalSchoolLevel(value);
     if (field === 'gradeNo') {
       const compact = value.normalize('NFKC').replace(/\s/g,'');
@@ -228,6 +243,18 @@
       if (values.includes(previous)) select.value = previous;
     }
   }
+  function refreshCategoryAvailability() {
+    if (!category?.querySelectorAll || !catalog) return;
+    for (const option of category.querySelectorAll('option')) {
+      if (!option.value) continue;
+      const permitted = catalog.some(book => categoryKey(book) === option.value);
+      const base = option.getAttribute('data-source-label') || option.textContent;
+      option.setAttribute('data-source-label',base);
+      option.disabled = !permitted;
+      option.textContent = permitted ? base : base + ' (공개 자료 없음)';
+      if (!permitted && category.value === option.value) category.value = '';
+    }
+  }
   function showBooks() {
     if (!catalog) return;
     populateMetadataFilters();
@@ -237,7 +264,12 @@
       && metadataFilters.every(([field,select]) => facetMatches(book,field,select?.value))
       && terms.every(term => searchIndex.get(book.revisionId).includes(term)));
     resetSelect(books, '교재 선택');
-    for (const book of matches) books.add(new Option(`[${categoryName(book)}] ${book.displayName}`, book.revisionId));
+    for (const book of matches) {
+      // The category is already stated in the parent selector. Only preserve
+      // subtype labels when mixing EBS and commercial supplementary books.
+      const prefix = !category?.value || category.value === 'SUPPORT' ? `[${categoryName(book)}] ` : '';
+      books.add(new Option(prefix + book.displayName, book.revisionId));
+    }
     books.disabled = matches.length === 0;
     if (previous && matches.some(book => book.revisionId === previous)) books.value = previous;
     else resetScope();
@@ -259,6 +291,7 @@
           && !['POINT_SPECIAL','SCHOOL_EXAM','EXAM_SCOPE'].includes(String(book.categoryCode || '').toUpperCase()));
         catalog.sort((a,b) => a.displayName.localeCompare(b.displayName, 'ko', {numeric:true}));
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
+        refreshCategoryAvailability();
         showBooks();
         void finishTiming(meter, true, catalog.length);
       } catch {
