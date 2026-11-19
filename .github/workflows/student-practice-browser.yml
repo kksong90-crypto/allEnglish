@@ -46,6 +46,8 @@ jobs:
         run: node browser-tests/legacy-vocab-scoped.browser.mjs ${{ matrix.browser }}
       - name: Verify public metadata filters without additional reads
         run: node browser-tests/public-vocab-filters.browser.mjs ${{ matrix.browser }}
+      - name: Verify multiple mock questions and Day scopes can be combined without official writes
+        run: node browser-tests/public-vocab-multiselect.browser.mjs ${{ matrix.browser }}
       - name: Verify vocabulary priority, categories and local card practice
         run: node browser-tests/vocab-library-priority.browser.mjs ${{ matrix.browser }}
       - name: Verify fast vocabulary before delayed full schedules
