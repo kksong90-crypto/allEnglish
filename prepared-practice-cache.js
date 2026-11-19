@@ -69,6 +69,19 @@
     }
     return {
       async read(hash) { return transaction(['contents'],'readonly',(tx,set)=>{const r=tx.objectStore('contents').get(hash);r.onsuccess=()=>set(r.result||null);}); },
+      async peek(owner,selection) {
+        // At most 50 small assignment pointers; never read a word body for hints.
+        return transaction(['assignments','contents'],'readonly',(tx,set)=>{
+          const request=tx.objectStore('assignments').getAll();
+          request.onsuccess=()=>{
+            const pointer=request.result.filter(r=>r.owner===owner&&r.testPlanId===selection.testPlanId&&r.slotKey===(selection.slotKey||'')&&r.personalScopeFingerprint===(selection.personalScopeFingerprint||'')&&/^[a-f0-9]{64}$/.test(r.contentHash||''))
+              .sort((a,b)=>b.lastUsed-a.lastUsed)[0];
+            if(!pointer){set('');return;}
+            const present=tx.objectStore('contents').getKey(pointer.contentHash);
+            present.onsuccess=()=>set(present.result===pointer.contentHash?pointer.contentHash:'');
+          };
+        });
+      },
       async write(owner,identity,words) {
         return transaction(['contents','assignments'],'readwrite',tx=>{
           const stamp=now();tx.objectStore('contents').put({key:identity.contentHash,words,wordCount:words.length,lastUsed:stamp});
@@ -116,16 +129,22 @@
     }
     return {async load(selection,{owner,sessionKey,isCurrent}) {
       const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
-      current();
-      const reply=await transport({action:'getMyPreparedVocabManifest',...selection},owner,sessionKey);current();
+      current();let knownContentHash='';
+      if(typeof store.peek==='function'){try{const hint=await store.peek(owner,selection);if(/^[a-f0-9]{64}$/.test(hint||''))knownContentHash=hint;}catch(_){}}current();
+      const reply=await transport({action:'getMyPreparedVocabManifest',...selection,preferBundle:'Y',knownContentHash},owner,sessionKey);current();
       if (unsupported(reply)) return null;
       const identity=manifestIdentity(reply);
       if (identity.testPlanId!==selection.testPlanId || identity.slotKey!==(selection.slotKey||'') || identity.personalScopeFingerprint!==(selection.personalScopeFingerprint||'')) throw failure('PREPARED_SELECTION_CHANGED');
-      let cached;
-      try {cached=await store.read(identity.contentHash);} catch (_) {} current();
+      const bundled=Object.prototype.hasOwnProperty.call(reply,'words');
+      if ((reply.selectionBundle!==undefined&&typeof reply.selectionBundle!=='boolean') ||
+          (reply.wordsIncluded!==undefined&&typeof reply.wordsIncluded!=='boolean') ||
+          (reply.selectionBundle===true&&typeof reply.wordsIncluded!=='boolean') ||
+          (typeof reply.wordsIncluded==='boolean'&&reply.wordsIncluded!==bundled)) throw failure('PREPARED_BUNDLE_INVALID');
       let words;
-      if (cached) {
-        try {words=await checkedWords(cached.words,identity);} catch (_) {try {await store.discard(identity.contentHash);} catch (_) {}} current();
+      if(bundled){words=await checkedWords(reply.words,identity);current();}
+      else {
+        let cached;try {cached=await store.read(identity.contentHash);} catch (_) {}current();
+        if(cached){try {words=await checkedWords(cached.words,identity);} catch (_) {try {await store.discard(identity.contentHash);} catch (_) {}}current();}
       }
       if (!words) {
         const response=await transport({action:'getMyPreparedVocabWords',assignmentKey:identity.assignmentKey,generation:identity.generation,setId:identity.setId,contentHash:identity.contentHash},owner,sessionKey);current();
