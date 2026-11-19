@@ -82,6 +82,17 @@
           };
         });
       },
+      async hints(owner) {
+        return transaction(['assignments','contents'],'readonly',(tx,set)=>{
+          const request=tx.objectStore('assignments').getAll();
+          request.onsuccess=()=>{
+            const hashes=[...new Set(request.result.filter(r=>r.owner===owner&&/^[a-f0-9]{64}$/.test(r.contentHash||'')).sort((a,b)=>b.lastUsed-a.lastUsed).map(r=>r.contentHash))].slice(0,MAX_CONTENTS);
+            if(!hashes.length){set([]);return;}
+            const present=[];let remaining=hashes.length;
+            for(const hash of hashes){const get=tx.objectStore('contents').getKey(hash);get.onsuccess=()=>{if(get.result===hash)present.push(hash);if(!--remaining)set(present);};}
+          };
+        });
+      },
       async write(owner,identity,words) {
         return transaction(['contents','assignments'],'readwrite',tx=>{
           const stamp=now();tx.objectStore('contents').put({key:identity.contentHash,words,wordCount:words.length,lastUsed:stamp});
@@ -127,12 +138,9 @@
       if (await contentHash(valid,cryptoProvider)!==identity.contentHash) throw failure('PREPARED_HASH_MISMATCH');
       return valid;
     }
-    return {async load(selection,{owner,sessionKey,isCurrent}) {
+    async function consume(reply,selection,{owner,sessionKey,isCurrent}) {
       const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
-      current();let knownContentHash='';
-      if(typeof store.peek==='function'){try{const hint=await store.peek(owner,selection);if(/^[a-f0-9]{64}$/.test(hint||''))knownContentHash=hint;}catch(_){}}current();
-      const reply=await transport({action:'getMyPreparedVocabManifest',...selection,preferBundle:'Y',knownContentHash},owner,sessionKey);current();
-      if (unsupported(reply)) return null;
+      current();
       const identity=manifestIdentity(reply);
       if (identity.testPlanId!==selection.testPlanId || identity.slotKey!==(selection.slotKey||'') || identity.personalScopeFingerprint!==(selection.personalScopeFingerprint||'')) throw failure('PREPARED_SELECTION_CHANGED');
       const bundled=Object.prototype.hasOwnProperty.call(reply,'words');
@@ -154,6 +162,36 @@
       }
       current();try {await store.write(owner,identity,words);} catch (_) {} current();
       return {identity,words,planDate:typeof reply.planDate==='string'?reply.planDate:''};
+    }
+    return {async load(selection,{owner,sessionKey,isCurrent}) {
+      const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
+      current();let knownContentHash='';
+      if(typeof store.peek==='function'){try{const hint=await store.peek(owner,selection);if(/^[a-f0-9]{64}$/.test(hint||''))knownContentHash=hint;}catch(_){}}current();
+      const reply=await transport({action:'getMyPreparedVocabManifest',...selection,preferBundle:'Y',knownContentHash},owner,sessionKey);current();
+      if (unsupported(reply)) return null;
+      return consume(reply,selection,{owner,sessionKey,isCurrent});
+    },async loadNext({owner,sessionKey,isCurrent}) {
+      const current=()=>{if(!isCurrent())throw failure('PREPARED_STALE_SESSION');};
+      current();let hints=[];
+      if(typeof store.hints==='function'){try{hints=await store.hints(owner);}catch(_){}}
+      hints=[...new Set(Array.isArray(hints)?hints:[])].filter(h=>typeof h==='string'&&/^[a-f0-9]{64}$/.test(h)).slice(0,MAX_CONTENTS);current();
+      const reply=await transport({action:'getMyNextPreparedVocabPractice',preferBundle:'Y',knownContentHashesJson:JSON.stringify(hints)},owner,sessionKey);current();
+      if(unsupported(reply)||(reply?.success===false&&reply.message==='Unknown action: getMyNextPreparedVocabPractice'))return null;
+      if(reply?.success===true&&reply.status==='SELECTION_REQUIRED'){
+        if(!Array.isArray(reply.choices)||reply.choices.length<2||reply.choices.length>32)throw failure('PREPARED_SELECTION_INVALID');
+        const seen=new Set(),choices=reply.choices.map(choice=>{
+          if(typeof choice?.testPlanId!=='string'||!/^[A-Za-z0-9._:-]{3,160}$/.test(choice.testPlanId)||
+              typeof choice.slotKey!=='string'||choice.slotKey.length>80||
+              typeof choice.personalScopeFingerprint!=='string'||(choice.personalScopeFingerprint!==''&&!/^[a-f0-9]{64}$/.test(choice.personalScopeFingerprint))||
+              typeof choice.displayLabel!=='string'||!choice.displayLabel.trim()||choice.displayLabel.length>600||
+              typeof choice.planDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(choice.planDate))throw failure('PREPARED_SELECTION_INVALID');
+          const key=JSON.stringify([choice.testPlanId,choice.slotKey,choice.personalScopeFingerprint]);if(seen.has(key))throw failure('PREPARED_SELECTION_INVALID');seen.add(key);
+          return Object.fromEntries(['testPlanId','slotKey','personalScopeFingerprint','displayLabel','planDate'].map(k=>[k,choice[k]]));
+        });
+        return {selectionRequired:true,choices};
+      }
+      const identity=manifestIdentity(reply);
+      return consume(reply,{testPlanId:identity.testPlanId,slotKey:identity.slotKey,personalScopeFingerprint:identity.personalScopeFingerprint},{owner,sessionKey,isCurrent});
     }};
   }
   root.PreparedPracticeCache = Object.freeze({createClient,indexedStore,validateWords,contentHash,manifestIdentity});

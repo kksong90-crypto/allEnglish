@@ -656,6 +656,7 @@ async function fetchSheet(sheetName) {
     // v6.2.2: 로그인 사용자 변경과 늦게 도착한 API 응답을 구분한다.
     let studentSessionEpoch = 0;
     let preparedPracticeCapability = null;
+    let directPreparedChoices = null;
     let myScheduleRequestSerial = 0;
     let homeScheduleRequestSerial = 0;
 
@@ -1334,6 +1335,7 @@ async function loadHomeContent(forceRefresh = false) {
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
       preparedPracticeCapability = null;
+      directPreparedChoices = null;
       if (typeof StationLibrary !== "undefined") StationLibrary.reset();
       homeContentRequestSerial += 1;
       homeContentLoadPromise = null;
@@ -2204,6 +2206,53 @@ function shuffleAssignedPractice(items) {
   }
   return result;
 }
+function applyPreparedPractice(prepared,epoch,token) {
+        const {identity,words} = prepared;
+        const rows = words.map((word,i)=>['[시험범위]','배정 계획',word.word,word.meaning,i+1,word.bookId,word.acceptedAnswers.join('|'),word.vocabWordId]);
+        assignedPracticeState = {planId:identity.testPlanId,slotKey:identity.slotKey,personalScopeFingerprint:identity.personalScopeFingerprint,sourceRows:shuffleAssignedPractice(rows),
+          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:prepared.planDate,epoch,token,
+          preparedGeneration:identity.generation,preparedAssignmentKey:identity.assignmentKey,mode:'',study:null,finished:true};
+        assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
+        renderAssignedPracticeMenu();
+}
+function directPreparedEntryButton() {
+  return String(currentUser?.role||'').toLowerCase()==='student'
+    ? '<button id="home-direct-prepared-start" class="home-panel-action" type="button" onclick="startNextPreparedPractice(this)">내 시험범위 바로 연습</button>' : '';
+}
+async function startNextPreparedPractice(button) {
+  if(!currentUser?.token||String(currentUser.role||'').toLowerCase()!=='student')return;
+  const epoch=studentSessionEpoch,token=currentUser.token,request=++assignedPracticeRequestSerial;
+  if(button)button.disabled=true;
+  showTab('practice',{deferLoad:true});
+  assignedPracticeState=null;directPreparedChoices=null;
+  const target=document.getElementById('practice-view');
+  target.innerHTML='<div class="card" role="status">내 최신 시험범위 전체를 확인하고 있어요…</div>';
+  const current=()=>epoch===studentSessionEpoch&&token===currentUser?.token&&request===assignedPracticeRequestSerial&&getActiveTabId()==='practice';
+  try {
+    if(typeof PreparedPracticeCache==='undefined')throw new Error('PREPARED_CLIENT_UNAVAILABLE');
+    const client=PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
+    const result=await client.loadNext({owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
+    if(!current())return;
+    if(!result){const e=new Error('PREPARED_NEXT_UNSUPPORTED');e.code='PREPARED_NEXT_UNSUPPORTED';throw e;}
+    if(result.selectionRequired){
+      directPreparedChoices={epoch,token,request,choices:result.choices};
+      target.innerHTML='<div class="card"><h2 id="practice-choice-heading" tabindex="-1">연습할 시험 시간을 선택하세요</h2><p>각 시간의 전체 범위를 따로 확인해 시작해요.</p><div class="button-row">'+result.choices.map((choice,i)=>'<button class="vocab-btn" type="button" data-next-choice="'+i+'" onclick="chooseNextPreparedPractice('+i+',this)">'+escapeHtml(choice.planDate+' · '+choice.displayLabel)+'</button>').join('')+'</div><button class="vocab-btn secondary" type="button" onclick="showTab(&quot;home&quot;)">홈으로 돌아가기</button></div>';
+      document.getElementById('practice-choice-heading')?.focus?.({preventScroll:true});return;
+    }
+    applyPreparedPractice(result,epoch,token);
+  } catch(error) {
+    if(!current())return;
+    const message=error?.code==='PREPARED_PENDING'?'최신 시험범위를 준비하고 있어요. 잠시 후 홈에서 확인해 주세요.':error?.code==='PREPARED_NEXT_UNSUPPORTED'?'홈에서 확인한 시험범위를 선택해 연습해 주세요.':'최신 시험범위를 확인하지 못했어요. 홈에서 범위를 다시 확인해 주세요.';
+    target.innerHTML='<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위를 확인해 주세요</h2><p>'+message+'</p><button class="vocab-btn secondary" type="button" onclick="showTab(&quot;home&quot;)">홈에서 시험범위 확인</button></div>';
+    document.getElementById('practice-load-error-heading')?.focus?.({preventScroll:true});
+  } finally {if(button)button.disabled=false;}
+}
+function chooseNextPreparedPractice(index,button) {
+  const selection=directPreparedChoices;
+  if(!selection||selection.epoch!==studentSessionEpoch||selection.token!==currentUser?.token||selection.request!==assignedPracticeRequestSerial||getActiveTabId()!=='practice'||!Number.isInteger(index)||!selection.choices[index])return;
+  const choice=selection.choices[index];directPreparedChoices=null;
+  return startAssignedVocaPractice(choice.testPlanId,button,choice.slotKey,choice.personalScopeFingerprint);
+}
 async function startAssignedVocaPractice(testPlanId, button, slotKey = "", personalScopeFingerprint = "") {
   const selectedFingerprint = String(personalScopeFingerprint || "").trim();
   const selectedSlot = String(slotKey || "").trim();
@@ -2232,13 +2281,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
         {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
       if (!current()) return;
       if (prepared) {
-        const {identity,words} = prepared;
-        const rows = words.map((word,i)=>['[시험범위]','배정 계획',word.word,word.meaning,i+1,word.bookId,word.acceptedAnswers.join('|'),word.vocabWordId]);
-        assignedPracticeState = {planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint,sourceRows:shuffleAssignedPractice(rows),
-          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:prepared.planDate,epoch,token,
-          preparedGeneration:identity.generation,preparedAssignmentKey:identity.assignmentKey,mode:'',study:null,finished:true};
-        assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
-        renderAssignedPracticeMenu();
+        applyPreparedPractice(prepared,epoch,token);
         return;
       }
     } else if (preparedSupported !== false) {
@@ -2784,7 +2827,7 @@ function renderHomePreparationState(state, message = "") {
   if (!target) return;
   const loading = state === "loading";
   target.innerHTML = loading
-    ? '<div class="home-preparation-state" role="status"><b>최신 계획을 확인하고 있어요.</b><p>확인된 단어·듣기만 여기에 보여 드릴게요.</p></div>'
+    ? '<div class="home-preparation-state" role="status"><b>최신 계획을 확인하고 있어요.</b><p>확인된 단어·듣기만 여기에 보여 드릴게요.</p>'+directPreparedEntryButton()+'</div>'
     : '<div class="home-preparation-state"><b>지금은 계획을 확인하지 못했어요.</b><p>이전 범위로 준비하지 않도록, 잠시 가려 두었습니다.</p><button class="home-panel-action" type="button" onclick="loadHomeLearningPreview(true)">다시 확인</button></div>';
   target.setAttribute("aria-busy", loading ? "true" : "false");
 }
@@ -2885,7 +2928,7 @@ function renderHomeVocabPreparation(payload) {
     .filter(item=>!item.closed&&!item.personalDayOff&&item.vocab?.length)
     .sort((a,b)=>a.date.localeCompare(b.date))[0];
   target.setAttribute('aria-busy','false');
-  target.innerHTML = '<div id="home-vocab-preparation">' + (day
+  target.innerHTML = directPreparedEntryButton()+'<div id="home-vocab-preparation">' + (day
     ? day.vocab.map(item=>renderHomeVocabTask(item,day)).join('')
     : '<article class="home-task"><h3>단어 시험</h3><p>예정된 단어 범위 안내가 아직 없습니다.</p></article>') +
     '</div><div id="home-other-preparation"><p>듣기·퀴즈·과제 안내는 아직 확인하지 않았어요.</p><button id="home-other-preparation-load" type="button" class="home-panel-action">듣기·과제 등 수업 준비 확인</button></div>';
@@ -5371,7 +5414,7 @@ function createStudentSelectedSectionLoader({readSection,currentSession}){
   loadHomeTextFromCache();
   initAppBackHandling();
   restoreLogin();
-  if (!currentUser || !currentUser.token) loadHomeContent(true);
+  // Anonymous content is covered by the login screen; fetch it once after login.
   // The shell is usable immediately; each network-backed panel owns its loading state.
   document.getElementById("loader").classList.add("hidden");
 };
@@ -5537,7 +5580,7 @@ function escapeHtmlForPointRank(text) {
   </script>
 
   <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
-  <script src="prepared-practice-cache.js?v=20261119.3"></script>
+  <script src="prepared-practice-cache.js?v=20261119.4"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
