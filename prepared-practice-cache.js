@@ -17,9 +17,10 @@
     }
     if (!/^[a-f0-9]{64}$/.test(value.contentHash || '') || !Number.isInteger(value.wordCount) || value.wordCount < 1 || value.wordCount > MAX_WORDS ||
         typeof value.slotKey !== 'string' || typeof value.personalScopeFingerprint !== 'string') throw failure('PREPARED_IDENTITY_INVALID');
-    return Object.fromEntries(identityKeys.map(key => [key,value[key]]));
+    if (value.sourceFence !== undefined && typeof value.sourceFence !== 'string') throw failure('PREPARED_IDENTITY_INVALID');
+    return {...Object.fromEntries(identityKeys.map(key => [key,value[key]])),...(value.sourceFence!==undefined?{sourceFence:value.sourceFence}:{})};
   }
-  function sameIdentity(a,b) { return identityKeys.every(key => a[key] === b[key]); }
+  function sameIdentity(a,b) { return identityKeys.every(key => a[key] === b[key]) && (a.sourceFence===undefined || b.sourceFence===undefined || a.sourceFence===b.sourceFence); }
   function validateWords(words,count) {
     if (!Array.isArray(words) || words.length !== count || count < 1 || count > MAX_WORDS) throw failure('PREPARED_INCOMPLETE');
     const seen = new Set();
@@ -115,7 +116,7 @@
         words=await checkedWords(response.words,identity);current();
       }
       current();try {await store.write(owner,identity,words);} catch (_) {} current();
-      return {identity,words};
+      return {identity,words,planDate:typeof reply.planDate==='string'?reply.planDate:''};
     }};
   }
   root.PreparedPracticeCache = Object.freeze({createClient,indexedStore,validateWords,contentHash,manifestIdentity});

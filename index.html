@@ -2231,7 +2231,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
         const {identity,words} = prepared;
         const rows = words.map((word,i)=>['[시험범위]','배정 계획',word.word,word.meaning,i+1,word.bookId,word.acceptedAnswers.join('|'),word.vocabWordId]);
         assignedPracticeState = {planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint,sourceRows:shuffleAssignedPractice(rows),
-          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:'',epoch,token,
+          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:prepared.planDate,epoch,token,
           preparedGeneration:identity.generation,preparedAssignmentKey:identity.assignmentKey,mode:'',study:null,finished:true};
         assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
         renderAssignedPracticeMenu();
