@@ -81,6 +81,19 @@ test('category-specific dependent facets use actual catalog metadata, never titl
   assert.equal(h.calls.length,1,'all metadata filters must be local');
 });
 
+test('changing a mock-exam year resets only incompatible downstream month, not the chosen year',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  n['station-library-year'].value='2025';n['station-library-year'].handlers.change();
+  n['station-library-month'].value='6';n['station-library-month'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','MOCK25']);
+  n['station-library-year'].value='2026';n['station-library-year'].handlers.change();
+  assert.equal(n['station-library-year'].value,'2026','year is the parent of month');
+  assert.equal(n['station-library-month'].value,'','old June must clear when the year changes');
+  assert.deepEqual(values(n['station-library-month']),['','9']);
+  assert.deepEqual(values(n['station-library-book']),['','MOCK26']);
+});
+
 test('multiple mock questions and commercial Day combine without checkbox reads and keep scope on book switch',async()=>{
   const h=setup(),n=h.nodes;await open(h);
   pickBook(n,'MOCK26');pickRange(n,0);pickRange(n,1);

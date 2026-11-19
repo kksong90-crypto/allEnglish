@@ -113,7 +113,7 @@
   }
   const searchKey = value => String(value).normalize('NFKC').toLowerCase().replace(/[\s()·_-]/g, '');
   // Do not mislabel published EBS or commercial supplements as academy-owned material.
-  const categoryNames = {TEXTBOOK:'학교 내신·교과서', MOCK_EXAM:'모의고사', VOCAB:'시판 단어장',
+  const categoryNames = {TEXTBOOK:'학교 내신·교과서', MOCK_EXAM:'모의고사·수능', VOCAB:'시판 단어장',
     CUSTOM:'학원 자체자료', SUPPLEMENT:'부교재', EBS:'EBS 교재', OTHER:'분류 미확인·기타'};
   const categoryKey = book => {
     const code = String(book.categoryCode || '').trim().toUpperCase();
@@ -155,35 +155,37 @@
   function facetLabel(field, value) {
     return field === 'publicationYear' ? value + '년'
       : field === 'publicationMonth' ? value + '월'
-      : field === 'gradeNo' ? value + '학년' : value;
+      : field === 'gradeNo' ? value + '학년'
+      : field === 'schoolLevel' ? ({HIGH:'고등학교',MIDDLE:'중학교',ELEMENTARY:'초등학교'}[value] || value)
+      : value;
   }
   function populateMetadataFilters() {
     const active = category?.value ? (FACETS[category.value] || []) : ['schoolLevel','gradeNo','publisher'];
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const base = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
       && terms.every(term => (searchIndex.get(book.revisionId) || bookSearch(book)).includes(term)));
-    // A facet is recalculated against all the OTHER selected facets. Invalid old values
-    // are discarded rather than invisibly restricting a newly chosen category.
+    // Real hierarchy: upstream facets restrict downstream choices, never the reverse.
+    // Changing a mock-exam year can therefore reset an incompatible month instead of
+    // trapping the student in the previous month's option list.
     for (const [field, select, id] of metadataFilters) {
       if (!select) continue; // Older cached HTML is still supported.
       const visible = active.includes(field);
       const parent = document.getElementById('station-library-' + id + '-field');
       if (parent) parent.hidden = !visible;
-      if (!visible) { resetSelect(select,'전체'); continue; }
+      if (!visible) resetSelect(select,'전체');
     }
-    for (let pass = 0; pass < 2; pass++) {
-      for (const [field, select] of metadataFilters) {
-        if (!select || !active.includes(field)) continue;
-        const previous = select.value;
-        const values = [...new Set(base.filter(book => metadataFilters.every(([other, input]) =>
-          other === field || !input?.value || facetValue(book,other) === input.value))
-          .map(book => facetValue(book,field)).filter(Boolean))]
-          .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
-        resetSelect(select,'전체');
-        for (const value of values) select.add(new Option(facetLabel(field,value),value));
-        select.disabled = values.length === 0;
-        if (values.includes(previous)) select.value = previous;
-      }
+    for (let index=0; index<metadataFilters.length; index++) {
+      const [field, select] = metadataFilters[index];
+      if (!select || !active.includes(field)) continue;
+      const previous = select.value, upstream = metadataFilters.slice(0,index);
+      const values = [...new Set(base.filter(book => upstream.every(([parent,input]) =>
+        !input?.value || facetValue(book,parent) === input.value))
+        .map(book => facetValue(book,field)).filter(Boolean))]
+        .sort((a,b) => a.localeCompare(b,'ko',{numeric:true}));
+      resetSelect(select,'전체');
+      for (const value of values) select.add(new Option(facetLabel(field,value),value));
+      select.disabled = values.length === 0;
+      if (values.includes(previous)) select.value = previous;
     }
   }
   function showBooks() {
