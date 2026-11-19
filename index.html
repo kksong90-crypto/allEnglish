@@ -655,6 +655,7 @@ async function fetchSheet(sheetName) {
 
     // v6.2.2: 로그인 사용자 변경과 늦게 도착한 API 응답을 구분한다.
     let studentSessionEpoch = 0;
+    let preparedPracticeCapability = null;
     let myScheduleRequestSerial = 0;
     let homeScheduleRequestSerial = 0;
 
@@ -1332,6 +1333,7 @@ async function loadHomeContent(forceRefresh = false) {
       if (typeof AdminClassSchedule !== "undefined") AdminClassSchedule.reset();
       if (typeof StaffSchedulePreview !== "undefined") StaffSchedulePreview.reset();
       studentSessionEpoch += 1;
+      preparedPracticeCapability = null;
       if (typeof StationLibrary !== "undefined") StationLibrary.reset();
       homeContentRequestSerial += 1;
       homeContentLoadPromise = null;
@@ -2209,6 +2211,7 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   if (!planId) return showAppToast("시험범위 계획을 다시 불러와 주세요.");
   if (!currentUser?.token) return showAppToast("로그인 후 이용하세요.");
   const epoch = studentSessionEpoch;
+  const token = currentUser.token;
   const request = ++assignedPracticeRequestSerial;
   const originalText = button?.textContent || "시험범위 개인 연습";
   if (button) { button.disabled = true; button.textContent = "불러오는 중…"; }
@@ -2218,9 +2221,34 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
   if (!target) return showAppToast("개인 연습 화면을 찾지 못했습니다.");
   assignedPracticeState = null;
   target.innerHTML = '<div class="card" role="status">배정된 시험범위를 확인하고 있습니다…</div>';
-  const current = () => epoch === studentSessionEpoch &&
+  const current = () => epoch === studentSessionEpoch && token === currentUser?.token &&
     request === assignedPracticeRequestSerial && getActiveTabId() === "practice";
   try {
+    // This hint only selects a transport. The assigned API still rechecks current permissions.
+    const preparedSupported = preparedPracticeCapability?.epoch === epoch && preparedPracticeCapability?.token === token ? preparedPracticeCapability.supported : null;
+    if (preparedSupported !== false && typeof PreparedPracticeCache !== 'undefined') {
+      const client = PreparedPracticeCache.createClient({request:params=>apiPost(params,API_LONG_TIMEOUT_MS)});
+      const prepared = await client.load({testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},
+        {owner:JSON.stringify([String(currentUser.studentId||currentUser.id||''),String(currentUser.role||'').toLowerCase()]),sessionKey:JSON.stringify([epoch,token]),isCurrent:current});
+      if (!current()) return;
+      if (prepared) {
+        const {identity,words} = prepared;
+        const rows = words.map((word,i)=>['[시험범위]','배정 계획',word.word,word.meaning,i+1,word.bookId,word.acceptedAnswers.join('|'),word.vocabWordId]);
+        assignedPracticeState = {planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint,sourceRows:shuffleAssignedPractice(rows),
+          batchStart:0,rows:[],coverage:'ALL',scopeVersion:identity.scopeFingerprint,totalCount:identity.wordCount,planDate:prepared.planDate,epoch,token,
+          preparedGeneration:identity.generation,preparedAssignmentKey:identity.assignmentKey,mode:'',study:null,finished:true};
+        assignedPracticeState.rows = assignedPracticeState.sourceRows.slice(0,200);
+        renderAssignedPracticeMenu();
+        return;
+      }
+    } else if (preparedSupported !== false) {
+      // A failed client asset is never permission to reuse the legacy path.
+      // Only an explicit server feature-off response permits compatibility.
+      const availability = await apiPost({action:'getMyPreparedVocabManifest',testPlanId:planId,slotKey:selectedSlot,personalScopeFingerprint:selectedFingerprint},API_LONG_TIMEOUT_MS);
+      if (!current()) return;
+      const unsupported = availability?.success === false && (availability.code === 'UNSUPPORTED_ACTION' || availability.error?.code === 'UNSUPPORTED_ACTION' || availability.message === 'Unknown action: getMyPreparedVocabManifest');
+      if (!unsupported) { const error = new Error('Prepared practice client unavailable');error.code=availability?.status==='PREPARING'?'PREPARED_PENDING':'PREPARED_CLIENT_UNAVAILABLE';throw error; }
+    }
     const questions = [];
     let offset = 0, scopeVersion = '', totalCount = null, result;
     // Collect one consistent server-owned scope. Never treat a legacy sample as full coverage.
@@ -2285,7 +2313,8 @@ async function startAssignedVocaPractice(testPlanId, button, slotKey = "", perso
     renderAssignedPracticeMenu();
   } catch (error) {
     if (!current()) return;
-    target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.</p>' +
+    const preparationMessage = error?.code === 'PREPARED_PENDING' ? '최신 시험범위를 준비하고 있어요. 잠시 후 다시 확인해 주세요.' : '최신 시험범위를 다시 확인한 뒤 시작해 주세요. 계속 문제가 생기면 선생님께 문의해 주세요.';
+    target.innerHTML = '<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위 연습을 시작하지 못했어요.</h2><p>' + preparationMessage + '</p>' +
       '<div class="button-row"><button class="vocab-btn secondary" type="button" onclick="showTab(\'home\',{refreshPreparation:true})">홈에서 최신 시험범위 확인</button></div></div>';
     const heading = document.getElementById('practice-load-error-heading');
     heading?.focus?.({preventScroll:true});
@@ -2828,9 +2857,10 @@ function renderHomeLearningPreview(payload, vocabPayload = null) {
     (day.className ? '<br>' + escapeHtml(day.className) : '') + '</div><span class="home-verified-label">게시된 계획</span></div>' + tasks.join("");
 }
 async function fetchMyVocabPreparation(forceRefresh = false, range = "upcoming") {
+  const epoch = studentSessionEpoch, token = currentUser?.token;
   // Only coalesce in-flight reads for the same session and intent; never cache permissions.
   const reads=fetchMyVocabPreparation.pending||(fetchMyVocabPreparation.pending=new Map());
-  const key=JSON.stringify([studentSessionEpoch,currentUser?.token,range,!!forceRefresh]);
+  const key=JSON.stringify([epoch,token,range,!!forceRefresh]);
   if(reads.has(key))return reads.get(key);
   const work=(async()=>{
   const result = await apiPost({action:'getMyVocabPreparation',range,days:range==='today'?'1':'42',fromDate:getTodayString(),
@@ -2841,6 +2871,7 @@ async function fetchMyVocabPreparation(forceRefresh = false, range = "upcoming")
     throw error;
   }
   if (result.preparationOnly !== true || !Array.isArray(result.days) || !Array.isArray(result.visibleDays)) throw new Error('단어 범위 응답을 확인하지 못했습니다.');
+  if (epoch === studentSessionEpoch && token === currentUser?.token && typeof result.preparedPracticeSupported === 'boolean') preparedPracticeCapability = {epoch,token,supported:result.preparedPracticeSupported};
   return sanitizeFuturePreparationSchedule(result);
   })();
   reads.set(key,work);
@@ -5506,6 +5537,7 @@ function escapeHtmlForPointRank(text) {
   </script>
 
   <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
+  <script src="prepared-practice-cache.js?v=20261119.3"></script>
   <script src="practice-experience.js?v=20261117"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>

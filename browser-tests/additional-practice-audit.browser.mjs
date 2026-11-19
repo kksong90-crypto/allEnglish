@@ -26,6 +26,7 @@ async function setup(role,legacy='normal',assigned='normal',options={}){
   if(url.origin===origin){const target=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));if(!target.startsWith(root+path.sep))return route.abort();try{return route.fulfill({status:200,body:await readFile(target),contentType:target.endsWith('.js')?'application/javascript':target.endsWith('.css')?'text/css':target.endsWith('.png')?'image/png':'text/html; charset=utf-8'});}catch{return route.fulfill({status:404,body:''});}}
   if(!['script.google.com','script.googleusercontent.com'].includes(url.hostname))return route.abort();
   const p=Object.fromEntries(request.method()==='POST'?new URLSearchParams(request.postData()||''):url.searchParams);calls.push(p);
+  if(p.action==='getMyPreparedVocabManifest')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:false,code:'UNSUPPORTED_ACTION'})});
   if(config.legacy==='network'&&p.action==='getVocabData')return route.abort('failed');
   if(p.action==='getMyLearningSchedule'&&config.schedule==='slow')await new Promise(resolve=>(config.scheduleWaiters||=[]).push(resolve));
   let reply;
