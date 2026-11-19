@@ -123,7 +123,9 @@
   const categoryName = book => categoryNames[categoryKey(book)];
   const FACETS = {
     TEXTBOOK:['schoolLevel','gradeNo','publisher'],
-    MOCK_EXAM:['schoolLevel','gradeNo','publicationYear','publicationMonth'],
+    // Only high-school mock exams and the separately named CSAT are present in
+    // the public catalog. One grade/exam chooser is clearer than "고" vs HIGH.
+    MOCK_EXAM:['gradeNo','publicationYear','publicationMonth'],
     VOCAB:['publisher'],
     CUSTOM:['schoolLevel','gradeNo','publisher'],
     SUPPLEMENT:['schoolLevel','gradeNo','publisher'],
@@ -154,8 +156,28 @@
   }
   const metadataValue = value => typeof value === 'string' || typeof value === 'number' && Number.isFinite(value)
     ? String(value).trim() : '';
+  // Source metadata uses mixed legacy codes: HIGH, 고, 고등학교, MIDDLE, 중, ...
+  // Collapse *recognized* aliases for filtering without modifying source rows.
+  const canonicalSchoolLevel = raw => {
+    const original = metadataValue(raw).normalize('NFKC');
+    const key = original.toUpperCase().replace(/[\s_-]/g,'');
+    if (['HIGH','HIGHSCHOOL','고','고교','고등','고등학교'].includes(key)) return 'HIGH';
+    if (['MIDDLE','MIDDLESCHOOL','중','중등','중학교'].includes(key)) return 'MIDDLE';
+    if (['ELEMENTARY','ELEMENTARYSCHOOL','PRIMARY','PRIMARYSCHOOL','초','초등','초등학교'].includes(key)) return 'ELEMENTARY';
+    return original; // Unknown values are not guessed or suppressed.
+  };
   function facetValue(book, field) {
     const value = metadataValue(book[field]);
+    if (field === 'schoolLevel') return canonicalSchoolLevel(value);
+    if (field === 'gradeNo') {
+      const compact = value.normalize('NFKC').replace(/\s/g,'');
+      const normalizedGrade = /^(?:고|중|초)?([1-6])(?:학년)?$/.exec(compact);
+      if (normalizedGrade) return String(Number(normalizedGrade[1]));
+      // A CSAT is an explicit exam type, not an inferred "grade 3".
+      // Do not guess its calendar year from the title's school year.
+      if (!compact && categoryKey(book) === 'MOCK_EXAM' && /대학수학능력시험/u.test(String(book.displayName || ''))) return 'CSAT';
+      return compact;
+    }
     if (['publicationYear','publicationMonth'].includes(field) && /^\d+$/.test(value)) return String(Number(value));
     return value;
   }
@@ -167,12 +189,14 @@
     return value === MISSING_FACET ? '정보 미등록'
       : field === 'publicationYear' ? value + '년'
       : field === 'publicationMonth' ? value + '월'
-      : field === 'gradeNo' ? value + '학년'
-      : field === 'schoolLevel' ? ({HIGH:'고등학교',MIDDLE:'중학교',ELEMENTARY:'초등학교'}[value] || value)
+      : field === 'gradeNo' ? (value === 'CSAT' ? '수능' : (category?.value === 'MOCK_EXAM' ? '고' + value : value + '학년'))
+      : field === 'schoolLevel' ? ({HIGH:'고등학교',MIDDLE:'중학교',ELEMENTARY:'초등학교'}[value] || '확인 필요: ' + value)
       : value;
   }
   function populateMetadataFilters() {
     const active = category?.value ? (FACETS[category.value] || []) : ['schoolLevel','gradeNo','publisher'];
+    const gradeHeading = document.getElementById('station-library-grade-label');
+    if (gradeHeading) gradeHeading.textContent = category?.value === 'MOCK_EXAM' ? '학년·시험' : '학년';
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const base = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
       && terms.every(term => (searchIndex.get(book.revisionId) || bookSearch(book)).includes(term)));
