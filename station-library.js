@@ -184,6 +184,14 @@
     const value = metadataValue(book[field]);
     if (field === 'publisher') return canonicalPublisher(value);
     if (field === 'schoolLevel') return canonicalSchoolLevel(value);
+    if (field === 'publicationYear' && !value && categoryKey(book) === 'MOCK_EXAM') {
+      // The *title* can state a CSAT reference year even when the historical
+      // publication_year field is blank. This is a display-only year, not a
+      // claim about the calendar date when the exam was administered.
+      const title = String(book.displayName || '').normalize('NFKC');
+      const namedYear = /^\s*((?:19|20)\d{2})년\s*대학수학능력시험(?:\s|$)/u.exec(title);
+      if (namedYear) return namedYear[1];
+    }
     if (field === 'gradeNo') {
       const compact = value.normalize('NFKC').replace(/\s/g,'');
       const normalizedGrade = /^(?:고|중|초)?([1-6])(?:학년)?$/.exec(compact);
@@ -212,6 +220,10 @@
     const active = category?.value ? (FACETS[category.value] || []) : ['schoolLevel','gradeNo','publisher'];
     const gradeHeading = document.getElementById('station-library-grade-label');
     if (gradeHeading) gradeHeading.textContent = category?.value === 'MOCK_EXAM' ? '학년·시험' : '학년';
+    const yearHeading = document.getElementById('station-library-year-label');
+    if (yearHeading) yearHeading.textContent = category?.value === 'MOCK_EXAM'
+      && metadataFilters.find(([field]) => field === 'gradeNo')?.[1]?.value === 'CSAT'
+      ? '자료명 표기 연도' : '연도';
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const base = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
       && terms.every(term => (searchIndex.get(book.revisionId) || bookSearch(book)).includes(term)));
