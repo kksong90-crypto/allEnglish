@@ -375,8 +375,22 @@
     const request = generation;
     const task = (async () => {
       // The server accepts at most 20 section IDs. Never silently lose the rest of a lesson.
+      const revision = catalog?.find(book => book.revisionId === revisionId);
+      if (!revision || scope.ids.length !== new Set(scope.ids).size) throw Error('SCOPE_IDS');
+      const expected = new Map(revision.sections.map(section => [section.sectionId, Number(section.wordCount)]));
+      // The published API caps each response at 500 words AND 20 section IDs.
+      // Splitting by IDs alone would silently truncate a 20 x 30-word request.
       const batches = [];
-      for (let i=0; i<scope.ids.length; i+=20) batches.push(scope.ids.slice(i,i+20));
+      let batch = [], batchCount = 0;
+      for (const id of scope.ids) {
+        const count = expected.get(id);
+        if (!Number.isInteger(count) || count < 0 || count > 500) throw Error('SECTION_TOO_LARGE');
+        if (batch.length && (batch.length >= 20 || batchCount + count > 500)) {
+          batches.push(batch); batch = []; batchCount = 0;
+        }
+        batch.push(id); batchCount += count;
+      }
+      if (batch.length) batches.push(batch);
       const body = [];
       for (let i=0; i<batches.length; i+=2) {
         const replies = await Promise.all(batches.slice(i,i+2).map(async ids => {
@@ -388,7 +402,6 @@
         if (request !== generation) throw Error('STALE');
         body.push(...replies.flat());
       }
-      const expected = new Map(catalog.find(book => book.revisionId === revisionId).sections.map(section => [section.sectionId, Number(section.wordCount)]));
       const actual = new Map();
       for (const word of body) actual.set(word.sectionId, (actual.get(word.sectionId) || 0) + 1);
       if (scope.ids.some(id => (actual.get(id) || 0) !== expected.get(id))) throw Error('SECTION_COUNT');
@@ -405,6 +418,78 @@
     try { return await task; }
     finally { if (sectionFlights.get(key) === task) sectionFlights.delete(key); }
   }
+
+  // Build a complete, verified combined range before opening the existing isolated
+  // card/recall/spelling practice. Never send partial results or official writes.
+  async function startCombinedPractice() {
+    if (!catalog || !currentUser?.token || !basket.size) return;
+    const entries = Array.from(basket.values()).map(item => ({...item,ids:item.ids.slice()}));
+    const epoch = generation, version = basketVersion, request = ++combinedSerial;
+    const current = () => epoch === generation && version === basketVersion && request === combinedSerial && !!currentUser?.token;
+    const startPractice = ['admin','teacher'].includes(String(currentUser.role || '').toLowerCase())
+      ? window.startPublicVocaPreview : window.startPublicVocaPractice;
+    if (typeof startPractice !== 'function') {
+      if (combinedStatus) combinedStatus.textContent = '연습 화면을 불러오지 못했습니다. 앱을 새로고침한 뒤 다시 시도하세요.';
+      return;
+    }
+    if (selectedEstimate() > MAX_SELECTED_WORDS || entries.length > MAX_SELECTED_RANGES) return;
+    if (combinedButton) combinedButton.disabled = true;
+    if (combinedStatus) combinedStatus.textContent = '선택한 범위의 단어를 확인하고 있습니다.';
+    try {
+      const grouped = new Map(), origins = new Map();
+      for (const entry of entries) {
+        const book = catalog.find(book => book.revisionId === entry.revisionId);
+        const sectionIds = new Set(book?.sections.map(section => section.sectionId) || []);
+        if (!book || !entry.ids.length || entry.ids.some(id => !sectionIds.has(id))) throw Error('NOT_PUBLISHED');
+        if (!grouped.has(entry.revisionId)) grouped.set(entry.revisionId,{ids:[],count:0});
+        const group = grouped.get(entry.revisionId);
+        for (const id of entry.ids) {
+          if (group.ids.includes(id)) continue;
+          const section = book.sections.find(section => section.sectionId === id);
+          group.ids.push(id); group.count += Number(section.wordCount);
+          origins.set(JSON.stringify([entry.revisionId,id]),book.displayName + ' / ' + entry.label);
+        }
+      }
+      if ([...grouped.values()].reduce((n,group) => n + group.count,0) > MAX_SELECTED_WORDS) throw Error('TOO_MANY');
+      const all = [];
+      for (const [revisionId,scope] of grouped) {
+        if (!current()) return;
+        const body = await fetchScope(revisionId,scope,null);
+        if (!current()) return;
+        for (const word of body) all.push({...word,revisionId,
+          sourceLabel:origins.get(JSON.stringify([revisionId,word.sectionId])) || '선택 범위'});
+      }
+      // Same spelling + meaning (+ part of speech where provided) is one card;
+      // different meanings are never collapsed. Keep permitted answer variants.
+      const unique = new Map();
+      for (const word of all) {
+        const spelling = String(word.word || '').normalize('NFKC').trim().toLowerCase();
+        const meaning = String(word.meaning || '').normalize('NFKC').trim();
+        const id = String(word.vocabWordId || '').trim();
+        if (!spelling || !meaning || !id) throw Error('INVALID_WORD');
+        const key = JSON.stringify([spelling,meaning,String(word.partOfSpeech || '').trim()]);
+        const aliases = Array.isArray(word.allowedAnswers) ? word.allowedAnswers : [];
+        if (unique.has(key)) {
+          const kept = unique.get(key);
+          kept.allowedAnswers = [...new Set([...(kept.allowedAnswers || []),...aliases])];
+          continue;
+        }
+        unique.set(key,{...word,allowedAnswers:aliases,
+          vocabWordId:word.revisionId + ':' + id});
+      }
+      if (!current()) return;
+      if (!unique.size) throw Error('EMPTY');
+      if (combinedStatus) combinedStatus.textContent = '확인 완료 · ' + unique.size + '개 단어 (중복 ' + (all.length-unique.size) + '개 통합)';
+      startPractice({revisionId:'PUBLIC_COMBINED',bookName:grouped.size + '권 자료',
+        label:entries.length + '개 선택 범위',words:Array.from(unique.values())});
+    } catch {
+      if (current() && combinedStatus) combinedStatus.textContent = '선택한 범위를 모두 확인하지 못했습니다. 일부만 공부하지 않고 중단했습니다. 같은 선택으로 다시 시도하세요.';
+    } finally {
+      if (current() && combinedButton) combinedButton.disabled = false;
+    }
+  }
+  combinedButton?.addEventListener('click',startCombinedPractice);
+
   function pagedList(body, makeRow, current) {
     const list = document.createElement('ol');
     const size = 100;
