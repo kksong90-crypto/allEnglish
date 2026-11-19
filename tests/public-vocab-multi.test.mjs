@@ -61,6 +61,46 @@ function pickRange(n,index){const box=n['station-library-range-list'].children[i
 const open=async h=>{h.nodes['station-library'].open=true;await h.window.StationLibrary.open();};
 const reads=h=>h.calls.filter(x=>x.action==='getVocaSection');
 
+test('verified publisher aliases are one filter value, but different publishers stay distinct',async()=>{
+  const catalog=[
+    {revisionId:'NE1',displayName:'공통영어1 능률',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'1',publisher:'능률',sections:[section('L1','1과')]},
+    {revisionId:'NE2',displayName:'공통영어2 NE능률',categoryCode:'TEXTBOOK',schoolLevel:'HIGH',gradeNo:'1',publisher:'NE능률',sections:[section('L2','2과')]},
+    {revisionId:'C1',displayName:'영어2 천재',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'2',publisher:'천재',sections:[section('L3','3과')]},
+    {revisionId:'C2',displayName:'공통영어1 천재교과서',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'1',publisher:'천재교과서',sections:[section('L4','4과')]},
+    {revisionId:'H1',displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',publisher:'해커스어학연구소',sections:[section('D1','Day 1')]},
+    {revisionId:'H2',displayName:'해커스 보카 중학 기초',categoryCode:'VOCAB_BOOK',publisher:'해커스',sections:[section('D2','Day 2')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='TEXTBOOK';n['station-library-category'].handlers.change();
+  assert.deepEqual(n['station-library-publisher'].children.map(x=>[x.value,x.label]),
+    [['','전체'],['NE능률','NE능률'],['천재','천재'],['천재교과서','천재교과서']]);
+  n['station-library-publisher'].value='NE능률';n['station-library-publisher'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','NE1','NE2']);
+  n['station-library-category'].value='VOCAB';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-publisher']),['','해커스']);
+  n['station-library-publisher'].value='해커스';n['station-library-publisher'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','H1','H2']);
+  n['station-library-query'].value='해커스';n['station-library-query'].handlers.input();
+  assert.deepEqual(values(n['station-library-book']),['','H1','H2']);
+  assert.equal(h.calls.length,1,'publisher facets are derived locally, not another server request');
+});
+
+test('supplement and EBS can be found together but keep their true source type',async()=>{
+  const catalog=[
+    {revisionId:'S1',displayName:'기본 독해 부교재',categoryCode:'SUPPLEMENT',schoolLevel:'HIGH',publisher:'',sections:[section('S1','Unit 1')]},
+    {revisionId:'E1',displayName:'올림포스 독해',categoryCode:'EBS',schoolLevel:'HIGH',publisher:'EBS',sections:[section('E1','1강')]},
+    {revisionId:'X1',displayName:'학원 내부',categoryCode:'CUSTOM',usageScope:'SCHOOL_EXAM',sections:[section('X1','1단원')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='SUPPORT';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','S1','E1']);
+  assert.match(n['station-library-book'].children[1].label,/부교재/);
+  assert.match(n['station-library-book'].children[2].label,/EBS 교재/);
+  n['station-library-category'].value='CUSTOM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),[''],'private academy materials are never promoted to public');
+  assert.equal(h.calls.length,1);
+});
+
 test('all registered school-level aliases collapse to one meaningful Korean option',async()=>{
   const sections=[section('ONE','단원 1',1)];
   const catalog=[
