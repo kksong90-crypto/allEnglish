@@ -61,6 +61,52 @@ function pickRange(n,index){const box=n['station-library-range-list'].children[i
 const open=async h=>{h.nodes['station-library'].open=true;await h.window.StationLibrary.open();};
 const reads=h=>h.calls.filter(x=>x.action==='getVocaSection');
 
+test('all registered school-level aliases collapse to one meaningful Korean option',async()=>{
+  const sections=[section('ONE','단원 1',1)];
+  const catalog=[
+    {revisionId:'H-CODE',displayName:'고등 자료 A',categoryCode:'TEXTBOOK',schoolLevel:'HIGH',gradeNo:'1',sections},
+    {revisionId:'H-SHORT',displayName:'고등 자료 B',categoryCode:'TEXTBOOK',schoolLevel:'고',gradeNo:'1',sections},
+    {revisionId:'H-FULL',displayName:'고등 자료 C',categoryCode:'TEXTBOOK',schoolLevel:'고등학교',gradeNo:'2',sections},
+    {revisionId:'M-CODE',displayName:'중등 자료 A',categoryCode:'TEXTBOOK',schoolLevel:'MIDDLE',gradeNo:'1',sections},
+    {revisionId:'M-SHORT',displayName:'중등 자료 B',categoryCode:'TEXTBOOK',schoolLevel:'중',gradeNo:'2',sections},
+    {revisionId:'E-CODE',displayName:'초등 자료 A',categoryCode:'TEXTBOOK',schoolLevel:'ELEMENTARY',sections},
+    {revisionId:'E-SHORT',displayName:'초등 자료 B',categoryCode:'TEXTBOOK',schoolLevel:'초',sections}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  const options=n['station-library-school-level'].children.map(option=>[option.value,option.label]);
+  assert.deepEqual(options,[['','전체'],['ELEMENTARY','초등학교'],['HIGH','고등학교'],['MIDDLE','중학교']]);
+  n['station-library-school-level'].value='HIGH';n['station-library-school-level'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','H-CODE','H-SHORT','H-FULL']);
+  n['station-library-school-level'].value='MIDDLE';n['station-library-school-level'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','M-CODE','M-SHORT']);
+  n['station-library-school-level'].value='ELEMENTARY';n['station-library-school-level'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','E-CODE','E-SHORT']);
+  assert.equal(h.calls.length,1,'alias normalization is local only');
+});
+
+test('mock exams use exactly 고1·고2·고3·수능, not duplicate 고/high-school controls',async()=>{
+  const catalog=[
+    {revisionId:'MOCK1',displayName:'고1 2026년 10월 모의고사',categoryCode:'MOCK_EXAM',
+      schoolLevel:'고',gradeNo:'1',publicationYear:2026,publicationMonth:10,sections:[section('A','18번')]},
+    {revisionId:'MOCK2',displayName:'고2 2026년 10월 모의고사',categoryCode:'MOCK_EXAM',
+      schoolLevel:'HIGH',gradeNo:'2',publicationYear:'2026',publicationMonth:'10',sections:[section('B','18번')]},
+    {revisionId:'MOCK3',displayName:'고3 2026년 10월 모의고사',categoryCode:'MOCK_EXAM',
+      schoolLevel:'고등학교',gradeNo:'고3',publicationYear:'2026',publicationMonth:'10',sections:[section('C','18번')]},
+    {revisionId:'CSAT',displayName:'2026년 대학수학능력시험',categoryCode:'MOCK_EXAM',
+      schoolLevel:'',gradeNo:'',publicationYear:'',publicationMonth:'',sections:[section('D','18번')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  assert.equal(n['station-library-school-level'].disabled,true);
+  assert.deepEqual(n['station-library-grade'].children.map(option=>[option.value,option.label]),
+    [['','전체'],['1','고1'],['2','고2'],['3','고3'],['CSAT','수능']]);
+  for(const [value,expected] of [['1','MOCK1'],['2','MOCK2'],['3','MOCK3'],['CSAT','CSAT']]){
+    n['station-library-grade'].value=value;n['station-library-grade'].handlers.change();
+    assert.deepEqual(values(n['station-library-book']),['',expected]);
+  }
+  assert.equal(h.calls.length,1,'category and grade filtering must be instantaneous without network calls');
+});
+
 test('category-specific dependent facets use actual catalog metadata, never title guesses',async()=>{
   const h=setup(),n=h.nodes;await open(h);
   n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
