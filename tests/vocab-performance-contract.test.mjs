@@ -26,7 +26,12 @@ test('5000-word scope renders at most 100 words per page but keeps every word re
  for(let i=0;i<49;i++){list.scrollTop=300;pager.children[2].handlers.click();assert.equal(list.children.length,100);assert.equal(list.scrollTop,0);}
  assert.equal(list.start,4901);assert.equal(list.children.at(-1).children[0].textContent,'term4999');assert.equal(pager.children[2].disabled,true);
  practice.handlers.click();assert.equal(h.practices[0].words.length,5000,'pagination cannot truncate actual practice data');
- assert.equal(h.calls.length,3,'metadata + 2 bounded body requests; pagination/practice do not read again');
+ assert.equal(h.calls.filter(call=>call.action==='getVocaCatalog').length,1);
+ const bodyCalls=h.calls.filter(call=>call.action==='getVocaSection');
+ assert.equal(bodyCalls.length,13,'5000 words must be split into 13 responses capped at 500 words each');
+ assert.ok(bodyCalls.every(call=>JSON.parse(call.sectionIdsJson).length<=20));
+ assert.ok(bodyCalls.every(call=>JSON.parse(call.sectionIdsJson).length*200<=500));
+ assert.equal(h.calls.length,14,'pagination and practice must never fetch extra data');
 });
 test('broad local search paginates all 5000 matches without remote search and stale paging cannot alter the next login',async()=>{
  const h=largeLibrary();await h.open();h.nodes['station-library-word-scope'].value='section';h.nodes['station-library-word-query'].value='가상';
@@ -34,7 +39,7 @@ test('broad local search paginates all 5000 matches without remote search and st
  const result=h.nodes['station-library-search-result'],list=result.children[1],pager=result.children[2];
  assert.match(result.children[0].textContent,/5000개/);assert.equal(list.children.length,100);
  for(let i=0;i<49;i++)pager.children[2].handlers.click();assert.equal(list.children.at(-1).children[0].textContent.startsWith('term4999'),true);
- assert.equal(h.calls.length,3);
+ assert.equal(h.calls.length,14,'local search and pagination must not request more server data');
  const before=list.children;h.window.StationLibrary.reset();pager.children[0].handlers.click();assert.equal(list.children,before);
 });
 test('200-word recall normalizes each source once while preserving distinct and safe alternatives',async()=>{
