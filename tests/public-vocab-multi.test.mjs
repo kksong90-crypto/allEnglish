@@ -195,11 +195,35 @@ test('real-data-shaped CSAT with missing metadata is searchable without leaking 
     '수능 검색은 일반 모의고사를 포함하면 안 된다');
   n['station-library-query'].value='';n['station-library-query'].handlers.input();
   n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
-  assert.deepEqual(values(n['station-library-year']),['','2026','__METADATA_NOT_REGISTERED__']);
-  n['station-library-year'].value='__METADATA_NOT_REGISTERED__';n['station-library-year'].handlers.change();
-  assert.deepEqual(values(n['station-library-book']),['','CSAT'],'unknown year is explicitly selectable');
+  // Historical CSAT metadata stays untouched, but the year literally printed
+  // in its title is a usable display facet.
+  assert.deepEqual(values(n['station-library-year']),['','2026']);
+  n['station-library-grade'].value='CSAT';n['station-library-grade'].handlers.change();
+  assert.deepEqual(values(n['station-library-year']),['','2026']);
+  n['station-library-year'].value='2026';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT'],'CSAT title year should be selectable');
   assert.equal(n['station-library-book'].children[1].label.includes('대학수학능력시험'),true);
   assert.equal(h.calls.length,1,'filtering and searching catalog metadata must not read word bodies');
+});
+
+test('CSAT title-year facet does not invent administration dates or classify untitled years',async()=>{
+  const catalog=[
+    {revisionId:'CSAT18',displayName:'2018년 대학수학능력시험',categoryCode:'MOCK_EXAM',
+      publicationYear:'',publicationMonth:'',gradeNo:'',sections:[section('A','18번')]},
+    {revisionId:'CSAT_UNKNOWN',displayName:'대학수학능력시험 자료명 미확인',categoryCode:'MOCK_EXAM',
+      publicationYear:'',publicationMonth:'',gradeNo:'',sections:[section('B','18번')]},
+    {revisionId:'MOCK26',displayName:'고3 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',
+      gradeNo:'3',publicationYear:'2026',publicationMonth:'9',sections:[section('C','18번')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
+  assert.deepEqual(values(n['station-library-year']),['','2018','2026','__METADATA_NOT_REGISTERED__']);
+  n['station-library-grade'].value='CSAT';n['station-library-grade'].handlers.change();
+  n['station-library-year'].value='2018';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT18']);
+  assert.equal(n['station-library-month'].disabled,true,'the title year must not guess the actual exam month');
+  n['station-library-year'].value='__METADATA_NOT_REGISTERED__';n['station-library-year'].handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','CSAT_UNKNOWN']);
 });
 
 test('private and SCHOOL_EXAM scoped materials stay hidden despite public-looking category labels',async()=>{
