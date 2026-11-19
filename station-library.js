@@ -149,7 +149,7 @@
     ? String(value).trim() : '';
   function facetValue(book, field) {
     const value = metadataValue(book[field]);
-    if (['publicationYear','publicationMonth'].includes(field) && /^\\d+$/.test(value)) return String(Number(value));
+    if (['publicationYear','publicationMonth'].includes(field) && /^\d+$/.test(value)) return String(Number(value));
     return value;
   }
   function facetLabel(field, value) {
@@ -159,7 +159,7 @@
   }
   function populateMetadataFilters() {
     const active = category?.value ? (FACETS[category.value] || []) : ['schoolLevel','gradeNo','publisher'];
-    const terms = query.value.trim().split(/\\s+/).filter(Boolean).map(searchKey);
+    const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
     const base = catalog.filter(book => (!category?.value || categoryKey(book) === category.value)
       && terms.every(term => (searchIndex.get(book.revisionId) || bookSearch(book)).includes(term)));
     // A facet is recalculated against all the OTHER selected facets. Invalid old values
@@ -263,8 +263,109 @@
     ranges.forEach((range,i) => scopes.add(new Option(`${range.label} · ${range.count}개`, String(i))));
     scopes.disabled = ranges.length === 0;
     status.textContent = ranges.length ? '과·Day·범위를 선택하세요.' : '이 교재에는 공개된 범위가 없습니다.';
+    renderRangeCheckboxes();
   }
   books.addEventListener('change', selectBook);
+
+  // The study basket is separate from the single-scope preview and official test plans.
+  const rangeKey = (revisionId, range) => JSON.stringify([revisionId, ...range.ids]);
+  function selectedEstimate() {
+    return Array.from(basket.values()).reduce((total, item) => total + item.count, 0);
+  }
+  function invalidateCombined() {
+    basketVersion++;
+    combinedSerial++;
+    if (combinedStatus) combinedStatus.textContent = '';
+  }
+  function renderRangeCheckboxes() {
+    if (!rangeList) return; // Old cached app shell.
+    const revisionId = books.value;
+    const items = ranges.map(range => {
+      const label = document.createElement('label');
+      label.className = 'vocab-library-range';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = basket.has(rangeKey(revisionId,range));
+      const caption = document.createElement('span');
+      caption.textContent = range.label + ' · ' + range.count + '개';
+      checkbox.addEventListener('change', () => toggleRange(revisionId,range,!!checkbox.checked));
+      label.append(checkbox,caption);
+      return label;
+    });
+    rangeList.replaceChildren(...items);
+    if (selectAllButton) {
+      selectAllButton.disabled = !items.length;
+      selectAllButton.textContent = items.length && ranges.every(range => basket.has(rangeKey(revisionId,range)))
+        ? '현재 교재 전체 해제' : '현재 교재 전체 담기';
+    }
+  }
+  function renderBasket() {
+    const count = basket.size, estimate = selectedEstimate();
+    if (basketSummary) basketSummary.textContent = '선택한 범위 ' + count + '개 · 예상 단어 ' + estimate + '개 (중복 통합 전)';
+    if (clearBasketButton) clearBasketButton.disabled = count === 0;
+    if (combinedButton) combinedButton.disabled = count === 0 || estimate > MAX_SELECTED_WORDS;
+    if (basketItems) {
+      const chips = Array.from(basket, ([key,item]) => {
+        const chip = document.createElement('span');
+        chip.className = 'vocab-library-chip';
+        const text = document.createElement('span');
+        text.textContent = item.bookName + ' / ' + item.label;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.title = '이 범위 제거';
+        remove.setAttribute?.('aria-label','선택 제거: ' + item.bookName + ' ' + item.label);
+        remove.addEventListener('click', () => {
+          basket.delete(key);
+          invalidateCombined(); renderBasket(); renderRangeCheckboxes();
+        });
+        chip.append(text,remove);
+        return chip;
+      });
+      basketItems.replaceChildren(...chips);
+    }
+    if (selectAllButton) {
+      selectAllButton.textContent = ranges.length && ranges.every(range => basket.has(rangeKey(books.value,range)))
+        ? '현재 교재 전체 해제' : '현재 교재 전체 담기';
+    }
+  }
+  function toggleRange(revisionId,range,checked) {
+    if (!catalog?.some(book => book.revisionId === revisionId && book.sections.length
+      && range.ids.every(id => book.sections.some(section => section.sectionId === id)))) return;
+    const key = rangeKey(revisionId,range);
+    if (checked) {
+      if (!basket.has(key) && (basket.size >= MAX_SELECTED_RANGES
+        || selectedEstimate() + range.count > MAX_SELECTED_WORDS)) {
+        if (combinedStatus) combinedStatus.textContent = '한 번에 최대 ' + MAX_SELECTED_RANGES + '개 범위·' + MAX_SELECTED_WORDS + '개 단어를 선택할 수 있습니다.';
+        renderRangeCheckboxes(); return;
+      }
+      basket.set(key,{revisionId,ids:range.ids.slice(),label:range.label,count:range.count,
+        bookName:catalog.find(book => book.revisionId === revisionId).displayName});
+    } else basket.delete(key);
+    invalidateCombined(); renderBasket(); renderRangeCheckboxes();
+  }
+  selectAllButton?.addEventListener('click', () => {
+    const revisionId = books.value;
+    if (!revisionId || !ranges.length) return;
+    const allSelected = ranges.every(range => basket.has(rangeKey(revisionId,range)));
+    const additions = ranges.filter(range => !basket.has(rangeKey(revisionId,range)));
+    if (!allSelected && (basket.size + additions.length > MAX_SELECTED_RANGES
+      || selectedEstimate() + additions.reduce((total,range) => total + range.count,0) > MAX_SELECTED_WORDS)) {
+      if (combinedStatus) combinedStatus.textContent = '선택 가능한 최대 범위 또는 단어 수를 초과합니다. 일부 범위를 선택하세요.';
+      return;
+    }
+    for (const range of ranges) {
+      const key = rangeKey(revisionId,range);
+      if (allSelected) basket.delete(key);
+      else if (!basket.has(key)) basket.set(key,{revisionId,ids:range.ids.slice(),label:range.label,count:range.count,
+        bookName:catalog.find(book => book.revisionId === revisionId).displayName});
+    }
+    invalidateCombined(); renderBasket(); renderRangeCheckboxes();
+  });
+  clearBasketButton?.addEventListener('click', () => {
+    if (!basket.size) return;
+    basket.clear(); invalidateCombined(); renderBasket(); renderRangeCheckboxes();
+  });
   function selectedScope() { return scopes.value === '' ? null : ranges[Number(scopes.value)]; }
   async function fetchScope(revisionId, scope, meter) {
     const key = JSON.stringify([revisionId, scope.ids]);
