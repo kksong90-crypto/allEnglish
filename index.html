@@ -2242,8 +2242,10 @@ async function startNextPreparedPractice(button,selection=null) {
     applyPreparedPractice(result,epoch,token);
   } catch(error) {
     if(!current())return;
-    const message=error?.code==='PREPARED_PENDING'?'최신 시험범위를 준비하고 있어요. 잠시 후 홈에서 확인해 주세요.':error?.code==='PREPARED_NEXT_UNSUPPORTED'?'홈에서 확인한 시험범위를 선택해 연습해 주세요.':'최신 시험범위를 확인하지 못했어요. 홈에서 범위를 다시 확인해 주세요.';
-    target.innerHTML='<div class="card" role="alert"><h2 id="practice-load-error-heading" tabindex="-1">시험범위를 확인해 주세요</h2><p>'+message+'</p><button class="vocab-btn secondary" type="button" onclick="showTab(&quot;home&quot;)">홈에서 시험범위 확인</button></div>';
+    const noAssignment=error?.code==='PREPARED_NO_ASSIGNMENT',changed=error?.code==='PREPARED_SELECTION_CHANGED';
+    const heading=noAssignment?'예정된 단어시험 범위가 아직 없어요':changed?'시험범위가 변경됐어요':'시험범위를 확인해 주세요';
+    const message=noAssignment?'새 단어시험 계획이 등록되면 연습할 수 있어요. 홈에서 학습일정을 확인해 주세요.':changed?'이전에 선택한 범위로 시작하지 않았어요. 홈에서 최신 시험범위를 확인해 주세요.':error?.code==='PREPARED_PENDING'?'최신 시험범위를 준비하고 있어요. 잠시 후 홈에서 확인해 주세요.':error?.code==='PREPARED_NEXT_UNSUPPORTED'?'홈에서 확인한 시험범위를 선택해 연습해 주세요.':'최신 시험범위를 확인하지 못했어요. 홈에서 범위를 다시 확인해 주세요.';
+    target.innerHTML='<div class="card" role="'+(noAssignment?'status':'alert')+'"><h2 id="practice-load-error-heading" tabindex="-1">'+heading+'</h2><p>'+message+'</p><button class="vocab-btn secondary" type="button" onclick="showTab(&quot;home&quot;)">'+(noAssignment?'홈에서 학습일정 확인':'홈에서 시험범위 확인')+'</button></div>';
     document.getElementById('practice-load-error-heading')?.focus?.({preventScroll:true});
   } finally {if(button)button.disabled=false;}
 }

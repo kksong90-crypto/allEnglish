@@ -176,10 +176,13 @@
       current();let hints=[];
       if(typeof store.hints==='function'){try{hints=await store.hints(owner);}catch(_){}}
       hints=[...new Set(Array.isArray(hints)?hints:[])].filter(h=>typeof h==='string'&&/^[a-f0-9]{64}$/.test(h)).slice(0,MAX_CONTENTS);current();
-      const selected=selection?{testPlanId:selection.testPlanId,slotKey:selection.slotKey,personalScopeFingerprint:selection.personalScopeFingerprint}:{};
-      if(selection&&(['testPlanId','slotKey','personalScopeFingerprint'].some(k=>typeof selected[k]!=='string')||!selected.testPlanId))throw failure('PREPARED_SELECTION_INVALID');
+      const selected=selection?{testPlanId:selection.testPlanId,slotKey:selection.slotKey,personalScopeFingerprint:selection.personalScopeFingerprint,planDate:selection.planDate}:{};
+      if(selection&&(['testPlanId','slotKey','personalScopeFingerprint'].some(k=>typeof selected[k]!=='string')||!selected.testPlanId||typeof selected.planDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(selected.planDate)))throw failure('PREPARED_SELECTION_INVALID');
       const reply=await transport({action:'getMyNextPreparedVocabPractice',preferBundle:'Y',knownContentHashesJson:JSON.stringify(hints),...selected},owner,sessionKey);current();
       if(unsupported(reply)||(reply?.success===false&&reply.message==='Unknown action: getMyNextPreparedVocabPractice'))return null;
+      const responseCode=reply?.code||reply?.error?.code;
+      if(reply?.success===false&&responseCode==='PREPARED_NO_ASSIGNMENT')throw failure('PREPARED_NO_ASSIGNMENT');
+      if(reply?.success===false&&['PREPARED_SELECTION_CHANGED','PREPARED_HOST_NEXT_SELECTION_CHANGED'].includes(responseCode))throw failure('PREPARED_SELECTION_CHANGED');
       if(reply?.success===true&&reply.status==='SELECTION_REQUIRED'){
         if(selection)throw failure('PREPARED_SELECTION_CHANGED');
         if(!Array.isArray(reply.choices)||reply.choices.length<2||reply.choices.length>32)throw failure('PREPARED_SELECTION_INVALID');
@@ -195,6 +198,7 @@
         return {selectionRequired:true,choices};
       }
       const identity=manifestIdentity(reply);
+      if(selection&&reply.planDate!==selected.planDate)throw failure('PREPARED_SELECTION_CHANGED');
       return consume(reply,selection?selected:{testPlanId:identity.testPlanId,slotKey:identity.slotKey,personalScopeFingerprint:identity.personalScopeFingerprint},{owner,sessionKey,isCurrent});
     }};
   }
