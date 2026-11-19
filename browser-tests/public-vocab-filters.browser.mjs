@@ -32,7 +32,11 @@ try{for(const role of ['student','admin']){
  await page.locator('#station-library-book option[value="UNKNOWN"]').waitFor({state:'attached'});
  await page.getByLabel('학교급',{exact:true}).selectOption('중학교');await page.getByLabel('학년',{exact:true}).selectOption('2');await page.getByLabel('출판사',{exact:true}).selectOption('비상');
  assert.deepEqual(await page.locator('#station-library-book option').evaluateAll(options=>options.map(x=>x.value)),['','M2']);
- await page.getByLabel('출판사',{exact:true}).selectOption('동아');assert.equal(await page.locator('#station-library-book option').count(),1);assert.match(await page.locator('#station-library-status').innerText(),/일치하는 교재가 없습니다/);
+ assert.deepEqual(await page.locator('#station-library-publisher option').evaluateAll(options=>options.map(x=>x.value)),['','비상'],'publisher options should follow chosen grade');
+ await page.getByLabel('출판사',{exact:true}).selectOption('');
+ await page.getByLabel('학년',{exact:true}).selectOption('1');
+ await page.getByLabel('출판사',{exact:true}).selectOption('동아');
+ assert.deepEqual(await page.locator('#station-library-book option').evaluateAll(options=>options.map(x=>x.value)),['','M1']);
  for(const label of ['학교급','학년','출판사'])await page.getByLabel(label,{exact:true}).selectOption('');
  assert.equal(await page.locator('#station-library-book option[value="UNKNOWN"]').count(),1);assert.equal(reads.length,1,'metadata filters must not fetch another catalog');assert.equal(wordReads.length,0,'metadata filters must not fetch word bodies');
  // A whole-catalog hit must open even while metadata filters exclude its book.

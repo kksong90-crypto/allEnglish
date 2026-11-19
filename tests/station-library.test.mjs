@@ -221,7 +221,9 @@ test('metadata facets intersect locally; missing metadata stays in All without g
   n['station-library-publisher'].value='비상';n['station-library-publisher'].handlers.change();
   assert.deepEqual(optionValues(n['station-library-book']),['','M2B']);
   n['station-library-category'].value='MOCK_EXAM';n['station-library-category'].handlers.change();
-  assert.equal(n['station-library-book'].children.length,1);assert.match(n['station-library-status'].textContent,/일치하는 교재가 없습니다/);
+  assert.deepEqual(optionValues(n['station-library-book']),['','MOCK']);
+  assert.equal(n['station-library-publisher'].value,'','publisher must not restrict a mock exam');
+  assert.equal(n['station-library-grade'].value,'','category change resets old grade');
   for(const id of ['school-level','grade','publisher','category']){n['station-library-'+id].value='';n['station-library-'+id].handlers.change();}
   assert.equal(optionValues(n['station-library-book']).includes('UNKNOWN'),true);assert.equal(h.calls.length,1);
 });
