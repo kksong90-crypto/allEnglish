@@ -2374,7 +2374,7 @@ function startPublicVocaPractice({revisionId, bookName, label, words}) {
     }
     if (answers != null && (!Array.isArray(answers) || answers.some(a => typeof a !== 'string'))) return null;
     const aliases = [word.word, ...(answers || [])].map(a => String(a).trim()).filter(Boolean);
-    return [staffPreview ? '[관리자 미리보기]' : '[공개 교재 연습]', String(label || '공개 범위'), String(word.word), String(word.meaning),
+    return [staffPreview ? '[관리자 미리보기]' : '[공개 교재 연습]', String(word.sourceLabel || label || '공개 범위'), String(word.word), String(word.meaning),
       0, String(word.bookId || ''), [...new Set(aliases)].join('|'), id];
   }));
   if (rows.some(row => !row)) return showAppToast('공개 범위의 단어 정보가 불완전합니다. 다시 조회해 주세요.');
