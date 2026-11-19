@@ -44,9 +44,14 @@
     function open() {
       if (!indexedDB) return Promise.reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
       if (!database) database = new Promise((resolve,reject) => {
-        const request = indexedDB.open('allbarun-prepared-practice-v1',1);
+        const request = indexedDB.open('allbarun-prepared-practice-v1',2);
         request.onupgradeneeded = () => {
-          for (const name of ['contents','assignments']) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name,{keyPath:'key'});
+          for (const name of ['contents','assignments']) {
+            const store=request.result.objectStoreNames.contains(name)?request.transaction.objectStore(name):request.result.createObjectStore(name,{keyPath:'key'});
+            // Existing v1 rows are indexed by the browser without downloading
+            // or materializing their word arrays in JavaScript.
+            if (!store.indexNames.contains('gc')) store.createIndex('gc',['lastUsed','wordCount']);
+          }
         };
         request.onsuccess = () => { const db=request.result; db.onversionchange=()=>{db.close();database=null;};resolve(db); };
         request.onerror = () => reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
@@ -59,7 +64,7 @@
       return new Promise((resolve,reject) => {
         const tx=db.transaction(names,mode);let result;
         tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(failure('PREPARED_STORAGE_UNAVAILABLE'));
-        work(tx,value=>{result=value;});
+        try {work(tx,value=>{result=value;});} catch (_) {tx.abort();}
       });
     }
     return {
@@ -67,20 +72,19 @@
       async write(owner,identity,words) {
         return transaction(['contents','assignments'],'readwrite',tx=>{
           const stamp=now();tx.objectStore('contents').put({key:identity.contentHash,words,wordCount:words.length,lastUsed:stamp});
-          tx.objectStore('assignments').put({key:JSON.stringify([owner,identity.assignmentKey]),owner,...identity,lastUsed:stamp});
+          tx.objectStore('assignments').put({key:JSON.stringify([owner,identity.assignmentKey]),owner,...identity,wordCount:words.length,lastUsed:stamp});
           // GC happens in the same transaction as the write. Retain at most 12
           // complete sets / 25k words / 50 assignment pointers, and at most 7 days.
           for (const name of ['contents','assignments']) {
-            const store=tx.objectStore(name),request=store.getAll();
+            // Key cursors expose only timestamps/counts/keys, never word bodies.
+            const store=tx.objectStore(name),request=store.index('gc').openKeyCursor(null,'prev');let kept=0,total=0;
             request.onsuccess=()=>{
-              const rows=request.result.sort((a,b)=>(Number(b.lastUsed)||0)-(Number(a.lastUsed)||0)||String(a.key).localeCompare(String(b.key)));let kept=0,total=0;
-              for (const row of rows) {
-                const limit=name==='contents'?MAX_CONTENTS:MAX_ASSIGNMENTS;
-                const size=name==='contents'&&Array.isArray(row.words)?row.words.length:0;
-                const malformed=!Number.isFinite(row.lastUsed)||typeof row.key!=='string'||(name==='contents'&&(!Array.isArray(row.words)||row.wordCount!==size||size<1||size>MAX_WORDS));
-                if (malformed || stamp-row.lastUsed>MAX_AGE || kept>=limit || total+size>MAX_TOTAL_WORDS) store.delete(row.key);
-                else {kept++;total+=size;}
-              }
+              const cursor=request.result;if(!cursor)return;
+              const [lastUsed,wordCount]=cursor.key,size=name==='contents'?wordCount:0;
+              const malformed=typeof cursor.primaryKey!=='string'||!Number.isFinite(lastUsed)||!Number.isInteger(wordCount)||wordCount<1||wordCount>MAX_WORDS;
+              if (malformed || stamp-lastUsed>MAX_AGE || kept>=(name==='contents'?MAX_CONTENTS:MAX_ASSIGNMENTS) || total+size>MAX_TOTAL_WORDS) store.delete(cursor.primaryKey);
+              else {kept++;total+=size;}
+              cursor.continue();
             };
           }
         });
