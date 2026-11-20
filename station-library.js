@@ -108,20 +108,23 @@
         window.localStorage.removeItem(key); return;
       }
       let rejected=0;
-      const seen = new Set();
+      const seen = new Set(), unitIndexByRevision=new Map();
       for (const entry of saved.items) {
         const rev=String(entry?.revisionId || ''), id=String(entry?.sectionId || '');
         const book=catalog?.find(row=>row.revisionId===rev);
-        const unit=book?.sections.find(row=>row.sectionId===id);
-        const count=Number(unit?.wordCount || 0), serial=JSON.stringify([rev,id]);
+        if (book && !unitIndexByRevision.has(rev)) {
+          const validUnits=deriveBookRanges(book).ranges.flatMap(leafRanges);
+          unitIndexByRevision.set(rev,new Map(validUnits.map(unit=>[unit.ids[0],unit])));
+        }
+        const unit=unitIndexByRevision.get(rev)?.get(id);
+        const count=Number(unit?.count || 0), serial=JSON.stringify([rev,id]);
         if (!rev || !id || seen.has(serial) || !unit || !Number.isSafeInteger(count) || count<1
             || String(book.recordVersion ?? '') !== String(entry?.recordVersion ?? '')
             || basket.size>=MAX_SELECTED_RANGES || selectedEstimate()+count>MAX_SELECTED_WORDS) {
           rejected++; continue;
         }
         seen.add(serial);
-        const source=String(unit.label || (unit.sectionType==='DAY' ? 'Day '+unit.sectionNo : id));
-        basket.set(serial,{revisionId:rev,ids:[id],count,label:source,bookName:book.displayName});
+        basket.set(serial,{revisionId:rev,ids:[id],count,label:unit.label,bookName:book.displayName});
       }
       if (basket.size) {
         basketVersion++;
@@ -432,13 +435,10 @@
     showBooks();
   });
   for (const [, select] of metadataFilters) select?.addEventListener('change', showBooks);
-  function selectBook() {
-    resetScope();
-    const book = catalog?.find(item => item.revisionId === books.value);
-    if (!book) return;
+  // Single source of truth for Section labels, including shared mock passages
+  // and real textbook Lesson children. Used by both live selection and restore.
+  function deriveBookRanges(book) {
     const rawLabels = new Set(book.sections.map(section => String(section.label || '').normalize('NFKC').trim()));
-    // Only a confirmed shared-passage signature is abbreviated in old data:
-    // 41=41~42 and 43=43~45, never absent 42/44/45 questions.
     const sharedPassages = categoryKey(book) === 'MOCK_EXAM'
       && rawLabels.has('41번') && rawLabels.has('43번')
       && !['42번','44번','45번'].some(label => rawLabels.has(label));
@@ -460,13 +460,23 @@
       range.count += count;
       range.units.push({label,ids:[section.sectionId],count});
     }
-    ranges = Array.from(grouped.values()).filter(range => range.ids.length)
-      .sort((a,b) => a.label.localeCompare(b.label,'ko',{numeric:true}));
+    return {
+      sharedPassages,
+      ranges:Array.from(grouped.values()).filter(range=>range.ids.length)
+        .sort((a,b)=>a.label.localeCompare(b.label,'ko',{numeric:true}))
+    };
+  }
+  function selectBook() {
+    resetScope();
+    const book = catalog?.find(item => item.revisionId === books.value);
+    if (!book) return;
+    const prepared = deriveBookRanges(book);
+    ranges = prepared.ranges;
     ranges.forEach((range,k)=>scopes.add(new Option(`${range.label} · ${range.count}개`,String(k))));
     scopes.disabled = ranges.length === 0;
     prepareSpanSelectors();
     status.textContent = ranges.length
-      ? '과·지문·Day를 선택하세요.' + (sharedPassages ? ' 41~42번과 43~45번은 각각 하나의 공통 지문입니다.' : '')
+      ? '과·지문·Day를 선택하세요.' + (prepared.sharedPassages ? ' 41~42번과 43~45번은 각각 하나의 공통 지문입니다.' : '')
       : '이 교재에는 공개된 범위가 없습니다.';
     renderRangeCheckboxes();
   }

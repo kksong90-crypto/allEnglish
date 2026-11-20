@@ -382,6 +382,27 @@ test('verified curriculum/subject filters stay optional and missing metadata rem
   assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['KNOWN','MIDDLE','UNKNOWN']);
 });
 
+
+test('shared-passage label remains 41~42/43~45 after account-scoped restore',async()=>{
+  const saved=new Map(),storage={
+    getItem:key=>saved.get(key)||null,
+    setItem:(key,value)=>saved.set(key,String(value)),
+    removeItem:key=>saved.delete(key)
+  };
+  const book={revisionId:'LONG',recordVersion:12,displayName:'고2 2026년 9월 모의고사',
+    categoryCode:'MOCK_EXAM',sections:[section('Q41','41번'),section('Q43','43번')]};
+  const first=setup({catalog:[book],userId:'SAME_USER',storage});
+  await open(first);pickBook(first.nodes,'LONG');pickRange(first.nodes,0);pickRange(first.nodes,1);
+  const firstLabels=first.nodes['station-library-selection-items'].children.map(el=>el.children[0].textContent);
+  assert.ok(firstLabels.some(x=>x.includes('41~42번')));
+  assert.ok(firstLabels.some(x=>x.includes('43~45번')));
+  const second=setup({catalog:[book],userId:'SAME_USER',storage});
+  await open(second);
+  const restored=second.nodes['station-library-selection-items'].children.map(el=>el.children[0].textContent);
+  assert.deepEqual(restored,firstLabels,'restore must use identical display names as fresh selection');
+  assert.equal(second.nodes['station-library-selection-summary'].textContent.includes('2개'),true);
+});
+
 test('textbook Lesson allows child Reading selections and mixed-state parent without duplicates',async()=>{
   const book={revisionId:'TEXT',displayName:'독해와작문 능률',categoryCode:'TEXTBOOK',sections:[
     section('R31','3과 Reading 1'),section('R32','3과 Reading 2'),section('R41','4과 Reading 1')
