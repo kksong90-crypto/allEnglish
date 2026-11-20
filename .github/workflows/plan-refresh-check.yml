@@ -2,6 +2,10 @@ name: Published plan refresh verification
 on:
   pull_request:
     paths: ['index.html', 'station-library.js', 'student-shell.css', 'app-auto-update.js', 'manifest.json', 'tests/**', 'scripts/check-student-web.mjs', 'icons/**', 'icon-*.png', '.github/workflows/plan-refresh-check.yml']
+# Only the newest check of a PR is useful; this workflow has no deployments.
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
