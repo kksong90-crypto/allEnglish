@@ -461,8 +461,18 @@
       <div id="station-library-selection" aria-label="여러 범위 선택">
         <p class="vocab-library-hint">지문이나 Day를 체크하면 다른 교재로 이동해도 선택 목록에 남습니다. 공식 시험 성적에는 반영되지 않습니다.</p>
         <div id="station-library-range-list" class="vocab-library-range-list" aria-label="현재 교재의 범위 목록"></div>
+        <details id="station-library-span-picker" class="vocab-library-span-picker">
+          <summary>연속 범위 한 번에 담기 (예: 18~30번, Day 1~5)</summary>
+          <div class="control-grid">
+            <div><label class="field-label" for="station-library-span-from">시작 범위</label>
+              <select id="station-library-span-from" disabled><option value="">시작 범위</option></select></div>
+            <div><label class="field-label" for="station-library-span-to">끝 범위</label>
+              <select id="station-library-span-to" disabled><option value="">끝 범위</option></select></div>
+          </div>
+          <button id="station-library-span-add" type="button" class="vocab-btn secondary" disabled>선택 구간 담기</button>
+        </details>
         <div class="button-row">
-          <button id="station-library-select-all" type="button" class="vocab-btn secondary" disabled>현재 교재 전체 담기</button>
+          <button id="station-library-select-all" type="button" role="checkbox" aria-checked="false" aria-label="현재 교재 전체 선택 또는 해제" class="vocab-btn secondary" disabled>현재 교재 전체 담기</button>
           <button id="station-library-clear-selection" type="button" class="vocab-btn secondary" disabled>선택 전체 해제</button>
         </div>
         <p id="station-library-selection-summary" role="status">선택한 범위 0개</p>
@@ -5556,7 +5566,7 @@ function escapeHtmlForPointRank(text) {
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>
-  <script src="station-library.js?v=20261120-taxonomy4"></script>
+  <script src="station-library.js?v=20261120-contiguous1"></script>
 
   <script defer src="app-auto-update.js?v=20261018.2"></script>
 </body>
