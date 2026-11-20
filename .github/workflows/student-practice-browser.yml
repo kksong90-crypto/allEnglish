@@ -11,6 +11,11 @@ on:
       - 'browser-tests/**'
       - '.github/workflows/student-practice-browser.yml'
   workflow_dispatch:
+# Only the newest commit for the same PR needs four browser test jobs.
+# Manual runs have independent IDs and are never canceled by a PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
@@ -57,7 +62,7 @@ jobs:
       - name: Verify cold bundled entry and warm owner-bound hash hints
         run: node browser-tests/prepared-practice.browser.mjs ${{ matrix.browser }} --bundle
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: practice-main-ui-${{ matrix.browser }}
           path: |
@@ -67,7 +72,7 @@ jobs:
             browser-tests/artifacts/additional-practice/
             browser-tests/artifacts/session-interleaving/
             browser-tests/artifacts/home-vocab-first/
-          retention-days: 7
+          retention-days: 3
   legacy-unavailable-module-fallback:
     name: Explicit unavailable-module fallback (${{ matrix.browser }})
     runs-on: ubuntu-24.04
@@ -95,8 +100,8 @@ jobs:
         if: matrix.browser == 'chromium'
         run: node browser-tests/mobile-review.browser.mjs
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: practice-legacy-fallback-${{ matrix.browser }}
           path: browser-tests/artifacts/
-          retention-days: 7
+          retention-days: 3
