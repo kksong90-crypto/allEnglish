@@ -69,11 +69,18 @@ try{
  await page.locator('#station-library-year').selectOption('2026');
  assert.deepEqual(await page.locator('#station-library-month option').evaluateAll(os=>os.map(o=>o.value)),['','9']);
  await page.locator('#station-library-book').selectOption('MOCK');
- await page.locator('#station-library-range-list input[type=checkbox]').nth(0).check();
- await page.locator('#station-library-range-list input[type=checkbox]').nth(1).check();
- assert.equal(reads.filter(x=>x.action==='getVocaSection').length,0,'checkbox selection must be local');
+ await page.locator('#station-library-span-picker').evaluate(el=>el.open=true);
+ await page.locator('#station-library-span-from').selectOption('0');
+ await page.locator('#station-library-span-to').selectOption('1');
+ await page.locator('#station-library-span-add').click();
+ assert.equal(await page.locator('#station-library-select-all').getAttribute('aria-checked'),'mixed',
+   'a partially selected mock exam needs the three-state parent');
+ assert.equal(await page.locator('#station-library-select-all').getAttribute('role'),'checkbox');
+ assert.equal(reads.filter(x=>x.action==='getVocaSection').length,0,'contiguous selection must be local');
  await page.locator('#station-library-category').selectOption('VOCAB');
  await page.locator('#station-library-book').selectOption('BOOK');
+ assert.equal(await page.locator('#station-library-span-from').inputValue(),'',
+   'switching books clears previous range picker endpoints');
  await page.locator('#station-library-range-list input[type=checkbox]').nth(0).check();
  assert.match(await page.locator('#station-library-selection-summary').innerText(),/3개/);
  assert.equal(await page.locator('#station-library-selection-items .vocab-library-chip').count(),3);
