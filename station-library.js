@@ -15,6 +15,9 @@
   const basketSummary = document.getElementById('station-library-selection-summary');
   const basketItems = document.getElementById('station-library-selection-items');
   const selectAllButton = document.getElementById('station-library-select-all');
+  const spanFrom = document.getElementById('station-library-span-from');
+  const spanTo = document.getElementById('station-library-span-to');
+  const spanAddButton = document.getElementById('station-library-span-add');
   const clearBasketButton = document.getElementById('station-library-clear-selection');
   const combinedButton = document.getElementById('station-library-combined-practice');
   const combinedStatus = document.getElementById('station-library-selection-status');
@@ -80,7 +83,13 @@
     ranges = [];
     selectedWords = null;
     if (rangeList) rangeList.replaceChildren();
-    if (selectAllButton) selectAllButton.disabled = true;
+    if (selectAllButton) {
+      selectAllButton.disabled = true;
+      selectAllButton.setAttribute?.('aria-checked','false');
+    }
+    if (spanFrom) resetSelect(spanFrom,'시작 범위');
+    if (spanTo) resetSelect(spanTo,'끝 범위');
+    if (spanAddButton) spanAddButton.disabled = true;
     resetSelect(scopes, '범위 선택');
     words.replaceChildren();
     clearSearch();
@@ -349,6 +358,7 @@
     ranges = Array.from(grouped.values()).sort((a,b) => a.label.localeCompare(b.label, 'ko', {numeric:true}));
     ranges.forEach((range,i) => scopes.add(new Option(`${range.label} · ${range.count}개`, String(i))));
     scopes.disabled = ranges.length === 0;
+    prepareSpanSelectors();
     status.textContent = ranges.length ? '과·Day·범위를 선택하세요.' : '이 교재에는 공개된 범위가 없습니다.';
     renderRangeCheckboxes();
   }
@@ -363,6 +373,38 @@
     basketVersion++;
     combinedSerial++;
     if (combinedStatus) combinedStatus.textContent = '';
+  }
+  // Range bulk selection is a local-only convenience; the basket and API
+  // batch integrity rules remain the same as single-checkbox selection.
+  function updateSpanButton() {
+    if (!spanAddButton) return;
+    const valid = node => node && node.value !== '' && Number.isInteger(Number(node.value))
+      && Number(node.value) >= 0 && Number(node.value) < ranges.length;
+    spanAddButton.disabled = !books.value || !valid(spanFrom) || !valid(spanTo);
+  }
+  function prepareSpanSelectors() {
+    for (const [node,label] of [[spanFrom,'시작 범위'],[spanTo,'끝 범위']]) {
+      if (!node) continue;
+      resetSelect(node,label);
+      for (let i=0;i<ranges.length;i++) {
+        node.add(new Option(ranges[i].label + ' · ' + ranges[i].count + '개',String(i)));
+      }
+      node.disabled = ranges.length === 0;
+    }
+    updateSpanButton();
+  }
+  spanFrom?.addEventListener('change',updateSpanButton);
+  spanTo?.addEventListener('change',updateSpanButton);
+  // Accessible three-state control: none, all, and partial selection.
+  function updateSelectAllState() {
+    if (!selectAllButton) return;
+    const selected = ranges.filter(range => basket.has(rangeKey(books.value,range))).length;
+    const state = !selected ? 'false' : selected === ranges.length ? 'true' : 'mixed';
+    selectAllButton.disabled = ranges.length === 0;
+    selectAllButton.setAttribute?.('aria-checked',state);
+    selectAllButton.textContent = state === 'true' ? '현재 교재 전체 해제'
+      : state === 'mixed' ? '현재 교재 일부 선택 (' + selected + '/' + ranges.length + ') · 전체 담기'
+      : '현재 교재 전체 담기';
   }
   function renderRangeCheckboxes() {
     if (!rangeList) return; // Old cached app shell.
@@ -380,11 +422,7 @@
       return label;
     });
     rangeList.replaceChildren(...items);
-    if (selectAllButton) {
-      selectAllButton.disabled = !items.length;
-      selectAllButton.textContent = items.length && ranges.every(range => basket.has(rangeKey(revisionId,range)))
-        ? '현재 교재 전체 해제' : '현재 교재 전체 담기';
-    }
+    updateSelectAllState();
   }
   function renderBasket() {
     const count = basket.size, estimate = selectedEstimate();
@@ -411,10 +449,7 @@
       });
       basketItems.replaceChildren(...chips);
     }
-    if (selectAllButton) {
-      selectAllButton.textContent = ranges.length && ranges.every(range => basket.has(rangeKey(books.value,range)))
-        ? '현재 교재 전체 해제' : '현재 교재 전체 담기';
-    }
+    updateSelectAllState();
   }
   function toggleRange(revisionId,range,checked) {
     if (!catalog?.some(book => book.revisionId === revisionId && book.sections.length
@@ -431,6 +466,31 @@
     } else basket.delete(key);
     invalidateCombined(); renderBasket(); renderRangeCheckboxes();
   }
+  spanAddButton?.addEventListener('click', () => {
+    updateSpanButton();
+    if (spanAddButton.disabled || !catalog) return;
+    const revisionId = books.value, book = catalog.find(item => item.revisionId === revisionId);
+    if (!book) return;
+    const first = Number(spanFrom.value), last = Number(spanTo.value);
+    const group = ranges.slice(Math.min(first,last),Math.max(first,last)+1);
+    // Everything is added as one atomic local action, or nothing changes.
+    const newRanges = group.filter(range => !basket.has(rangeKey(revisionId,range)));
+    if (basket.size + newRanges.length > MAX_SELECTED_RANGES
+      || selectedEstimate() + newRanges.reduce((sum,range) => sum + range.count,0) > MAX_SELECTED_WORDS) {
+      if (combinedStatus) combinedStatus.textContent = '연속 범위가 최대 선택량을 넘습니다. 범위를 줄여 다시 시도하세요.';
+      return;
+    }
+    if (newRanges.some(range => range.ids.some(id => !book.sections.some(section => section.sectionId === id)))) return;
+    for (const range of newRanges) basket.set(rangeKey(revisionId,range),{
+      revisionId,ids:range.ids.slice(),label:range.label,count:range.count,bookName:book.displayName
+    });
+    if (!newRanges.length) {
+      if (combinedStatus) combinedStatus.textContent = '선택한 구간은 이미 담겨 있습니다.';
+      return;
+    }
+    invalidateCombined(); renderBasket(); renderRangeCheckboxes();
+    if (combinedStatus) combinedStatus.textContent = '연속 범위 ' + newRanges.length + '개를 담았습니다.';
+  });
   selectAllButton?.addEventListener('click', () => {
     const revisionId = books.value;
     if (!revisionId || !ranges.length) return;
