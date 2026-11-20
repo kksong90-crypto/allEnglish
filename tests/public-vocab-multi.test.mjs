@@ -26,7 +26,7 @@ const baseCatalog=[
 ];
 const names=['station-library','query','category','school-level','grade','year','month','publisher',
   'book','scope','status','words','range-list','selection-summary','selection-items',
-  'select-all','clear-selection','combined-practice','selection-status','word-query',
+  'select-all','clear-selection','combined-practice','selection-status','span-from','span-to','span-add','word-query',
   'word-scope','word-search','search-result'];
 function setup({catalog=baseCatalog,apiOverride}={}){
   const nodes=Object.fromEntries(names.map(name=>[name==='station-library'?name:'station-library-'+name,element()]));
@@ -263,6 +263,72 @@ test('multiple mock questions and commercial Day combine without checkbox reads 
   h.window.StationLibrary.reset();
   assert.equal(n['station-library-selection-items'].children.length,0);
   assert.equal(n['station-library-combined-practice'].disabled,true);
+});
+
+
+test('contiguous selection includes both endpoints, keeps other books, and makes no checkbox API calls',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'],add=n['station-library-span-add'];
+  assert.deepEqual(values(from),['','0','1','2']);
+  assert.equal(add.disabled,true,'both range endpoints must be explicitly selected');
+  from.value='2';from.handlers.change();
+  to.value='0';to.handlers.change();
+  assert.equal(add.disabled,false);
+  add.handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/3개/);
+  assert.equal(n['station-library-select-all']['aria-checked'],'true');
+  assert.equal(reads(h).length,0,'range selection must never request words');
+  pickBook(n,'BOOK');
+  assert.equal(from.value,'','the previous book must not leak its chosen start into the next book');
+  assert.equal(to.value,'');
+  assert.equal(add.disabled,true);
+  from.value='0';from.handlers.change();to.value='1';to.handlers.change();add.handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/5개/);
+  assert.equal(reads(h).length,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(h.practices.length,1);
+  assert.equal(h.practices[0].words.length,10);
+  assert.equal(reads(h).length,2);
+  pickBook(n,'MOCK26');
+  assert.ok(n['station-library-range-list'].children.every(x=>x.children[0].checked));
+});
+
+test('whole-book parent correctly announces none, partial, full and recovers after deselection',async()=>{
+  const h=setup(),n=h.nodes;await open(h);pickBook(n,'MOCK26');
+  const control=n['station-library-select-all'];
+  assert.equal(control['aria-checked'],'false');
+  pickRange(n,0);
+  assert.equal(control['aria-checked'],'mixed');
+  assert.match(control.textContent,/1\/3/);
+  control.handlers.click();
+  assert.equal(control['aria-checked'],'true');
+  assert.match(control.textContent,/전체 해제/);
+  control.handlers.click();
+  assert.equal(control['aria-checked'],'false');
+  assert.match(n['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(reads(h).length,0);
+});
+
+test('overlarge contiguous selection is atomic: no half-selected range and no remote calls',async()=>{
+  const huge={revisionId:'HUGE',displayName:'대용량 교재',categoryCode:'VOCAB_BOOK',
+    sections:Array.from({length:160},(_,i)=>section('D'+i,'Day '+(i+1),40))};
+  const h=setup({catalog:[huge]}),n=h.nodes;await open(h);pickBook(n,'HUGE');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'];
+  from.value='0';from.handlers.change();
+  to.value='150';to.handlers.change();
+  n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/0개/);
+  assert.match(n['station-library-selection-status'].textContent,/최대 선택량/);
+  assert.equal(n['station-library-select-all']['aria-checked'],'false');
+  assert.equal(reads(h).length,0);
+  to.value='1';to.handlers.change();n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  const before=n['station-library-selection-summary'].textContent;
+  to.value='150';to.handlers.change();n['station-library-span-add'].handlers.click();
+  assert.equal(n['station-library-selection-summary'].textContent,before,
+    'a rejected bulk add must preserve the earlier basket intact');
+  assert.equal(reads(h).length,0);
 });
 
 test('exact same word and meaning is collapsed, different meaning remains as a separate card',async()=>{
