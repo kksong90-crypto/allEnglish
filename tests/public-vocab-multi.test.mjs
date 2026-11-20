@@ -257,7 +257,7 @@ test('previewed single passage skips repeated 90s section request even after 2mi
   await n['station-library-combined-practice'].handlers.click();
   assert.equal(reads(h).length,1,'combined study must reuse an already verified exact preview');
   assert.equal(h.practices.length,1);
-  assert.deepEqual(h.practices[0].words.map(w=>w.sectionId),['Q18','Q18']);
+  assert.deepEqual(Array.from(h.practices[0].words,word=>String(word.sectionId)),['Q18','Q18']);
   assert.equal(h.calls.filter(c=>/save|result|point/i.test(c.action)).length,0);
 });
 
