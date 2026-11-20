@@ -28,7 +28,7 @@ const names=['station-library','query','category','school-level','grade','curric
   'book','scope','status','words','range-list','selection-summary','selection-items',
   'select-all','clear-selection','combined-practice','selection-status','span-from','span-to','span-add','word-query',
   'word-scope','word-search','search-result'];
-function setup({catalog=baseCatalog,apiOverride,userId,storage}={}){
+function setup({catalog=baseCatalog,apiOverride,userId,storage,clock}={}){
   const nodes=Object.fromEntries(names.map(name=>[name==='station-library'?name:'station-library-'+name,element()]));
   const calls=[],practices=[],user={token:'SYNTHETIC',role:'student',id:userId};
   const window={startPublicVocaPractice:payload=>practices.push(payload)};
@@ -50,7 +50,8 @@ function setup({catalog=baseCatalog,apiOverride,userId,storage}={}){
     }
     return{success:false};
   };
-  runInNewContext(source,{window,currentUser:user,Date,
+  const ClockDate=clock ? class extends Date {static now(){return clock.ms;}} : Date;
+  runInNewContext(source,{window,currentUser:user,Date:ClockDate,
     document:{getElementById:id=>nodes[id]||null,createElement:element},
     Option:function(label,value){this.label=label;this.value=value;},
     apiGet:get});
@@ -241,6 +242,45 @@ test('private and SCHOOL_EXAM scoped materials stay hidden despite public-lookin
   n['station-library-category'].value='CUSTOM';n['station-library-category'].handlers.change();
   assert.deepEqual(values(n['station-library-book']),['']);
   assert.equal(h.calls.length,1);
+});
+
+test('previewed single passage skips repeated 90s section request even after 2min cache expiry',async()=>{
+  const clock={ms:1700000000000};
+  const h=setup({clock}),n=h.nodes;
+  await open(h);pickBook(n,'MOCK26');
+  n['station-library-scope'].value='0';
+  await n['station-library-scope'].handlers.change();
+  assert.equal(reads(h).length,1,'the explicit preview performs one verified read');
+  assert.equal(n['station-library-words'].children.length>0,true);
+  clock.ms+=180000; // beyond the 120-second HTTP cache
+  pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,1,'combined study must reuse an already verified exact preview');
+  assert.equal(h.practices.length,1);
+  assert.deepEqual(h.practices[0].words.map(w=>w.sectionId),['Q18','Q18']);
+  assert.equal(h.calls.filter(c=>/save|result|point/i.test(c.action)).length,0);
+});
+
+test('a different checked passage must never reuse preview from another Section',async()=>{
+  const clock={ms:1700000000000},h=setup({clock}),n=h.nodes;
+  await open(h);pickBook(n,'MOCK26');
+  n['station-library-scope'].value='0';
+  await n['station-library-scope'].handlers.change();
+  clock.ms+=180000;
+  pickRange(n,1);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,2,'different Section requires its own verified API read');
+  assert.deepEqual(JSON.parse(reads(h)[1].sectionIdsJson),['Q20']);
+  assert.equal(h.practices[0].words.every(word=>word.sectionId==='Q20'),true);
+});
+
+test('combined study without an explicit preview retains its verified server read',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');pickRange(n,0);
+  assert.equal(reads(h).length,0,'checkbox does not trigger a remote word read');
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,1,'no preview still fetches the one Section');
+  assert.equal(h.practices.length,1);
 });
 
 test('multiple mock questions and commercial Day combine without checkbox reads and keep scope on book switch',async()=>{

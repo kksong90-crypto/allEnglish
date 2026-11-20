@@ -50,7 +50,7 @@ try{
  const page=await context.newPage();
  await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin,{waitUntil:'domcontentloaded'});
  if(publishedStatic) {
-  assert.equal(await page.locator('script[src*="station-library.js?v=20261120-contiguous2"]').count(),1,'Published app must load the current library script');
+  assert.equal(await page.locator('script[src*="station-library.js?v=20261120-contiguous3"]').count(),1,'Published app must load the current library script');
   assert.equal(await page.locator('#station-library-combined-practice').count(),1,'Published app must contain the combined-practice control');
  }
  await page.waitForFunction(()=>!!currentUser?.token);

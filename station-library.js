@@ -726,6 +726,31 @@
     finally { if (sectionFlights.get(key) === task) sectionFlights.delete(key); }
   }
 
+  // A checked range may have been previewed already. That preview has passed
+  // fetchScope's full count, identity and duplicate checks in this login.
+  // Reuse it ONLY for the exact same revision and set of Section IDs;
+  // changing the book/scope or receiving a stale response clears selectedWords.
+  function verifiedPreviewFor(revisionId, scope) {
+    if (!selectedWords || books.value !== revisionId || !scope?.ids?.length) return null;
+    const preview = selectedScope();
+    if (!preview || preview.ids.length !== scope.ids.length ||
+        preview.ids.some((id,index)=>id !== scope.ids[index]) ||
+        selectedWords.length !== scope.count) return null;
+    const book = catalog?.find(item=>item.revisionId===revisionId);
+    if (!book) return null;
+    const expected = new Map(scope.ids.map(id=>[
+      id,Number(book.sections.find(section=>section.sectionId===id)?.wordCount)
+    ]));
+    if ([...expected.values()].some(n=>!Number.isSafeInteger(n)||n<1)) return null;
+    const actual = new Map(), seen = new Set();
+    for (const word of selectedWords) {
+      if (!expected.has(word.sectionId) || !word.vocabWordId || seen.has(word.vocabWordId)) return null;
+      seen.add(word.vocabWordId);
+      actual.set(word.sectionId,(actual.get(word.sectionId)||0)+1);
+    }
+    return [...expected].every(([id,count])=>actual.get(id)===count) ? selectedWords : null;
+  }
+
   // Build a complete, verified combined range before opening the existing isolated
   // card/recall/spelling practice. Never send partial results or official writes.
   async function startCombinedPractice() {
@@ -733,6 +758,8 @@
     const entries = Array.from(basket.values()).map(item => ({...item,ids:item.ids.slice()}));
     const epoch = generation, version = basketVersion, request = ++combinedSerial;
     const current = () => epoch === generation && version === basketVersion && request === combinedSerial && !!currentUser?.token;
+    const meter = startTiming('combined');
+    if (meter) meter.current = current;
     const startPractice = ['admin','teacher'].includes(String(currentUser.role || '').toLowerCase())
       ? window.startPublicVocaPreview : window.startPublicVocaPractice;
     if (typeof startPractice !== 'function') {
@@ -761,7 +788,7 @@
       const all = [];
       for (const [revisionId,scope] of grouped) {
         if (!current()) return;
-        const body = await fetchScope(revisionId,scope,null);
+        const body = verifiedPreviewFor(revisionId,scope) || await fetchScope(revisionId,scope,meter);
         if (!current()) return;
         for (const word of body) all.push({...word,revisionId,
           sourceLabel:origins.get(JSON.stringify([revisionId,word.sectionId])) || '선택 범위'});
@@ -789,8 +816,10 @@
       if (combinedStatus) combinedStatus.textContent = '확인 완료 · ' + unique.size + '개 단어 (중복 ' + (all.length-unique.size) + '개 통합)';
       startPractice({revisionId:'PUBLIC_COMBINED',bookName:grouped.size + '권 자료',
         label:entries.length + '개 선택 범위',words:Array.from(unique.values())});
+      void finishTiming(meter,true,unique.size);
     } catch {
       if (current() && combinedStatus) combinedStatus.textContent = '선택한 범위를 모두 확인하지 못했습니다. 일부만 공부하지 않고 중단했습니다. 같은 선택으로 다시 시도하세요.';
+      void finishTiming(meter,false,0);
     } finally {
       if (current() && combinedButton) combinedButton.disabled = false;
     }
