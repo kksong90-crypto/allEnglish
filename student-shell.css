@@ -4479,3 +4479,12 @@ body.dark #station-library-selection{border-color:#41574e}
 body.dark #station-library-range-list .vocab-library-range{border-color:#41574e}
 body.dark #station-library-range-list .vocab-library-range:has(input:checked){background:#17483a}
 @media(max-width:560px){#station-library-range-list{grid-template-columns:repeat(2,minmax(0,1fr))}#station-library-selection .button-row{display:flex;flex-wrap:wrap;gap:6px}#station-library-selection .button-row>button{flex:1 1 135px}}
+
+/* Checked and partially checked textbook Lesson groups preserve true Section granularity. */
+#station-library-range-list .vocab-library-group{grid-column:1/-1;border:1px solid var(--brand-line,#d7e4df);border-radius:12px;padding:7px;min-width:0}
+#station-library-range-list .vocab-library-group>.vocab-library-range{margin-bottom:4px;font-weight:750}
+#station-library-range-list .vocab-library-group details>summary{cursor:pointer;min-height:40px;padding:10px;font-size:.9rem;line-height:1.5}
+#station-library-range-list .vocab-library-child-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:6px;padding:6px}
+#station-library-range-list input:indeterminate{outline:2px solid var(--brand-dark,#286252);outline-offset:2px}
+body.dark #station-library-range-list .vocab-library-group{border-color:#41574e}
+@media(max-width:560px){#station-library-range-list .vocab-library-child-list{grid-template-columns:minmax(0,1fr)}}

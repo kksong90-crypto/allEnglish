@@ -14,7 +14,8 @@ assert.ok(['chromium','webkit'].includes(engine));
 const browser=await(engine==='webkit'?webkit:chromium).launch({headless:true,...(engine==='chromium'&&existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium'}:{})});
 const catalog=[
  {revisionId:'MOCK',displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',schoolLevel:'고등학교',gradeNo:2,publicationYear:2026,publicationMonth:'09',
-  sections:[{sectionId:'Q18',label:'18번',wordCount:2},{sectionId:'Q20',label:'20번',wordCount:2},{sectionId:'Q21',label:'21번',wordCount:2}]},
+  sections:[{sectionId:'Q18',label:'18번',wordCount:2},{sectionId:'Q20',label:'20번',wordCount:2},{sectionId:'Q21',label:'21번',wordCount:2},
+    {sectionId:'Q41',label:'41번',wordCount:2},{sectionId:'Q43',label:'43번',wordCount:2}]},
  {revisionId:'BOOK',displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',publisher:'해커스',
   sections:[{sectionId:'DAY1',label:'Day 1',wordCount:2},{sectionId:'DAY2',label:'Day 2',wordCount:2}]},
  {revisionId:'PRIVATE',displayName:'비공개 자료',studentVisible:false,categoryCode:'CUSTOM',
@@ -49,7 +50,7 @@ try{
  const page=await context.newPage();
  await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin,{waitUntil:'domcontentloaded'});
  if(publishedStatic) {
-  assert.equal(await page.locator('script[src*="station-library.js?v=20261120-contiguous1"]').count(),1,'Published app must load the current library script');
+  assert.equal(await page.locator('script[src*="station-library.js?v=20261120-contiguous2"]').count(),1,'Published app must load the current library script');
   assert.equal(await page.locator('#station-library-combined-practice').count(),1,'Published app must contain the combined-practice control');
  }
  await page.waitForFunction(()=>!!currentUser?.token);
@@ -69,6 +70,9 @@ try{
  await page.locator('#station-library-year').selectOption('2026');
  assert.deepEqual(await page.locator('#station-library-month option').evaluateAll(os=>os.map(o=>o.value)),['','9']);
  await page.locator('#station-library-book').selectOption('MOCK');
+ assert.match(await page.locator('#station-library-range-list').innerText(),/41~42번/);
+ assert.match(await page.locator('#station-library-range-list').innerText(),/43~45번/);
+ assert.doesNotMatch(await page.locator('#station-library-range-list').innerText(),/42번 미등록/);
  await page.locator('#station-library-span-picker').evaluate(el=>el.open=true);
  await page.locator('#station-library-span-from').selectOption('0');
  await page.locator('#station-library-span-to').selectOption('1');
@@ -93,6 +97,13 @@ try{
  assert.deepEqual(reads.filter(x=>x.action==='getVocaSection').map(x=>x.revisionId),['MOCK','BOOK']);
  assert.equal(writes.length,0);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>!!currentUser?.token);
+ await page.evaluate(()=>showTab('vocab'));
+ await page.locator('#station-library').evaluate(el=>el.open=true);
+ await page.locator('#station-library-book option[value="MOCK"]').waitFor({state:'attached'});
+ assert.match(await page.locator('#station-library-selection-summary').innerText(),/3개/,
+   'the same authenticated student restores only the selected Section list after reload');
  console.log(JSON.stringify({engine,passed:true,publishedStaticAssets:publishedStatic,syntheticIdentityAndAPI:true,checkedRanges:3,cards:6,reads:reads.length,officialWrites:0,realStudentData:0}));
  await context.close();
 }finally{await browser.close();}

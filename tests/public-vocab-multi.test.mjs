@@ -24,14 +24,15 @@ const baseCatalog=[
   {revisionId:'EBS',displayName:'EBS 올림포스',categoryCode:'EBS',publisher:'EBS',sections:[section('E1','1강')]},
   {revisionId:'HIDDEN',displayName:'학교 시험 비공개',categoryCode:'SCHOOL_EXAM',studentVisible:false,sections:[section('H1','1과')]}
 ];
-const names=['station-library','query','category','school-level','grade','year','month','publisher',
+const names=['station-library','query','category','school-level','grade','curriculum','subject','year','month','publisher','clear-filters',
   'book','scope','status','words','range-list','selection-summary','selection-items',
   'select-all','clear-selection','combined-practice','selection-status','span-from','span-to','span-add','word-query',
   'word-scope','word-search','search-result'];
-function setup({catalog=baseCatalog,apiOverride}={}){
+function setup({catalog=baseCatalog,apiOverride,userId,storage}={}){
   const nodes=Object.fromEntries(names.map(name=>[name==='station-library'?name:'station-library-'+name,element()]));
-  const calls=[],practices=[],user={token:'SYNTHETIC',role:'student'};
+  const calls=[],practices=[],user={token:'SYNTHETIC',role:'student',id:userId};
   const window={startPublicVocaPractice:payload=>practices.push(payload)};
+  if(storage)window.localStorage=storage;
   const get=async params=>{
     calls.push(params);
     if(params.action==='getVocaCatalog')return{success:true,books:catalog};
@@ -329,6 +330,108 @@ test('overlarge contiguous selection is atomic: no half-selected range and no re
   assert.equal(n['station-library-selection-summary'].textContent,before,
     'a rejected bulk add must preserve the earlier basket intact');
   assert.equal(reads(h).length,0);
+});
+
+
+test('41 and 43 old mock labels are shared passages, never absent questions',async()=>{
+  const book={revisionId:'EXAM',displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',
+    sections:[section('Q18','18번',2),section('Q41','41번',4),section('Q43','43번',3)]};
+  const h=setup({catalog:[book]}),n=h.nodes;
+  await open(h);pickBook(n,'EXAM');
+  const labels=n['station-library-range-list'].children.map(x=>x.children[1].textContent);
+  assert.ok(labels.some(x=>x.includes('41~42번')),'41 and 42 share one real Section');
+  assert.ok(labels.some(x=>x.includes('43~45번')),'43 through 45 share one real Section');
+  assert.equal(labels.length,3,'no synthetic Section may be created for 42/44/45');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'];
+  from.value='1';from.handlers.change();to.value='2';to.handlers.change();
+  n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  assert.equal(reads(h).length,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.deepEqual(JSON.parse(reads(h)[0].sectionIdsJson),['Q41','Q43']);
+  assert.equal(h.practices[0].words.length,7);
+  const other=setup({catalog:[{...book,sections:[section('Q41','41번'),section('Q42','42번'),section('Q43','43번')]}]}),n2=other.nodes;
+  await open(other);pickBook(n2,'EXAM');
+  assert.equal(n2['station-library-range-list'].children[0].children[1].textContent.includes('41~42번'),false,
+    'do not relabel a genuinely separate 42 Section');
+});
+
+test('verified curriculum/subject filters stay optional and missing metadata remains searchable',async()=>{
+  const catalog=[
+    {revisionId:'KNOWN',displayName:'공통영어1 NE능률(오선영)',editionLabel:'2022 개정',publicationYear:2022,categoryCode:'TEXTBOOK',
+     schoolLevel:'고',gradeNo:'1',publisher:'능률',sections:[section('L1','1과')]},
+    {revisionId:'UNKNOWN',displayName:'독해와작문 능률(민병천)',editionLabel:'',publicationYear:2022,categoryCode:'TEXTBOOK',
+     schoolLevel:'고',gradeNo:'2',publisher:'능률',sections:[section('L2','2과')]},
+    {revisionId:'MIDDLE',displayName:'중1 동아(윤)',editionLabel:'2022',publicationYear:2024,categoryCode:'TEXTBOOK',
+     schoolLevel:'중',gradeNo:'1',publisher:'동아출판',sections:[section('L3','3과')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='TEXTBOOK';n['station-library-category'].handlers.change();
+  const curr=n['station-library-curriculum'];
+  assert.deepEqual(values(curr),['','2022','__METADATA_NOT_REGISTERED__']);
+  assert.match(curr.children[1].label,/2022 개정 교육과정/);
+  assert.equal(n['station-library-subject'].children.some(x=>x.value==='독해와 작문'),true);
+  curr.value='2022';curr.handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','KNOWN']);
+  curr.value='__METADATA_NOT_REGISTERED__';curr.handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','UNKNOWN','MIDDLE'],
+    'blank edition is not inferred from publication year');
+  assert.equal(h.calls.length,1,'all facets derive from one authorized public catalog');
+  n['station-library-clear-filters'].handlers.click();
+  assert.equal(n['station-library-category'].value,'');
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['KNOWN','MIDDLE','UNKNOWN']);
+});
+
+test('textbook Lesson allows child Reading selections and mixed-state parent without duplicates',async()=>{
+  const book={revisionId:'TEXT',displayName:'독해와작문 능률',categoryCode:'TEXTBOOK',sections:[
+    section('R31','3과 Reading 1'),section('R32','3과 Reading 2'),section('R41','4과 Reading 1')
+  ]};
+  const h=setup({catalog:[book]}),n=h.nodes;await open(h);pickBook(n,'TEXT');
+  const group=()=>n['station-library-range-list'].children[0];
+  assert.equal(n['station-library-range-list'].children.length,2);
+  const children=group().children[1].children[1].children;
+  assert.equal(children.length,2);
+  children[0].children[0].checked=true;children[0].children[0].handlers.change();
+  assert.equal(group().children[0].children[0].indeterminate,true);
+  assert.equal(group().children[0].children[0]['aria-checked'],'mixed');
+  assert.match(n['station-library-selection-summary'].textContent,/1개/);
+  const parent=group().children[0].children[0];parent.checked=true;parent.handlers.change();
+  assert.equal(group().children[0].children[0].checked,true);
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  const sub2=group().children[1].children[1].children[1].children[0];
+  sub2.checked=false;sub2.handlers.change();
+  assert.equal(group().children[0].children[0].indeterminate,true);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.deepEqual(JSON.parse(reads(h)[0].sectionIdsJson),['R31']);
+  assert.equal(reads(h).length,1);
+  assert.equal(h.practices[0].words.length,2);
+});
+
+test('saved selection list is device/account-scoped, content-free and rejected after revision drift',async()=>{
+  const store=new Map();
+  const storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+  const catalog=baseCatalog.map(b=>({...b,recordVersion:3}));
+  const one=setup({catalog,userId:'STUDENT_A',storage});
+  await open(one);pickBook(one.nodes,'MOCK26');pickRange(one.nodes,0);pickRange(one.nodes,1);
+  assert.equal(store.size,1);
+  const serialized=[...store.values()][0];
+  assert.match(serialized,/MOCK26/);
+  assert.doesNotMatch(serialized,/meaning|correct|word:|allowedAnswers|SYNTHETIC/,
+    'never keep word bodies, exam results or session tokens');
+  const newLogin=setup({catalog,userId:'STUDENT_A',storage});
+  await open(newLogin);
+  assert.match(newLogin.nodes['station-library-selection-summary'].textContent,/2개/);
+  pickBook(newLogin.nodes,'MOCK26');
+  assert.equal(newLogin.nodes['station-library-range-list'].children[0].children[0].checked,true);
+  const otherLogin=setup({catalog,userId:'STUDENT_B',storage});
+  await open(otherLogin);
+  assert.match(otherLogin.nodes['station-library-selection-summary'].textContent,/0개/);
+  const revised=catalog.map(b=>b.revisionId==='MOCK26'?{...b,recordVersion:4}:b);
+  const stale=setup({catalog:revised,userId:'STUDENT_A',storage});
+  await open(stale);
+  assert.match(stale.nodes['station-library-selection-summary'].textContent,/0개/,
+    'a changed revision must never silently reuse the saved selection');
+  assert.equal(stale.calls.length,1);
 });
 
 test('exact same word and meaning is collapsed, different meaning remains as a separate card',async()=>{

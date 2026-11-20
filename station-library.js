@@ -3,10 +3,13 @@
   const panel = document.getElementById('station-library');
   if (!panel) return;
   const query = document.getElementById('station-library-query');
+  const clearFiltersButton = document.getElementById('station-library-clear-filters');
   const category = document.getElementById('station-library-category');
   const metadataFilters = [
     ['schoolLevel', document.getElementById('station-library-school-level'), 'school-level'],
     ['gradeNo', document.getElementById('station-library-grade'), 'grade'],
+    ['curriculum', document.getElementById('station-library-curriculum'), 'curriculum'],
+    ['subject', document.getElementById('station-library-subject'), 'subject'],
     ['publicationYear', document.getElementById('station-library-year'), 'year'],
     ['publicationMonth', document.getElementById('station-library-month'), 'month'],
     ['publisher', document.getElementById('station-library-publisher'), 'publisher']
@@ -68,6 +71,68 @@
   const basket = new Map();
   let basketVersion = 0, combinedSerial = 0;
   const MAX_SELECTED_RANGES = 150, MAX_SELECTED_WORDS = 5000;
+  const BASKET_STORAGE_PREFIX = 'allbarun.public-vocab-basket.v1:';
+  const BASKET_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  function basketStorageKey() {
+    if (!currentUser?.token || String(currentUser.role || '').toLowerCase() !== 'student') return '';
+    const owner = String(currentUser.id || currentUser.studentId || currentUser.userId || '').trim();
+    // Never use a global basket: shared devices must isolate student accounts.
+    return owner ? BASKET_STORAGE_PREFIX + encodeURIComponent(owner) : '';
+  }
+  function persistBasket() {
+    const key = basketStorageKey();
+    try {
+      if (!key || !window.localStorage) return;
+      if (!basket.size) { window.localStorage.removeItem(key); return; }
+      // Only stable revision and Section identities, no word bodies, scores or answers.
+      const items = Array.from(basket.values()).filter(item => item.ids?.length === 1)
+        .map(item => {
+          const book = catalog?.find(row => row.revisionId === item.revisionId);
+          return {revisionId:item.revisionId,sectionId:item.ids[0],
+            recordVersion:String(book?.recordVersion ?? '')};
+        });
+      window.localStorage.setItem(key,JSON.stringify({version:1,savedAt:Date.now(),items}));
+    } catch { /* Disabled/full browser storage leaves in-memory practice intact. */ }
+  }
+  function restoreBasket() {
+    const key = basketStorageKey();
+    try {
+      const raw = key && window.localStorage?.getItem(key);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved?.version !== 1 || !Array.isArray(saved.items) ||
+          saved.items.length > MAX_SELECTED_RANGES ||
+          !Number.isFinite(saved.savedAt) ||
+          saved.savedAt > Date.now() + 60000 ||
+          Date.now() - saved.savedAt > BASKET_TTL_MS) {
+        window.localStorage.removeItem(key); return;
+      }
+      let rejected=0;
+      const seen = new Set();
+      for (const entry of saved.items) {
+        const rev=String(entry?.revisionId || ''), id=String(entry?.sectionId || '');
+        const book=catalog?.find(row=>row.revisionId===rev);
+        const unit=book?.sections.find(row=>row.sectionId===id);
+        const count=Number(unit?.wordCount || 0), serial=JSON.stringify([rev,id]);
+        if (!rev || !id || seen.has(serial) || !unit || !Number.isSafeInteger(count) || count<1
+            || String(book.recordVersion ?? '') !== String(entry?.recordVersion ?? '')
+            || basket.size>=MAX_SELECTED_RANGES || selectedEstimate()+count>MAX_SELECTED_WORDS) {
+          rejected++; continue;
+        }
+        seen.add(serial);
+        const source=String(unit.label || (unit.sectionType==='DAY' ? 'Day '+unit.sectionNo : id));
+        basket.set(serial,{revisionId:rev,ids:[id],count,label:source,bookName:book.displayName});
+      }
+      if (basket.size) {
+        basketVersion++;
+        if (combinedStatus) combinedStatus.textContent = '이 기기에서 ' + basket.size + '개 선택 범위를 복원했습니다.'
+          + (rejected ? ' 변경·비공개 자료 ' + rejected + '개는 제외했습니다.' : '');
+      }
+      if (rejected) persistBasket();
+    } catch {
+      try { if (key) window.localStorage?.removeItem(key); } catch {}
+    }
+  }
 
   function resetSelect(select, label) {
     select.replaceChildren(new Option(label, ''));
@@ -139,7 +204,7 @@
       : categoryNames[categoryKey(book)];
   };
   const FACETS = {
-    TEXTBOOK:['schoolLevel','gradeNo','publisher'],
+    TEXTBOOK:['schoolLevel','gradeNo','curriculum','subject','publisher'],
     MOCK_EXAM:['gradeNo','publicationYear','publicationMonth'],
     VOCAB:['publisher'],
     CUSTOM:['schoolLevel','gradeNo','publisher'],
@@ -154,7 +219,7 @@
       ? (/대학수학능력시험|수능/u.test(String(book.displayName || '')) ? '수능' : '모의고사')
       : categoryName(book);
     return searchKey([book.displayName, categorySearch, book.publisher, canonicalPublisher(book.publisher), book.authorLabel,
-      book.schoolLevel, book.gradeNo, book.publicationYear, book.publicationMonth, book.seriesName,
+      book.schoolLevel, book.gradeNo, book.editionLabel, facetValue(book,'subject'), book.publicationYear, book.publicationMonth, book.seriesName,
       book.publicationYear && `${book.publicationYear}년`, book.publicationMonth && `${Number(book.publicationMonth)}월`
     ].filter(Boolean).join(' '));
   };
@@ -190,6 +255,23 @@
     return original;
   };
   function facetValue(book, field) {
+    // Curriculum metadata must be explicit: publicationYear (e.g. 2022)
+    // does NOT prove the educational curriculum revision year.
+    if (field === 'curriculum') {
+      const edition = metadataValue(book.editionLabel).normalize('NFKC');
+      const named = /((?:19|20)\d{2})\s*개정(?:\s*교육과정)?/u.exec(edition);
+      return categoryKey(book) === 'TEXTBOOK' && named ? named[1] : '';
+    }
+    if (field === 'subject') {
+      if (categoryKey(book) !== 'TEXTBOOK') return '';
+      // Only canonical, explicitly printed course names are recognized.
+      // Unknown source titles stay in All / '정보 미등록' instead of being guessed.
+      const title = metadataValue(book.displayName).normalize('NFKC').trim();
+      const named = /^(공통\s*영어\s*[12]|독해\s*와\s*작문|영어\s*[12])(?=\s|\(|$)/u.exec(title);
+      if (!named) return '';
+      const compact = named[1].replace(/\s+/g,'');
+      return compact === '독해와작문' ? '독해와 작문' : compact;
+    }
     const value = metadataValue(book[field]);
     if (field === 'publisher') return canonicalPublisher(value);
     if (field === 'schoolLevel') return canonicalSchoolLevel(value);
@@ -219,6 +301,7 @@
   }
   function facetLabel(field, value) {
     return value === MISSING_FACET ? '정보 미등록'
+      : field === 'curriculum' ? value + ' 개정 교육과정'
       : field === 'publicationYear' ? value + '년'
       : field === 'publicationMonth' ? value + '월'
       : field === 'gradeNo' ? (value === 'CSAT' ? '수능' : (category?.value === 'MOCK_EXAM' ? '고' + value : value + '학년'))
@@ -312,6 +395,8 @@
           && !['POINT_SPECIAL','SCHOOL_EXAM','EXAM_SCOPE'].includes(String(book.categoryCode || '').toUpperCase()));
         catalog.sort((a,b) => a.displayName.localeCompare(b.displayName, 'ko', {numeric:true}));
         for (const book of catalog) searchIndex.set(book.revisionId, bookSearch(book));
+        restoreBasket();
+        renderBasket();
         refreshCategoryAvailability();
         showBooks();
         void finishTiming(meter, true, catalog.length);
@@ -335,6 +420,12 @@
   }
   panel.addEventListener('toggle', () => panel.open ? loadCatalog() : undefined);
   query.addEventListener('input', showBooks);
+  clearFiltersButton?.addEventListener('click', () => {
+    query.value = '';
+    if (category) category.value = '';
+    for (const [,select] of metadataFilters) if (select) select.value = '';
+    showBooks(); // Only local options; never a remote read or basket deletion.
+  });
   category?.addEventListener('change', () => {
     // Preserve the selection basket, but reset incompatible category-specific facets.
     for (const [, select] of metadataFilters) if (select) select.value = '';
@@ -345,21 +436,38 @@
     resetScope();
     const book = catalog?.find(item => item.revisionId === books.value);
     if (!book) return;
+    const rawLabels = new Set(book.sections.map(section => String(section.label || '').normalize('NFKC').trim()));
+    // Only a confirmed shared-passage signature is abbreviated in old data:
+    // 41=41~42 and 43=43~45, never absent 42/44/45 questions.
+    const sharedPassages = categoryKey(book) === 'MOCK_EXAM'
+      && rawLabels.has('41번') && rawLabels.has('43번')
+      && !['42번','44번','45번'].some(label => rawLabels.has(label));
+    const visibleLabel = raw => sharedPassages && raw === '41번' ? '41~42번'
+      : sharedPassages && raw === '43번' ? '43~45번' : raw;
     const grouped = new Map();
     for (const section of book.sections) {
-      const label = String(section.label || (String(section.sectionType).toUpperCase() === 'DAY' ? `Day ${section.sectionNo}` : `범위 ${section.sectionNo || section.sectionId}`));
-      const lesson = /^(\d+과)(?:\s|$)/.exec(label)?.[1];
-      const key = lesson ? `lesson:${lesson}` : section.sectionId;
-      if (!grouped.has(key)) grouped.set(key, {label:lesson || label, ids:[], count:0});
+      const source = String(section.label ||
+        (String(section.sectionType).toUpperCase() === 'DAY' ? `Day ${section.sectionNo}` : `범위 ${section.sectionNo || section.sectionId}`)).normalize('NFKC').trim();
+      const label = visibleLabel(source);
+      const lesson = /^(\d+과)(?:\s|$)/u.exec(source)?.[1]
+        || /^(Lesson\s*\d+)(?:\s|$)/iu.exec(source)?.[1];
+      const key = lesson ? 'lesson:' + lesson.replace(/\s/g,'').toLowerCase() : section.sectionId;
+      if (!grouped.has(key)) grouped.set(key,{label:lesson || label,ids:[],count:0,units:[]});
       const range = grouped.get(key);
+      const count = Number(section.wordCount);
+      if (!Number.isSafeInteger(count) || count < 1) continue;
       range.ids.push(section.sectionId);
-      range.count += Number(section.wordCount);
+      range.count += count;
+      range.units.push({label,ids:[section.sectionId],count});
     }
-    ranges = Array.from(grouped.values()).sort((a,b) => a.label.localeCompare(b.label, 'ko', {numeric:true}));
-    ranges.forEach((range,i) => scopes.add(new Option(`${range.label} · ${range.count}개`, String(i))));
+    ranges = Array.from(grouped.values()).filter(range => range.ids.length)
+      .sort((a,b) => a.label.localeCompare(b.label,'ko',{numeric:true}));
+    ranges.forEach((range,k)=>scopes.add(new Option(`${range.label} · ${range.count}개`,String(k))));
     scopes.disabled = ranges.length === 0;
     prepareSpanSelectors();
-    status.textContent = ranges.length ? '과·Day·범위를 선택하세요.' : '이 교재에는 공개된 범위가 없습니다.';
+    status.textContent = ranges.length
+      ? '과·지문·Day를 선택하세요.' + (sharedPassages ? ' 41~42번과 43~45번은 각각 하나의 공통 지문입니다.' : '')
+      : '이 교재에는 공개된 범위가 없습니다.';
     renderRangeCheckboxes();
   }
   books.addEventListener('change', selectBook);
@@ -372,6 +480,7 @@
   function invalidateCombined() {
     basketVersion++;
     combinedSerial++;
+    persistBasket();
     if (combinedStatus) combinedStatus.textContent = '';
   }
   // Range bulk selection is a local-only convenience; the basket and API
@@ -395,31 +504,54 @@
   }
   spanFrom?.addEventListener('change',updateSpanButton);
   spanTo?.addEventListener('change',updateSpanButton);
-  // Accessible three-state control: none, all, and partial selection.
+  // A textbook Lesson can contain several real Sections. Parent selection
+  // expands into *individual* Section IDs, never stores an overlapping parent.
+  const leafRanges = range => range.units?.length > 1 ? range.units : [range];
+  const checkedLeaves = (revisionId,range) => leafRanges(range)
+    .filter(leaf => basket.has(rangeKey(revisionId,leaf))).length;
+  const isRangeSelected = (revisionId,range) => checkedLeaves(revisionId,range)===leafRanges(range).length;
   function updateSelectAllState() {
     if (!selectAllButton) return;
-    const selected = ranges.filter(range => basket.has(rangeKey(books.value,range))).length;
-    const state = !selected ? 'false' : selected === ranges.length ? 'true' : 'mixed';
-    selectAllButton.disabled = ranges.length === 0;
+    const all=ranges.flatMap(leafRanges), chosen=all.filter(range=>basket.has(rangeKey(books.value,range))).length;
+    const state = !chosen ? 'false' : chosen===all.length ? 'true' : 'mixed';
+    selectAllButton.disabled = !all.length;
     selectAllButton.setAttribute?.('aria-checked',state);
     selectAllButton.textContent = state === 'true' ? '현재 교재 전체 해제'
-      : state === 'mixed' ? '현재 교재 일부 선택 (' + selected + '/' + ranges.length + ') · 전체 담기'
+      : state === 'mixed' ? '현재 교재 일부 선택 ('+chosen+'/'+all.length+') · 전체 담기'
       : '현재 교재 전체 담기';
+  }
+  function rangeCheckbox(revisionId,range) {
+    const label = document.createElement('label');
+    label.className = 'vocab-library-range';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    const chosen=checkedLeaves(revisionId,range), total=leafRanges(range).length;
+    checkbox.checked = chosen === total;
+    checkbox.indeterminate = chosen > 0 && chosen < total;
+    checkbox.setAttribute?.('aria-checked',checkbox.indeterminate?'mixed':checkbox.checked?'true':'false');
+    const caption = document.createElement('span');
+    caption.textContent = range.label + ' · ' + range.count + '개';
+    checkbox.addEventListener('change', () => toggleRange(revisionId,range,!!checkbox.checked));
+    label.append(checkbox,caption);
+    return label;
   }
   function renderRangeCheckboxes() {
     if (!rangeList) return; // Old cached app shell.
     const revisionId = books.value;
     const items = ranges.map(range => {
-      const label = document.createElement('label');
-      label.className = 'vocab-library-range';
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = basket.has(rangeKey(revisionId,range));
-      const caption = document.createElement('span');
-      caption.textContent = range.label + ' · ' + range.count + '개';
-      checkbox.addEventListener('change', () => toggleRange(revisionId,range,!!checkbox.checked));
-      label.append(checkbox,caption);
-      return label;
+      if (leafRanges(range).length===1) return rangeCheckbox(revisionId,range);
+      const group=document.createElement('div');
+      group.className='vocab-library-group';
+      const parent=rangeCheckbox(revisionId,range);
+      const detail=document.createElement('details');
+      const summary=document.createElement('summary');
+      summary.textContent='개별 지문 ' + range.units.length + '개 선택 보기';
+      const children=document.createElement('div');
+      children.className='vocab-library-child-list';
+      children.replaceChildren(...range.units.map(unit=>rangeCheckbox(revisionId,unit)));
+      detail.append(summary,children);
+      group.append(parent,detail);
+      return group;
     });
     rangeList.replaceChildren(...items);
     updateSelectAllState();
@@ -451,62 +583,61 @@
     }
     updateSelectAllState();
   }
+  function addBasketUnit(revisionId,unit,book) {
+    basket.set(rangeKey(revisionId,unit),{
+      revisionId,ids:unit.ids.slice(),label:unit.label,count:unit.count,bookName:book.displayName
+    });
+  }
   function toggleRange(revisionId,range,checked) {
-    if (!catalog?.some(book => book.revisionId === revisionId && book.sections.length
-      && range.ids.every(id => book.sections.some(section => section.sectionId === id)))) return;
-    const key = rangeKey(revisionId,range);
-    if (checked) {
-      if (!basket.has(key) && (basket.size >= MAX_SELECTED_RANGES
-        || selectedEstimate() + range.count > MAX_SELECTED_WORDS)) {
-        if (combinedStatus) combinedStatus.textContent = '한 번에 최대 ' + MAX_SELECTED_RANGES + '개 범위·' + MAX_SELECTED_WORDS + '개 단어를 선택할 수 있습니다.';
-        renderRangeCheckboxes(); return;
-      }
-      basket.set(key,{revisionId,ids:range.ids.slice(),label:range.label,count:range.count,
-        bookName:catalog.find(book => book.revisionId === revisionId).displayName});
-    } else basket.delete(key);
+    const book = catalog?.find(row=>row.revisionId===revisionId);
+    const units=leafRanges(range), actual=new Set(book?.sections.map(row=>row.sectionId)||[]);
+    if (!book || units.some(unit=>unit.ids.length!==1 || !actual.has(unit.ids[0]))) return;
+    const extras=units.filter(unit=>!basket.has(rangeKey(revisionId,unit)));
+    if (checked && (basket.size+extras.length>MAX_SELECTED_RANGES
+      || selectedEstimate()+extras.reduce((sum,unit)=>sum+unit.count,0)>MAX_SELECTED_WORDS)) {
+      if (combinedStatus) combinedStatus.textContent='범위 또는 단어 수 제한을 초과합니다. 선택을 줄여 주세요.';
+      renderRangeCheckboxes(); return;
+    }
+    if (checked) for(const unit of extras) addBasketUnit(revisionId,unit,book);
+    else for(const unit of units) basket.delete(rangeKey(revisionId,unit));
     invalidateCombined(); renderBasket(); renderRangeCheckboxes();
   }
   spanAddButton?.addEventListener('click', () => {
     updateSpanButton();
     if (spanAddButton.disabled || !catalog) return;
-    const revisionId = books.value, book = catalog.find(item => item.revisionId === revisionId);
+    const revisionId=books.value,book=catalog.find(row=>row.revisionId===revisionId);
     if (!book) return;
-    const first = Number(spanFrom.value), last = Number(spanTo.value);
-    const group = ranges.slice(Math.min(first,last),Math.max(first,last)+1);
-    // Everything is added as one atomic local action, or nothing changes.
-    const newRanges = group.filter(range => !basket.has(rangeKey(revisionId,range)));
-    if (basket.size + newRanges.length > MAX_SELECTED_RANGES
-      || selectedEstimate() + newRanges.reduce((sum,range) => sum + range.count,0) > MAX_SELECTED_WORDS) {
-      if (combinedStatus) combinedStatus.textContent = '연속 범위가 최대 선택량을 넘습니다. 범위를 줄여 다시 시도하세요.';
+    const first=Number(spanFrom.value), last=Number(spanTo.value);
+    const units=ranges.slice(Math.min(first,last),Math.max(first,last)+1).flatMap(leafRanges);
+    const addition=units.filter(unit=>!basket.has(rangeKey(revisionId,unit)));
+    const known=new Set(book.sections.map(section=>section.sectionId));
+    if (addition.some(unit=>unit.ids.length!==1 || !known.has(unit.ids[0]))) return;
+    if (basket.size+addition.length>MAX_SELECTED_RANGES
+      || selectedEstimate()+addition.reduce((n,u)=>n+u.count,0)>MAX_SELECTED_WORDS) {
+      if (combinedStatus) combinedStatus.textContent='연속 범위가 최대 선택량을 넘습니다. 범위를 줄여 다시 시도하세요.';
       return;
     }
-    if (newRanges.some(range => range.ids.some(id => !book.sections.some(section => section.sectionId === id)))) return;
-    for (const range of newRanges) basket.set(rangeKey(revisionId,range),{
-      revisionId,ids:range.ids.slice(),label:range.label,count:range.count,bookName:book.displayName
-    });
-    if (!newRanges.length) {
-      if (combinedStatus) combinedStatus.textContent = '선택한 구간은 이미 담겨 있습니다.';
+    if (!addition.length) {
+      if (combinedStatus) combinedStatus.textContent='선택한 구간은 이미 담겨 있습니다.';
       return;
     }
+    for(const unit of addition) addBasketUnit(revisionId,unit,book);
     invalidateCombined(); renderBasket(); renderRangeCheckboxes();
-    if (combinedStatus) combinedStatus.textContent = '연속 범위 ' + newRanges.length + '개를 담았습니다.';
+    if (combinedStatus) combinedStatus.textContent='연속 범위 '+addition.length+'개를 담았습니다.';
   });
   selectAllButton?.addEventListener('click', () => {
-    const revisionId = books.value;
-    if (!revisionId || !ranges.length) return;
-    const allSelected = ranges.every(range => basket.has(rangeKey(revisionId,range)));
-    const additions = ranges.filter(range => !basket.has(rangeKey(revisionId,range)));
-    if (!allSelected && (basket.size + additions.length > MAX_SELECTED_RANGES
-      || selectedEstimate() + additions.reduce((total,range) => total + range.count,0) > MAX_SELECTED_WORDS)) {
-      if (combinedStatus) combinedStatus.textContent = '선택 가능한 최대 범위 또는 단어 수를 초과합니다. 일부 범위를 선택하세요.';
+    const revisionId=books.value,book=catalog?.find(row=>row.revisionId===revisionId);
+    if (!book || !ranges.length) return;
+    const units=ranges.flatMap(leafRanges);
+    const allSelected=units.every(unit=>basket.has(rangeKey(revisionId,unit)));
+    const additions=units.filter(unit=>!basket.has(rangeKey(revisionId,unit)));
+    if (!allSelected && (basket.size+additions.length>MAX_SELECTED_RANGES
+      || selectedEstimate()+additions.reduce((sum,unit)=>sum+unit.count,0)>MAX_SELECTED_WORDS)) {
+      if (combinedStatus) combinedStatus.textContent='선택 가능한 최대 범위 또는 단어 수를 초과합니다. 일부 범위를 선택하세요.';
       return;
     }
-    for (const range of ranges) {
-      const key = rangeKey(revisionId,range);
-      if (allSelected) basket.delete(key);
-      else if (!basket.has(key)) basket.set(key,{revisionId,ids:range.ids.slice(),label:range.label,count:range.count,
-        bookName:catalog.find(book => book.revisionId === revisionId).displayName});
-    }
+    if (allSelected) for(const unit of units) basket.delete(rangeKey(revisionId,unit));
+    else for(const unit of additions) addBasketUnit(revisionId,unit,book);
     invalidateCombined(); renderBasket(); renderRangeCheckboxes();
   });
   clearBasketButton?.addEventListener('click', () => {
