@@ -72,7 +72,13 @@
   let basketVersion = 0, combinedSerial = 0;
   const MAX_SELECTED_RANGES = 150, MAX_SELECTED_WORDS = 5000;
   const BASKET_STORAGE_PREFIX = 'allbarun.public-vocab-basket.v1:';
+  // User approved exactly 30 days, measured from the last selection edit.
+  // An expired snapshot is removed on the next authenticated library visit.
   const BASKET_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  const validRecordVersion = book => {
+    const version = Number(book?.recordVersion);
+    return Number.isSafeInteger(version) && version >= 1 ? String(version) : '';
+  };
   function basketStorageKey() {
     if (!currentUser?.token || String(currentUser.role || '').toLowerCase() !== 'student') return '';
     const owner = String(currentUser.id || currentUser.studentId || currentUser.userId || '').trim();
@@ -82,17 +88,30 @@
   function persistBasket() {
     const key = basketStorageKey();
     try {
-      if (!key || !window.localStorage) return;
+      if (!key) return;
+      if (!window.localStorage) {
+        if (combinedStatus) combinedStatus.textContent='이 기기에서 선택 목록을 저장할 수 없습니다. 현재 접속 중 학습은 가능합니다.';
+        return;
+      }
       if (!basket.size) { window.localStorage.removeItem(key); return; }
-      // Only stable revision and Section identities, no word bodies, scores or answers.
-      const items = Array.from(basket.values()).filter(item => item.ids?.length === 1)
-        .map(item => {
-          const book = catalog?.find(row => row.revisionId === item.revisionId);
-          return {revisionId:item.revisionId,sectionId:item.ids[0],
-            recordVersion:String(book?.recordVersion ?? '')};
-        });
+      // Only stable revision and Section identities; never persist words or exam results.
+      // Missing authority versions must not bypass future revision-drift checks.
+      const items = Array.from(basket.values()).map(item => {
+        const book = catalog?.find(row => row.revisionId === item.revisionId);
+        const recordVersion = validRecordVersion(book);
+        return item.ids?.length === 1 && recordVersion
+          ? {revisionId:item.revisionId,sectionId:item.ids[0],recordVersion}
+          : null;
+      });
+      if (items.some(item => !item)) {
+        window.localStorage.removeItem(key);
+        if (combinedStatus) combinedStatus.textContent='개정판 버전 확인 정보가 없어 이번 선택은 기기에 저장하지 않았습니다. 현재 접속 중 학습은 가능합니다.';
+        return;
+      }
       window.localStorage.setItem(key,JSON.stringify({version:1,savedAt:Date.now(),items}));
-    } catch { /* Disabled/full browser storage leaves in-memory practice intact. */ }
+    } catch {
+      if (combinedStatus) combinedStatus.textContent='브라우저 저장소를 사용할 수 없습니다. 현재 접속 중 학습은 가능합니다.';
+    }
   }
   function restoreBasket() {
     const key = basketStorageKey();
@@ -119,7 +138,7 @@
         const unit=unitIndexByRevision.get(rev)?.get(id);
         const count=Number(unit?.count || 0), serial=JSON.stringify([rev,id]);
         if (!rev || !id || seen.has(serial) || !unit || !Number.isSafeInteger(count) || count<1
-            || String(book.recordVersion ?? '') !== String(entry?.recordVersion ?? '')
+            || !validRecordVersion(book) || validRecordVersion(book) !== String(entry?.recordVersion ?? '')
             || basket.size>=MAX_SELECTED_RANGES || selectedEstimate()+count>MAX_SELECTED_WORDS) {
           rejected++; continue;
         }
@@ -490,8 +509,8 @@
   function invalidateCombined() {
     basketVersion++;
     combinedSerial++;
-    persistBasket();
     if (combinedStatus) combinedStatus.textContent = '';
+    persistBasket();
   }
   // Range bulk selection is a local-only convenience; the basket and API
   // batch integrity rules remain the same as single-checkbox selection.

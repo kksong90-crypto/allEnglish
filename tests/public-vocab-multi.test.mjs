@@ -455,6 +455,72 @@ test('saved selection list is device/account-scoped, content-free and rejected a
   assert.equal(stale.calls.length,1);
 });
 
+
+test('confirmed 30-day retention restores before expiry and removes stale selections on next login',async()=>{
+  const store=new Map();
+  const storage={
+    getItem:key=>store.get(key)||null,
+    setItem:(key,value)=>store.set(key,String(value)),
+    removeItem:key=>store.delete(key)
+  };
+  const catalog=baseCatalog.map(book=>({...book,recordVersion:7}));
+  const initial=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(initial);pickBook(initial.nodes,'MOCK26');pickRange(initial.nodes,0);
+  const key=[...store.keys()][0],draft=JSON.parse(store.get(key)),day=24*60*60*1000;
+  assert.equal(draft.version,1);
+  assert.deepEqual(Object.keys(draft.items[0]).sort(),['recordVersion','revisionId','sectionId']);
+  store.set(key,JSON.stringify({...draft,savedAt:Date.now()-29*day}));
+  const allowed=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(allowed);
+  assert.match(allowed.nodes['station-library-selection-summary'].textContent,/1개/);
+  // Merely reopening does not start a new 30-day period.
+  assert.ok(Math.abs(JSON.parse(store.get(key)).savedAt-(Date.now()-29*day))<5000,
+    'a read-only reopen must preserve the original save timestamp');
+  const before=JSON.parse(store.get(key)).savedAt;
+  pickBook(allowed.nodes,'MOCK26');pickRange(allowed.nodes,1);
+  assert.ok(JSON.parse(store.get(key)).savedAt>before,'an explicit selection change refreshes retention');
+  const older=JSON.parse(store.get(key));
+  store.set(key,JSON.stringify({...older,savedAt:Date.now()-31*day}));
+  const expired=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(expired);
+  assert.match(expired.nodes['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(store.has(key),false,'expired data must be removed when catalog is reopened');
+  assert.equal(expired.calls.length,1,'expiry checking is local and adds no server calls');
+});
+
+test('unknown source recordVersion cannot silently create a long-lived selection',async()=>{
+  const store=new Map(),storage={
+    getItem:key=>store.get(key)||null,
+    setItem:(key,value)=>store.set(key,String(value)),
+    removeItem:key=>store.delete(key)
+  };
+  const h=setup({userId:'NO_VERSION',storage});
+  await open(h);pickBook(h.nodes,'MOCK26');pickRange(h.nodes,0);
+  assert.equal(store.size,0,'without a confirmed revision version no persistent snapshot is allowed');
+  assert.match(h.nodes['station-library-selection-summary'].textContent,/1개/,
+    'the student can still practice for the current session');
+  assert.match(h.nodes['station-library-selection-status'].textContent,/버전 확인 정보/);
+  const key='allbarun.public-vocab-basket.v1:NO_VERSION';
+  store.set(key,JSON.stringify({version:1,savedAt:Date.now(),
+    items:[{revisionId:'MOCK26',sectionId:'Q18',recordVersion:''}]}));
+  const reloaded=setup({userId:'NO_VERSION',storage});
+  await open(reloaded);
+  assert.match(reloaded.nodes['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(store.has(key),false,'legacy unknown-version data must be discarded');
+  assert.equal(reads(reloaded).length,0);
+});
+
+test('selection still works in private browsing when device storage is denied',async()=>{
+  const storage={getItem(){throw Error('denied');},setItem(){throw Error('denied');},removeItem(){throw Error('denied');}};
+  const catalog=baseCatalog.map(book=>({...book,recordVersion:3}));
+  const h=setup({catalog,userId:'PRIVATE_BROWSING',storage});
+  await open(h);pickBook(h.nodes,'MOCK26');pickRange(h.nodes,0);
+  assert.match(h.nodes['station-library-selection-summary'].textContent,/1개/);
+  assert.match(h.nodes['station-library-selection-status'].textContent,/브라우저 저장소/);
+  await h.nodes['station-library-combined-practice'].handlers.click();
+  assert.equal(h.practices.length,1);
+  assert.equal(h.calls.filter(x=>x.action==='getVocaCatalog').length,1);
+});
 test('exact same word and meaning is collapsed, different meaning remains as a separate card',async()=>{
   const h=setup({apiOverride:params=>{
     const words=JSON.parse(params.sectionIdsJson).map(id=>({vocabWordId:id,sectionId:id,
