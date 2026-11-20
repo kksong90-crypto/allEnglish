@@ -13,10 +13,10 @@ const engine=process.argv[2]||'chromium';
 assert.ok(['chromium','webkit'].includes(engine));
 const browser=await(engine==='webkit'?webkit:chromium).launch({headless:true,...(engine==='chromium'&&existsSync('/usr/bin/chromium')?{executablePath:'/usr/bin/chromium'}:{})});
 const catalog=[
- {revisionId:'MOCK',displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',schoolLevel:'고등학교',gradeNo:2,publicationYear:2026,publicationMonth:'09',
+ {revisionId:'MOCK',recordVersion:3,displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',schoolLevel:'고등학교',gradeNo:2,publicationYear:2026,publicationMonth:'09',
   sections:[{sectionId:'Q18',label:'18번',wordCount:2},{sectionId:'Q20',label:'20번',wordCount:2},{sectionId:'Q21',label:'21번',wordCount:2},
     {sectionId:'Q41',label:'41번',wordCount:2},{sectionId:'Q43',label:'43번',wordCount:2}]},
- {revisionId:'BOOK',displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',publisher:'해커스',
+ {revisionId:'BOOK',recordVersion:4,displayName:'해커스보카 수능필수',categoryCode:'VOCAB_BOOK',publisher:'해커스',
   sections:[{sectionId:'DAY1',label:'Day 1',wordCount:2},{sectionId:'DAY2',label:'Day 2',wordCount:2}]},
  {revisionId:'PRIVATE',displayName:'비공개 자료',studentVisible:false,categoryCode:'CUSTOM',
   sections:[{sectionId:'HIDDEN',label:'1과',wordCount:1}]}
@@ -88,6 +88,15 @@ try{
  await page.locator('#station-library-range-list input[type=checkbox]').nth(0).check();
  assert.match(await page.locator('#station-library-selection-summary').innerText(),/3개/);
  assert.equal(await page.locator('#station-library-selection-items .vocab-library-chip').count(),3);
+ const storedBasket=await page.evaluate(()=>localStorage.getItem('allbarun.public-vocab-basket.v1:SYNTHETIC'));
+ assert.ok(storedBasket,'a synthetic student with versioned records should save a verified selection list');
+ const basketSnapshot=JSON.parse(storedBasket);
+ assert.equal(basketSnapshot.items.length,3);
+ assert.ok(basketSnapshot.items.every(item=>Number(item.recordVersion)>=1));
+ assert.ok(basketSnapshot.items.every(item=>
+   Object.keys(item).sort().join(',')==='recordVersion,revisionId,sectionId'));
+ assert.doesNotMatch(storedBasket,/token|correct|meaning|score|allowedAnswers|SYNTHETIC_ONLY/);
+
  await page.locator('#station-library-combined-practice').click();
  await page.waitForFunction(()=>!!window.assignedPracticeState?.personal || (typeof assignedPracticeState!=='undefined'&&assignedPracticeState?.planId==='PUBLIC_PREVIEW:PUBLIC_COMBINED'));
  const practice=await page.evaluate(()=>({planId:assignedPracticeState?.planId,personal:assignedPracticeState?.personal,sourceRows:assignedPracticeState?.sourceRows?.length}));
