@@ -6,7 +6,7 @@ import {runInNewContext} from 'node:vm';
 
 const source=readFileSync(new URL('../station-library.js',import.meta.url),'utf8');
 function element(){
-  return {value:'',textContent:'',children:[],handlers:{},hidden:false,disabled:false,checked:false,
+  return {value:'',textContent:'',children:[],handlers:{},style:{},hidden:false,disabled:false,checked:false,
     addEventListener(name,fn){this.handlers[name]=fn;},
     replaceChildren(...items){this.children=items;this.value='';},
     append(...items){this.children.push(...items);},
@@ -28,10 +28,14 @@ const names=['station-library','query','category','school-level','grade','curric
   'book','scope','status','words','range-list','selection-summary','selection-items',
   'select-all','clear-selection','combined-practice','selection-status','span-from','span-to','span-add','word-query',
   'word-scope','word-search','search-result'];
-function setup({catalog=baseCatalog,apiOverride,userId,storage,clock}={}){
+function setup({catalog=baseCatalog,apiOverride,userId,storage,clock,diagnostic=false}={}){
   const nodes=Object.fromEntries(names.map(name=>[name==='station-library'?name:'station-library-'+name,element()]));
   const calls=[],practices=[],user={token:'SYNTHETIC',role:'student',id:userId};
   const window={startPublicVocaPractice:payload=>practices.push(payload)};
+  if(diagnostic){
+    window.location={search:'?vocabSpeed=1'};
+    window.performance={now:()=>clock?.ms??Date.now()};
+  }
   if(storage)window.localStorage=storage;
   const get=async params=>{
     calls.push(params);
@@ -62,6 +66,37 @@ function pickBook(n,id){n['station-library-book'].value=id;n['station-library-bo
 function pickRange(n,index){const box=n['station-library-range-list'].children[index].children[0];box.checked=true;box.handlers.change();}
 const open=async h=>{h.nodes['station-library'].open=true;await h.window.StationLibrary.open();};
 const reads=h=>h.calls.filter(x=>x.action==='getVocaSection');
+
+
+test('opt-in student speed diagnostics show RPC wait, cache reuse and no personal or content data',async()=>{
+  const catalog=[{revisionId:'SANITIZED_BOOK',recordVersion:1,displayName:'SensitiveTitleNeverLog',
+    categoryCode:'MOCK_EXAM',sections:[section('SEC_DIAG','18번',2)]}];
+  const h=setup({catalog,userId:'STUDENT_PRIVATE_999',diagnostic:true}),n=h.nodes;
+  await open(h);pickBook(n,'SANITIZED_BOOK');pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  const diag=n['station-library'].children.find(x=>x.id==='station-library-speed-panel');
+  assert.ok(diag,'the diagnostic should appear only after opt-in on a student session');
+  const parsed=JSON.parse(diag.children[3].textContent);
+  assert.equal(parsed.schema,'VOCAB_SPEED_V1');
+  const actions=parsed.results.map(x=>x.action);
+  assert.ok(actions.includes('catalog'));
+  assert.ok(actions.includes('filter'));
+  const combined=parsed.results.find(x=>x.action==='combined');
+  assert.equal(combined.remoteReads,1);
+  assert.ok(Number.isFinite(combined.remoteWaitMs));
+  assert.equal(combined.success,true);
+  assert.deepEqual(h.calls.filter(x=>x.action==='getVocaSection').length,1);
+  const serialized=JSON.stringify(parsed);
+  assert.doesNotMatch(serialized,/STUDENT_PRIVATE|SANITIZED_BOOK|SensitiveTitle|SYNTHETIC|token|meaning|word-/i);
+  assert.equal(h.practices.length,1,'timing is purely observational; it must not alter study flow');
+});
+test('ordinary student URL adds no diagnostic panel and no additional RPC',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(n['station-library'].children.some(x=>x.id==='station-library-speed-panel'),false);
+  assert.equal(h.calls.length,2,'one catalog read and one Section read only');
+});
 
 test('verified publisher aliases are one filter value, but different publishers stay distinct',async()=>{
   const catalog=[

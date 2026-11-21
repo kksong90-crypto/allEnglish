@@ -48,9 +48,9 @@ try{
   return route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(response)});
  });
  const page=await context.newPage();
- await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin,{waitUntil:'domcontentloaded'});
+ await page.goto(publishedStatic?origin+'/allEnglish/?published-static-uat=20261119':origin+'/?vocabSpeed=1',{waitUntil:'domcontentloaded'});
  if(publishedStatic) {
-  assert.equal(await page.locator('script[src*="station-library.js?v=20261120-contiguous3"]').count(),1,'Published app must load the current library script');
+  assert.equal(await page.locator('script[src*="station-library.js?v=20261121-speed-diagnostics1"]').count(),1,'Published app must load the current library script');
   assert.equal(await page.locator('#station-library-combined-practice').count(),1,'Published app must contain the combined-practice control');
  }
  await page.waitForFunction(()=>!!currentUser?.token);
@@ -105,6 +105,19 @@ try{
  assert.equal(reads.filter(x=>x.action==='getVocaCatalog').length,1);
  assert.deepEqual(reads.filter(x=>x.action==='getVocaSection').map(x=>x.revisionId),['MOCK','BOOK']);
  assert.equal(writes.length,0);
+ if(!publishedStatic){
+  await page.waitForFunction(()=>{
+   const node=document.querySelector('#station-library-speed-panel pre');
+   if(!node) return false;
+   try{return JSON.parse(node.textContent).results.some(x=>x.action==='combined');}catch{return false;}
+  });
+  const metrics=JSON.parse(await page.locator('#station-library-speed-panel pre').innerText());
+  const combined=metrics.results.find(x=>x.action==='combined');
+  assert.equal(combined.remoteReads,2);
+  assert.ok(Number.isFinite(combined.remoteWaitMs));
+  assert.ok(metrics.results.some(x=>x.action==='filter'&&x.remoteReads===0));
+  assert.doesNotMatch(JSON.stringify(metrics),/SYNTHETIC|Q18|DAY1|token|meaning|합성 뜻/);
+ }
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>!!currentUser?.token);

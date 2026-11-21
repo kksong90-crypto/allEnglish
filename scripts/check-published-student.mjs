@@ -7,7 +7,7 @@ const requireMarkers=(text,markers)=>markers.every(marker=>text.includes(marker)
 const indexMarkers=[
   'practice-experience.js?v=20261117',
   'coverage: "ALL"',
-  'station-library.js?v=20261120-contiguous3',
+  'station-library.js?v=20261121-speed-diagnostics1',
   'student-shell.css?v=20261120-contiguous3',
   'id="station-library-range-list"',
   'id="station-library-combined-practice"',
@@ -43,7 +43,7 @@ for(let attempt=0;attempt<30;attempt++){
     const html=await textFile(base+'?public_library_check='+check);
     if(requireMarkers(html,indexMarkers)){
       const [js,css]=await Promise.all([
-        textFile(base+'station-library.js?v=20261120-contiguous3&public_library_check='+check),
+        textFile(base+'station-library.js?v=20261121-speed-diagnostics1&public_library_check='+check),
         textFile(base+'student-shell.css?v=20261120-contiguous3&public_library_check='+check)
       ]);
       deploymentVerified=requireMarkers(js,jsMarkers)&&requireMarkers(css,cssMarkers);

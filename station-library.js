@@ -38,19 +38,25 @@
   let diagnosticRows = [], diagnosticPanel = null, diagnosticText = null;
   const now = () => window.performance?.now?.() ?? Date.now();
   function startTiming(action) {
-    if (!/[?&]vocabSpeed=1(?:&|$)/.test(window.location?.search || '') || !['admin','teacher'].includes(String(currentUser?.role || '').toLowerCase())) return null;
-    return {action, start:now(), generation, reads:0};
+    if (!/[?&]vocabSpeed=1(?:&|$)/.test(window.location?.search || '')
+        || !['admin','teacher','student'].includes(String(currentUser?.role || '').toLowerCase())) return null;
+    return {action, start:now(), generation, reads:0,remoteWaitMs:0,cacheHits:0};
   }
   async function finishTiming(meter, success, count) {
     if (!meter) return;
     if (window.requestAnimationFrame) await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
     if (meter.generation !== generation || meter.current && !meter.current()) return;
-    diagnosticRows.push({action:meter.action,elapsedMs:Math.round(now()-meter.start),remoteReads:meter.reads,success,count});
+    diagnosticRows.push({
+      action:meter.action,elapsedMs:Math.round(now()-meter.start),
+      remoteReads:meter.reads,remoteWaitMs:Math.round(meter.remoteWaitMs || 0),
+      cacheHits:meter.cacheHits || 0,success,count
+    });
     if (diagnosticRows.length > 20) diagnosticRows.shift();
     if (!diagnosticPanel) {
       diagnosticPanel = document.createElement('details');
-      const summary = document.createElement('summary'); summary.textContent = '운영 속도 점검 결과';
-      const note = document.createElement('p'); note.textContent = '로그인한 현재 화면에서 동작 시작부터 표시 완료까지 측정합니다. 계정·검색어·교재명·단어 내용은 기록하지 않습니다.';
+      diagnosticPanel.id = 'station-library-speed-panel';
+      const summary = document.createElement('summary'); summary.textContent = '단어장 속도 진단 · 이 기기에서만 표시';
+      const note = document.createElement('p'); note.textContent = '동작 시작부터 화면 표시까지의 시간과 서버 요청 대기시간을 구분합니다. 동시 요청 시 서버 대기시간 합계가 전체 경과시간보다 길 수 있습니다. 계정·토큰·검색어·교재명·단어 내용은 수집하지 않습니다.';
       const owner = generation;
       const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'vocab-btn secondary'; copy.textContent = '속도 결과 복사';
       diagnosticText = document.createElement('pre'); diagnosticText.style.whiteSpace = 'pre-wrap';
@@ -63,9 +69,11 @@
     }
     diagnosticText.textContent = JSON.stringify({schema:'VOCAB_SPEED_V1',measure:'action-to-next-paint',results:diagnosticRows},null,2);
   }
-  function readLibrary(params, meter) {
+  async function readLibrary(params, meter) {
     if (meter) meter.reads++;
-    return apiGet(params, TIMEOUT);
+    const start = meter ? now() : 0;
+    try { return await apiGet(params, TIMEOUT); }
+    finally { if (meter) meter.remoteWaitMs += Math.max(0, now() - start); }
   }
   let catalog = null, loading = null, generation = 0, selection = 0, searchSerial = 0, ranges = [], selectedWords = null;
   const basket = new Map();
@@ -383,6 +391,7 @@
   }
   function showBooks() {
     if (!catalog) return;
+    const filterMeter = startTiming('filter');
     populateMetadataFilters();
     const previous = books.value;
     const terms = query.value.trim().split(/\s+/).filter(Boolean).map(searchKey);
@@ -400,6 +409,7 @@
     if (previous && matches.some(book => book.revisionId === previous)) books.value = previous;
     else resetScope();
     status.textContent = matches.length ? `${matches.length}권 · 교재를 선택하세요.` : '일치하는 교재가 없습니다.';
+    void finishTiming(filterMeter, true, matches.length);
   }
   async function loadCatalog() {
     if (catalog || !currentUser?.token) return;
@@ -677,8 +687,11 @@
   async function fetchScope(revisionId, scope, meter) {
     const key = JSON.stringify([revisionId, scope.ids]);
     const hit = cached(sectionCache, key);
-    if (hit) return hit;
-    if (sectionFlights.has(key)) return sectionFlights.get(key);
+    if (hit) { if (meter) meter.cacheHits++; return hit; }
+    if (sectionFlights.has(key)) {
+      if (meter) meter.cacheHits++;
+      return sectionFlights.get(key);
+    }
     const request = generation;
     const task = (async () => {
       // The server accepts at most 20 section IDs. Never silently lose the rest of a lesson.
@@ -788,7 +801,9 @@
       const all = [];
       for (const [revisionId,scope] of grouped) {
         if (!current()) return;
-        const body = verifiedPreviewFor(revisionId,scope) || await fetchScope(revisionId,scope,meter);
+        const preview = verifiedPreviewFor(revisionId,scope);
+        if (preview && meter) meter.cacheHits++;
+        const body = preview || await fetchScope(revisionId,scope,meter);
         if (!current()) return;
         for (const word of body) all.push({...word,revisionId,
           sourceLabel:origins.get(JSON.stringify([revisionId,word.sectionId])) || '선택 범위'});
@@ -934,6 +949,7 @@
         result = {words:body.filter(word => terms.every(term => `${word.word} ${word.meaning}`.normalize('NFKC').toLowerCase().includes(term))), truncated:false};
       } else {
         result = cached(searchCache, key);
+        if (result && meter) meter.cacheHits++;
         if (!result) {
           let flight = searchFlights.get(key);
           if (!flight) {
