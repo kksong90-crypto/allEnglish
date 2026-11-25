@@ -54,7 +54,7 @@ test('empty or duplicate plans do not download catalog metadata',async()=>{
 });
 test('managed school range never hides the separately published regular range',async()=>{
  const ctx=vm.createContext({});vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../scope-display.js'),'utf8')+fs.readFileSync(require('node:path').join(__dirname,'../plan-scope-display.js'),'utf8'),ctx);
- const item={regularText:'Day 8',bookName:'능률 중등 기본',schoolVocabText:'18-19',schoolScopePlanId:'SCHOOL',sourceRanges:[range([18,19])]};
+ const item={regularText:'Day 8',groupName:'능률 중등 기본',schoolVocabText:'18-19',schoolScopePlanId:'SCHOOL',sourceRanges:[range([18,19])]};
  await ctx.PlanScopePresentation.enrich({days:[{vocab:[item]}]},{token:'synthetic'},async()=>({success:true,books:[book]}));
  assert.equal(item.scopeDisplayText,'능률 중등 기본 Day 8\n2026년 10월 고2 모의고사 18-19');
 });

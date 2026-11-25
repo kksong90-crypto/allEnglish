@@ -29,7 +29,7 @@ var PlanScopePresentation = (function () {
         // Student API responses. Keep the separately published regular scope.
         var regular=String(item.regularText||'').trim();
         if(item.schoolScopePlanId&&regular) {
-          var name=String(item.vocabBookName||item.bookName||'').trim();
+          var name=String(item.vocabBookName||item.bookName||item.groupName||'').trim();
           formatted=[name&&regular.indexOf(name)<0?name+' '+regular:regular,formatted].join('\n');
         }
         item.scopeDisplayText=formatted;
