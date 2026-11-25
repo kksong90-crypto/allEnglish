@@ -1,0 +1,16 @@
+name: Verify canonical range labels
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node tests/scope-display.test.cjs
+          node --test tests/assigned_practice_direct.test.mjs tests/staff_schedule_preview.mjs tests/schedule_duplicate_warning.mjs tests/station-library.test.mjs

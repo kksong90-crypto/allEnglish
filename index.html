@@ -1349,6 +1349,7 @@ async function loadHomeContent(forceRefresh = false) {
       studentSessionEpoch += 1;
       preparedPracticeCapability = null;
       if (typeof StationLibrary !== "undefined") StationLibrary.reset();
+      if (typeof PlanScopePresentation !== "undefined") PlanScopePresentation.reset();
       homeContentRequestSerial += 1;
       homeContentLoadPromise = null;
       homeContentLastVerifiedAt = 0;
@@ -2137,7 +2138,9 @@ async function fetchMyLearningSchedule(range = "week", forceRefresh = false) {
       const result = await apiPost(params, API_LONG_TIMEOUT_MS);
       if (!result || !result.success) throw new Error(result?.message || "내 학습일정을 불러오지 못했습니다.");
       result.range = normalizeScheduleRange(result.range || normalized);
-      return sanitizeFuturePreparationSchedule(result, today);
+      const clean = sanitizeFuturePreparationSchedule(result, today);
+      return typeof PlanScopePresentation === "undefined" ? clean : await PlanScopePresentation.enrich(
+        clean, currentUser, () => apiGet({ action: "getVocaCatalog" }));
     } catch (error) {
       lastError = error;
       if (attempt === 0 && scheduleTransientError(error)) {
@@ -2160,7 +2163,7 @@ function scheduleVocabItem(items, readOnly = false) {
     const warning = item?.vocaScopeState === "DUPLICATE" ? '<div role="status">⚠ 학교 시험범위 계획이 중복되어 확인이 필요합니다. 표시된 학교범위는 확정 범위로 사용하지 마세요. 선생님께 문의해 주세요.</div>' : "";
     const personalUnavailable = !readOnly && String(currentUser?.role || '').toLowerCase() === 'student' && !connected && item.vocaScopeState === 'PERSONAL_SCOPE_UNLINKED'
       ? '<div role="status">시험범위를 확인하지 못해 지금은 연습을 시작할 수 없어요. 최신 범위를 다시 확인하고, 계속 표시되면 선생님께 문의해 주세요.<button type="button" class="vocab-btn secondary" onclick="loadMySchedule(myScheduleCurrentRange,true)">최신 범위 다시 확인</button></div>' : '';
-    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(item.displayText)}</div>${warning}${personalUnavailable}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" data-personal-scope-fingerprint="${escapeHtml(String(item.personalScopeFingerprint || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">시험범위 개인 연습</button>` : ""}</div>`;
+    return `<div class="schedule-vocab-plan"><div>${formatMultilineHtml(typeof PlanScopePresentation === "undefined" ? item.displayText : PlanScopePresentation.display(item))}</div>${warning}${personalUnavailable}${typeof renderAdminSchoolScopeButton==='function'?renderAdminSchoolScopeButton(item,readOnly):''}${connected ? `<button class="vocab-btn secondary" type="button" data-test-plan-id="${escapeHtml(planId)}" data-slot-key="${escapeHtml(String(item.slotKey || ''))}" data-personal-scope-fingerprint="${escapeHtml(String(item.personalScopeFingerprint || ''))}" onclick="startAssignedVocaPractice(this.dataset.testPlanId,this,this.dataset.slotKey,this.dataset.personalScopeFingerprint)">시험범위 개인 연습</button>` : ""}</div>`;
   }).join("");
   return `<div class="schedule-item"><div class="schedule-item-label">📘 단어</div><div class="schedule-item-value">${value}</div></div>`;
 }
@@ -2203,7 +2206,7 @@ function formatListeningScheduleText(listening) {
   return `🎧 Listening · ${scope}`;
 }
 function renderScheduleDay(day, options = {}) {
-  const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.displayText || ""}`).join("\n\n");
+  const vocabText = (day.vocab || []).map(item => `${item.planType === "FRIDAY_TEST" ? "📕 Friday TEST" : "📘 단어시험"}\n${item.scopeDisplayText || item.displayText || ""}`).join("\n\n");
   const listeningDisplay = formatListeningScheduleText(day.listening);
   if (day.closed) { const closedBody=[scheduleItem("🏖️ 일정",day.closure?.memo||"학원 일정으로 수업이 없습니다."),scheduleItem("📘 단어","학원 휴원"),scheduleItem("🎧 듣기 숙제",listeningDisplay)].filter(Boolean).join("");return `<div class="schedule-day-card closed ${day.isToday ? "today" : ""}"><div class="schedule-day-head"><div><div class="schedule-day-title">${escapeHtml(day.displayDate || day.date)}</div><div class="schedule-day-meta">${escapeHtml(day.className || "반 정보 없음")}</div></div><div class="schedule-day-badges">${day.isToday ? `<span class="schedule-pill today">오늘</span>` : ""}<span class="schedule-pill closed">${escapeHtml(day.closure?.type || "휴원")}</span></div></div><div class="schedule-day-body">${closedBody}</div></div>`; }
   const body = [scheduleVocabItem(day.vocab, Boolean(options.readOnly)), scheduleItem("🧩 Quiz", day.quiz?.scope), scheduleItem("🎧 듣기 숙제", listeningDisplay), scheduleItem("📚 숙제", day.homework?.text), scheduleItem("📝 수업 TEST", day.lessonTest?.scope), scheduleItem("📌 안내", day.notice)].filter(Boolean).join("");
@@ -2814,9 +2817,10 @@ function invalidateStudentPreparation() {
 }
 function renderHomeVocabTask(item, testDay = null) {
   if (item.vocaScopeState === "DUPLICATE") return '<article class="home-task home-task-warning"><h3>단어 범위 확인이 필요해요.</h3><p>확정 범위를 확인한 뒤 준비해 주세요.</p></article>';
-  const regular = String(item.regularText || "").trim();
-  const school = String(item.schoolVocabText || "").trim();
-  const book = item.vocabBookName || item.bookName || item.groupName || "";
+  const canonical = String(item.scopeDisplayText || "").trim();
+  const regular = canonical || String(item.regularText || "").trim();
+  const school = canonical ? "" : String(item.schoolVocabText || "").trim();
+  const book = canonical ? "" : item.vocabBookName || item.bookName || item.groupName || "";
   const fallback = !regular && !school ? String(item.displayText || "").trim() : "";
   const planId = String(item?.testPlanId || "").trim();
   const connected = String(currentUser?.role || "student").toLowerCase() === "student" &&
@@ -5553,6 +5557,8 @@ function escapeHtmlForPointRank(text) {
   <script src="legacy-vocab-scoped.js?v=20261118-priority"></script>
   <script src="prepared-practice-cache.js?v=20261119.3"></script>
   <script src="practice-experience.js?v=20261117"></script>
+  <script src="scope-display.js?v=20261125"></script>
+  <script src="plan-scope-display.js?v=20261125"></script>
   <script src="staff-schedule-preview.js"></script>
   <script src="admin-class-schedule.js"></script>
   <script src="admin-school-scope-preview.js"></script>

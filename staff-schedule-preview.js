@@ -66,6 +66,8 @@ const StaffSchedulePreview = (() => {
       if (!payload?.success) throw new Error(payload?.message || "학생 일정을 조회하지 못했습니다.");
       if (String(payload?.student?.studentId || "") !== studentId) throw new Error("요청 학생과 응답 학생이 다릅니다. 이 응답은 표시하지 않습니다.");
       const clean = sanitizeFuturePreparationSchedule(payload);
+      if(typeof PlanScopePresentation !== "undefined") await PlanScopePresentation.enrich(clean,currentUser,()=>apiGet({action:"getVocaCatalog"}));
+      if(!isCurrent()) return;
       const days = (Array.isArray(clean.days) ? clean.days : []).filter(day => String(day.date || "") >= fromDate);
       const result = element("staff-schedule-result");
       if (result) result.innerHTML = `<div class="schedule-summary-card"><b>${escapeHtml(clean.student?.name || "학생")}</b> · ${escapeHtml(clean.student?.className || "")}<br>${escapeHtml(clean.startDate || fromDate)} ~ ${escapeHtml(clean.endDate || "")} · 읽기 전용</div><div class="schedule-card-list">${days.length ? days.map(day => renderScheduleDay(day, {readOnly: true})).join("") : '<div class="schedule-empty">표시할 학습일정이 없습니다.</div>'}</div>`;
@@ -78,3 +80,4 @@ const StaffSchedulePreview = (() => {
   }
   return {syncPanel, reset, clearResult, load};
 })();
+
