@@ -114,6 +114,8 @@ const AdminClassSchedule = (() => {
         total = data.totalStudents; revision = data.revision;
         for (const entry of data.entries) {
           if (!entry.student?.studentId || entry.student.classId !== classId || seen.has(entry.student.studentId) || !Array.isArray(entry.days) || entry.days.some(d => d.classId !== classId || d.date < opt.fromDate || d.date > data.endDate)) throw new Error('반 명단 또는 날짜가 다른 응답입니다.');
+          if(typeof PlanScopePresentation !== "undefined") await PlanScopePresentation.enrich(entry,currentUser,()=>apiGet({action:"getVocaCatalog"}));
+          if(!isCurrent()) return;
           seen.add(entry.student.studentId); entries.push(entry);
         }
         if (data.nextOffset !== offset + data.entries.length || data.hasMore !== (data.nextOffset < total) || (data.hasMore && data.nextOffset <= offset)) throw new Error('반 일정 조회가 진행되지 않았습니다.');
@@ -141,3 +143,4 @@ const AdminClassSchedule = (() => {
   function cancel() {clearResult(); status('조회를 중단했습니다. 서버에 쓰기 작업을 요청하지 않았습니다.');}
   return {syncPanel, reset, open, loadDirectory, load, clearResult, invalidateDirectory, cancel};
 })();
+
