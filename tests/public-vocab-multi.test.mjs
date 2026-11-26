@@ -6,7 +6,7 @@ import {runInNewContext} from 'node:vm';
 
 const source=readFileSync(new URL('../station-library.js',import.meta.url),'utf8');
 function element(){
-  return {value:'',textContent:'',children:[],handlers:{},hidden:false,disabled:false,checked:false,
+  return {value:'',textContent:'',children:[],handlers:{},style:{},hidden:false,disabled:false,checked:false,
     addEventListener(name,fn){this.handlers[name]=fn;},
     replaceChildren(...items){this.children=items;this.value='';},
     append(...items){this.children.push(...items);},
@@ -24,14 +24,19 @@ const baseCatalog=[
   {revisionId:'EBS',displayName:'EBS 올림포스',categoryCode:'EBS',publisher:'EBS',sections:[section('E1','1강')]},
   {revisionId:'HIDDEN',displayName:'학교 시험 비공개',categoryCode:'SCHOOL_EXAM',studentVisible:false,sections:[section('H1','1과')]}
 ];
-const names=['station-library','query','category','school-level','grade','year','month','publisher',
+const names=['station-library','query','category','school-level','grade','curriculum','subject','year','month','publisher','clear-filters',
   'book','scope','status','words','range-list','selection-summary','selection-items',
-  'select-all','clear-selection','combined-practice','selection-status','word-query',
+  'select-all','clear-selection','combined-practice','selection-status','span-from','span-to','span-add','word-query',
   'word-scope','word-search','search-result'];
-function setup({catalog=baseCatalog,apiOverride}={}){
+function setup({catalog=baseCatalog,apiOverride,userId,storage,clock,diagnostic=false}={}){
   const nodes=Object.fromEntries(names.map(name=>[name==='station-library'?name:'station-library-'+name,element()]));
-  const calls=[],practices=[],user={token:'SYNTHETIC',role:'student'};
+  const calls=[],practices=[],user={token:'SYNTHETIC',role:'student',id:userId};
   const window={startPublicVocaPractice:payload=>practices.push(payload)};
+  if(diagnostic){
+    window.location={search:'?vocabSpeed=1'};
+    window.performance={now:()=>clock?.ms??Date.now()};
+  }
+  if(storage)window.localStorage=storage;
   const get=async params=>{
     calls.push(params);
     if(params.action==='getVocaCatalog')return{success:true,books:catalog};
@@ -49,7 +54,8 @@ function setup({catalog=baseCatalog,apiOverride}={}){
     }
     return{success:false};
   };
-  runInNewContext(source,{window,currentUser:user,Date,
+  const ClockDate=clock ? class extends Date {static now(){return clock.ms;}} : Date;
+  runInNewContext(source,{window,currentUser:user,Date:ClockDate,
     document:{getElementById:id=>nodes[id]||null,createElement:element},
     Option:function(label,value){this.label=label;this.value=value;},
     apiGet:get});
@@ -60,6 +66,37 @@ function pickBook(n,id){n['station-library-book'].value=id;n['station-library-bo
 function pickRange(n,index){const box=n['station-library-range-list'].children[index].children[0];box.checked=true;box.handlers.change();}
 const open=async h=>{h.nodes['station-library'].open=true;await h.window.StationLibrary.open();};
 const reads=h=>h.calls.filter(x=>x.action==='getVocaSection');
+
+
+test('opt-in student speed diagnostics show RPC wait, cache reuse and no personal or content data',async()=>{
+  const catalog=[{revisionId:'SANITIZED_BOOK',recordVersion:1,displayName:'SensitiveTitleNeverLog',
+    categoryCode:'MOCK_EXAM',sections:[section('SEC_DIAG','18번',2)]}];
+  const h=setup({catalog,userId:'STUDENT_PRIVATE_999',diagnostic:true}),n=h.nodes;
+  await open(h);pickBook(n,'SANITIZED_BOOK');pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  const diag=n['station-library'].children.find(x=>x.id==='station-library-speed-panel');
+  assert.ok(diag,'the diagnostic should appear only after opt-in on a student session');
+  const parsed=JSON.parse(diag.children[3].textContent);
+  assert.equal(parsed.schema,'VOCAB_SPEED_V1');
+  const actions=parsed.results.map(x=>x.action);
+  assert.ok(actions.includes('catalog'));
+  assert.ok(actions.includes('filter'));
+  const combined=parsed.results.find(x=>x.action==='combined');
+  assert.equal(combined.remoteReads,1);
+  assert.ok(Number.isFinite(combined.remoteWaitMs));
+  assert.equal(combined.success,true);
+  assert.deepEqual(h.calls.filter(x=>x.action==='getVocaSection').length,1);
+  const serialized=JSON.stringify(parsed);
+  assert.doesNotMatch(serialized,/STUDENT_PRIVATE|SANITIZED_BOOK|SensitiveTitle|SYNTHETIC|token|meaning|word-/i);
+  assert.equal(h.practices.length,1,'timing is purely observational; it must not alter study flow');
+});
+test('ordinary student URL adds no diagnostic panel and no additional RPC',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(n['station-library'].children.some(x=>x.id==='station-library-speed-panel'),false);
+  assert.equal(h.calls.length,2,'one catalog read and one Section read only');
+});
 
 test('verified publisher aliases are one filter value, but different publishers stay distinct',async()=>{
   const catalog=[
@@ -242,6 +279,45 @@ test('private and SCHOOL_EXAM scoped materials stay hidden despite public-lookin
   assert.equal(h.calls.length,1);
 });
 
+test('previewed single passage skips repeated 90s section request even after 2min cache expiry',async()=>{
+  const clock={ms:1700000000000};
+  const h=setup({clock}),n=h.nodes;
+  await open(h);pickBook(n,'MOCK26');
+  n['station-library-scope'].value='0';
+  await n['station-library-scope'].handlers.change();
+  assert.equal(reads(h).length,1,'the explicit preview performs one verified read');
+  assert.equal(n['station-library-words'].children.length>0,true);
+  clock.ms+=180000; // beyond the 120-second HTTP cache
+  pickRange(n,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,1,'combined study must reuse an already verified exact preview');
+  assert.equal(h.practices.length,1);
+  assert.deepEqual(Array.from(h.practices[0].words,word=>String(word.sectionId)),['Q18','Q18']);
+  assert.equal(h.calls.filter(c=>/save|result|point/i.test(c.action)).length,0);
+});
+
+test('a different checked passage must never reuse preview from another Section',async()=>{
+  const clock={ms:1700000000000},h=setup({clock}),n=h.nodes;
+  await open(h);pickBook(n,'MOCK26');
+  n['station-library-scope'].value='0';
+  await n['station-library-scope'].handlers.change();
+  clock.ms+=180000;
+  pickRange(n,1);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,2,'different Section requires its own verified API read');
+  assert.deepEqual(JSON.parse(reads(h)[1].sectionIdsJson),['Q20']);
+  assert.equal(h.practices[0].words.every(word=>word.sectionId==='Q20'),true);
+});
+
+test('combined study without an explicit preview retains its verified server read',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');pickRange(n,0);
+  assert.equal(reads(h).length,0,'checkbox does not trigger a remote word read');
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(reads(h).length,1,'no preview still fetches the one Section');
+  assert.equal(h.practices.length,1);
+});
+
 test('multiple mock questions and commercial Day combine without checkbox reads and keep scope on book switch',async()=>{
   const h=setup(),n=h.nodes;await open(h);
   pickBook(n,'MOCK26');pickRange(n,0);pickRange(n,1);
@@ -265,6 +341,261 @@ test('multiple mock questions and commercial Day combine without checkbox reads 
   assert.equal(n['station-library-combined-practice'].disabled,true);
 });
 
+
+test('contiguous selection includes both endpoints, keeps other books, and makes no checkbox API calls',async()=>{
+  const h=setup(),n=h.nodes;await open(h);
+  pickBook(n,'MOCK26');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'],add=n['station-library-span-add'];
+  assert.deepEqual(values(from),['','0','1','2']);
+  assert.equal(add.disabled,true,'both range endpoints must be explicitly selected');
+  from.value='2';from.handlers.change();
+  to.value='0';to.handlers.change();
+  assert.equal(add.disabled,false);
+  add.handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/3개/);
+  assert.equal(n['station-library-select-all']['aria-checked'],'true');
+  assert.equal(reads(h).length,0,'range selection must never request words');
+  pickBook(n,'BOOK');
+  assert.equal(from.value,'','the previous book must not leak its chosen start into the next book');
+  assert.equal(to.value,'');
+  assert.equal(add.disabled,true);
+  from.value='0';from.handlers.change();to.value='1';to.handlers.change();add.handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/5개/);
+  assert.equal(reads(h).length,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.equal(h.practices.length,1);
+  assert.equal(h.practices[0].words.length,10);
+  assert.equal(reads(h).length,2);
+  pickBook(n,'MOCK26');
+  assert.ok(n['station-library-range-list'].children.every(x=>x.children[0].checked));
+});
+
+test('whole-book parent correctly announces none, partial, full and recovers after deselection',async()=>{
+  const h=setup(),n=h.nodes;await open(h);pickBook(n,'MOCK26');
+  const control=n['station-library-select-all'];
+  assert.equal(control['aria-checked'],'false');
+  pickRange(n,0);
+  assert.equal(control['aria-checked'],'mixed');
+  assert.match(control.textContent,/1\/3/);
+  control.handlers.click();
+  assert.equal(control['aria-checked'],'true');
+  assert.match(control.textContent,/전체 해제/);
+  control.handlers.click();
+  assert.equal(control['aria-checked'],'false');
+  assert.match(n['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(reads(h).length,0);
+});
+
+test('overlarge contiguous selection is atomic: no half-selected range and no remote calls',async()=>{
+  const huge={revisionId:'HUGE',displayName:'대용량 교재',categoryCode:'VOCAB_BOOK',
+    sections:Array.from({length:160},(_,i)=>section('D'+i,'Day '+(i+1),40))};
+  const h=setup({catalog:[huge]}),n=h.nodes;await open(h);pickBook(n,'HUGE');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'];
+  from.value='0';from.handlers.change();
+  to.value='150';to.handlers.change();
+  n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/0개/);
+  assert.match(n['station-library-selection-status'].textContent,/최대 선택량/);
+  assert.equal(n['station-library-select-all']['aria-checked'],'false');
+  assert.equal(reads(h).length,0);
+  to.value='1';to.handlers.change();n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  const before=n['station-library-selection-summary'].textContent;
+  to.value='150';to.handlers.change();n['station-library-span-add'].handlers.click();
+  assert.equal(n['station-library-selection-summary'].textContent,before,
+    'a rejected bulk add must preserve the earlier basket intact');
+  assert.equal(reads(h).length,0);
+});
+
+
+test('41 and 43 old mock labels are shared passages, never absent questions',async()=>{
+  const book={revisionId:'EXAM',displayName:'고2 2026년 9월 모의고사',categoryCode:'MOCK_EXAM',
+    sections:[section('Q18','18번',2),section('Q41','41번',4),section('Q43','43번',3)]};
+  const h=setup({catalog:[book]}),n=h.nodes;
+  await open(h);pickBook(n,'EXAM');
+  const labels=n['station-library-range-list'].children.map(x=>x.children[1].textContent);
+  assert.ok(labels.some(x=>x.includes('41~42번')),'41 and 42 share one real Section');
+  assert.ok(labels.some(x=>x.includes('43~45번')),'43 through 45 share one real Section');
+  assert.equal(labels.length,3,'no synthetic Section may be created for 42/44/45');
+  const from=n['station-library-span-from'],to=n['station-library-span-to'];
+  from.value='1';from.handlers.change();to.value='2';to.handlers.change();
+  n['station-library-span-add'].handlers.click();
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  assert.equal(reads(h).length,0);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.deepEqual(JSON.parse(reads(h)[0].sectionIdsJson),['Q41','Q43']);
+  assert.equal(h.practices[0].words.length,7);
+  const other=setup({catalog:[{...book,sections:[section('Q41','41번'),section('Q42','42번'),section('Q43','43번')]}]}),n2=other.nodes;
+  await open(other);pickBook(n2,'EXAM');
+  assert.equal(n2['station-library-range-list'].children[0].children[1].textContent.includes('41~42번'),false,
+    'do not relabel a genuinely separate 42 Section');
+});
+
+test('verified curriculum/subject filters stay optional and missing metadata remains searchable',async()=>{
+  const catalog=[
+    {revisionId:'KNOWN',displayName:'공통영어1 NE능률(오선영)',editionLabel:'2022 개정',publicationYear:2022,categoryCode:'TEXTBOOK',
+     schoolLevel:'고',gradeNo:'1',publisher:'능률',sections:[section('L1','1과')]},
+    {revisionId:'UNKNOWN',displayName:'독해와작문 능률(민병천)',editionLabel:'',publicationYear:2022,categoryCode:'TEXTBOOK',
+     schoolLevel:'고',gradeNo:'2',publisher:'능률',sections:[section('L2','2과')]},
+    {revisionId:'MIDDLE',displayName:'중1 동아(윤)',editionLabel:'2022',publicationYear:2024,categoryCode:'TEXTBOOK',
+     schoolLevel:'중',gradeNo:'1',publisher:'동아출판',sections:[section('L3','3과')]}
+  ];
+  const h=setup({catalog}),n=h.nodes;await open(h);
+  n['station-library-category'].value='TEXTBOOK';n['station-library-category'].handlers.change();
+  const curr=n['station-library-curriculum'];
+  assert.deepEqual(values(curr),['','2022','__METADATA_NOT_REGISTERED__']);
+  assert.match(curr.children[1].label,/2022 개정 교육과정/);
+  assert.equal(n['station-library-subject'].children.some(x=>x.value==='독해와 작문'),true);
+  curr.value='2022';curr.handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','KNOWN']);
+  curr.value='__METADATA_NOT_REGISTERED__';curr.handlers.change();
+  assert.deepEqual(values(n['station-library-book']),['','UNKNOWN','MIDDLE'],
+    'blank edition is not inferred from publication year');
+  assert.equal(h.calls.length,1,'all facets derive from one authorized public catalog');
+  n['station-library-clear-filters'].handlers.click();
+  assert.equal(n['station-library-category'].value,'');
+  assert.deepEqual(values(n['station-library-book']).slice(1).sort(),['KNOWN','MIDDLE','UNKNOWN']);
+});
+
+
+test('shared-passage label remains 41~42/43~45 after account-scoped restore',async()=>{
+  const saved=new Map(),storage={
+    getItem:key=>saved.get(key)||null,
+    setItem:(key,value)=>saved.set(key,String(value)),
+    removeItem:key=>saved.delete(key)
+  };
+  const book={revisionId:'LONG',recordVersion:12,displayName:'고2 2026년 9월 모의고사',
+    categoryCode:'MOCK_EXAM',sections:[section('Q41','41번'),section('Q43','43번')]};
+  const first=setup({catalog:[book],userId:'SAME_USER',storage});
+  await open(first);pickBook(first.nodes,'LONG');pickRange(first.nodes,0);pickRange(first.nodes,1);
+  const firstLabels=first.nodes['station-library-selection-items'].children.map(el=>el.children[0].textContent);
+  assert.ok(firstLabels.some(x=>x.includes('41~42번')));
+  assert.ok(firstLabels.some(x=>x.includes('43~45번')));
+  const second=setup({catalog:[book],userId:'SAME_USER',storage});
+  await open(second);
+  const restored=second.nodes['station-library-selection-items'].children.map(el=>el.children[0].textContent);
+  assert.deepEqual(restored,firstLabels,'restore must use identical display names as fresh selection');
+  assert.equal(second.nodes['station-library-selection-summary'].textContent.includes('2개'),true);
+});
+
+test('textbook Lesson allows child Reading selections and mixed-state parent without duplicates',async()=>{
+  const book={revisionId:'TEXT',displayName:'독해와작문 능률',categoryCode:'TEXTBOOK',sections:[
+    section('R31','3과 Reading 1'),section('R32','3과 Reading 2'),section('R41','4과 Reading 1')
+  ]};
+  const h=setup({catalog:[book]}),n=h.nodes;await open(h);pickBook(n,'TEXT');
+  const group=()=>n['station-library-range-list'].children[0];
+  assert.equal(n['station-library-range-list'].children.length,2);
+  const children=group().children[1].children[1].children;
+  assert.equal(children.length,2);
+  children[0].children[0].checked=true;children[0].children[0].handlers.change();
+  assert.equal(group().children[0].children[0].indeterminate,true);
+  assert.equal(group().children[0].children[0]['aria-checked'],'mixed');
+  assert.match(n['station-library-selection-summary'].textContent,/1개/);
+  const parent=group().children[0].children[0];parent.checked=true;parent.handlers.change();
+  assert.equal(group().children[0].children[0].checked,true);
+  assert.match(n['station-library-selection-summary'].textContent,/2개/);
+  const sub2=group().children[1].children[1].children[1].children[0];
+  sub2.checked=false;sub2.handlers.change();
+  assert.equal(group().children[0].children[0].indeterminate,true);
+  await n['station-library-combined-practice'].handlers.click();
+  assert.deepEqual(JSON.parse(reads(h)[0].sectionIdsJson),['R31']);
+  assert.equal(reads(h).length,1);
+  assert.equal(h.practices[0].words.length,2);
+});
+
+test('saved selection list is device/account-scoped, content-free and rejected after revision drift',async()=>{
+  const store=new Map();
+  const storage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+  const catalog=baseCatalog.map(b=>({...b,recordVersion:3}));
+  const one=setup({catalog,userId:'STUDENT_A',storage});
+  await open(one);pickBook(one.nodes,'MOCK26');pickRange(one.nodes,0);pickRange(one.nodes,1);
+  assert.equal(store.size,1);
+  const serialized=[...store.values()][0];
+  assert.match(serialized,/MOCK26/);
+  assert.doesNotMatch(serialized,/meaning|correct|word:|allowedAnswers|SYNTHETIC/,
+    'never keep word bodies, exam results or session tokens');
+  const newLogin=setup({catalog,userId:'STUDENT_A',storage});
+  await open(newLogin);
+  assert.match(newLogin.nodes['station-library-selection-summary'].textContent,/2개/);
+  pickBook(newLogin.nodes,'MOCK26');
+  assert.equal(newLogin.nodes['station-library-range-list'].children[0].children[0].checked,true);
+  const otherLogin=setup({catalog,userId:'STUDENT_B',storage});
+  await open(otherLogin);
+  assert.match(otherLogin.nodes['station-library-selection-summary'].textContent,/0개/);
+  const revised=catalog.map(b=>b.revisionId==='MOCK26'?{...b,recordVersion:4}:b);
+  const stale=setup({catalog:revised,userId:'STUDENT_A',storage});
+  await open(stale);
+  assert.match(stale.nodes['station-library-selection-summary'].textContent,/0개/,
+    'a changed revision must never silently reuse the saved selection');
+  assert.equal(stale.calls.length,1);
+});
+
+
+test('confirmed 30-day retention restores before expiry and removes stale selections on next login',async()=>{
+  const store=new Map();
+  const storage={
+    getItem:key=>store.get(key)||null,
+    setItem:(key,value)=>store.set(key,String(value)),
+    removeItem:key=>store.delete(key)
+  };
+  const catalog=baseCatalog.map(book=>({...book,recordVersion:7}));
+  const initial=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(initial);pickBook(initial.nodes,'MOCK26');pickRange(initial.nodes,0);
+  const key=[...store.keys()][0],draft=JSON.parse(store.get(key)),day=24*60*60*1000;
+  assert.equal(draft.version,1);
+  assert.deepEqual(Object.keys(draft.items[0]).sort(),['recordVersion','revisionId','sectionId']);
+  store.set(key,JSON.stringify({...draft,savedAt:Date.now()-29*day}));
+  const allowed=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(allowed);
+  assert.match(allowed.nodes['station-library-selection-summary'].textContent,/1개/);
+  // Merely reopening does not start a new 30-day period.
+  assert.ok(Math.abs(JSON.parse(store.get(key)).savedAt-(Date.now()-29*day))<5000,
+    'a read-only reopen must preserve the original save timestamp');
+  const before=JSON.parse(store.get(key)).savedAt;
+  pickBook(allowed.nodes,'MOCK26');pickRange(allowed.nodes,1);
+  assert.ok(JSON.parse(store.get(key)).savedAt>before,'an explicit selection change refreshes retention');
+  const older=JSON.parse(store.get(key));
+  store.set(key,JSON.stringify({...older,savedAt:Date.now()-31*day}));
+  const expired=setup({catalog,userId:'BOUNDARY_STUDENT',storage});
+  await open(expired);
+  assert.match(expired.nodes['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(store.has(key),false,'expired data must be removed when catalog is reopened');
+  assert.equal(expired.calls.length,1,'expiry checking is local and adds no server calls');
+});
+
+test('unknown source recordVersion cannot silently create a long-lived selection',async()=>{
+  const store=new Map(),storage={
+    getItem:key=>store.get(key)||null,
+    setItem:(key,value)=>store.set(key,String(value)),
+    removeItem:key=>store.delete(key)
+  };
+  const h=setup({userId:'NO_VERSION',storage});
+  await open(h);pickBook(h.nodes,'MOCK26');pickRange(h.nodes,0);
+  assert.equal(store.size,0,'without a confirmed revision version no persistent snapshot is allowed');
+  assert.match(h.nodes['station-library-selection-summary'].textContent,/1개/,
+    'the student can still practice for the current session');
+  assert.match(h.nodes['station-library-selection-status'].textContent,/버전 확인 정보/);
+  const key='allbarun.public-vocab-basket.v1:NO_VERSION';
+  store.set(key,JSON.stringify({version:1,savedAt:Date.now(),
+    items:[{revisionId:'MOCK26',sectionId:'Q18',recordVersion:''}]}));
+  const reloaded=setup({userId:'NO_VERSION',storage});
+  await open(reloaded);
+  assert.match(reloaded.nodes['station-library-selection-summary'].textContent,/0개/);
+  assert.equal(store.has(key),false,'legacy unknown-version data must be discarded');
+  assert.equal(reads(reloaded).length,0);
+});
+
+test('selection still works in private browsing when device storage is denied',async()=>{
+  const storage={getItem(){throw Error('denied');},setItem(){throw Error('denied');},removeItem(){throw Error('denied');}};
+  const catalog=baseCatalog.map(book=>({...book,recordVersion:3}));
+  const h=setup({catalog,userId:'PRIVATE_BROWSING',storage});
+  await open(h);pickBook(h.nodes,'MOCK26');pickRange(h.nodes,0);
+  assert.match(h.nodes['station-library-selection-summary'].textContent,/1개/);
+  assert.match(h.nodes['station-library-selection-status'].textContent,/브라우저 저장소/);
+  await h.nodes['station-library-combined-practice'].handlers.click();
+  assert.equal(h.practices.length,1);
+  assert.equal(h.calls.filter(x=>x.action==='getVocaCatalog').length,1);
+});
 test('exact same word and meaning is collapsed, different meaning remains as a separate card',async()=>{
   const h=setup({apiOverride:params=>{
     const words=JSON.parse(params.sectionIdsJson).map(id=>({vocabWordId:id,sectionId:id,

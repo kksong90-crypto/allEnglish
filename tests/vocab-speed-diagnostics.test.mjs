@@ -21,9 +21,19 @@ function fixture(role='admin',search='?vocabSpeed=1'){
   Option:function(label,value){this.label=label;this.value=value;},apiGet:async p=>p.action==='getVocaCatalog'?{success:true,books:[{revisionId:'PRIVATE_REV',displayName:'PRIVATE_BOOK',sections:[{sectionId:'PRIVATE_SECTION',label:'Day 1',wordCount:1}]}]}:{success:true,revisionId:'PRIVATE_REV',words:[{vocabWordId:'PRIVATE_WORD_ID',sectionId:'PRIVATE_SECTION',word:'PRIVATE_WORD',meaning:'PRIVATE_MEANING'}]}});
  return {nodes,created,copied,user,window};
 }
-test('student or normal administrator URL never shows diagnostic output',async()=>{
- for(const [role,url]of [['student','?vocabSpeed=1'],['admin','']]){
-  const h=fixture(role,url);await h.window.StationLibrary.open();await flush();assert.equal(h.created.some(n=>n.tagName==='PRE'),false);
+test('diagnostic data requires explicit URL opt-in for both students and staff',async()=>{
+ for(const [role,url,expectPanel]of [
+  ['student','',false],['admin','',false],
+  ['student','?vocabSpeed=1',true],['admin','?vocabSpeed=1',true]
+ ]){
+  const h=fixture(role,url);await h.window.StationLibrary.open();await flush();
+  assert.equal(h.created.some(n=>n.tagName==='PRE'),expectPanel,
+    'diagnostic availability should depend on user opt-in, not staff-only role');
+  if(expectPanel){
+    const pre=h.created.find(n=>n.tagName==='PRE');
+    assert.equal(JSON.parse(pre.textContent).results.some(r=>r.action==='catalog'),true);
+    assert.doesNotMatch(pre.textContent,/PRIVATE|SENSITIVE|token|studentId|revisionId|query/);
+  }
  }
 });
 test('opt-in staff timings include elapsed/counts and exclude identities, token, query, words and revision',async()=>{
@@ -32,9 +42,10 @@ test('opt-in staff timings include elapsed/counts and exclude identities, token,
  h.nodes['station-library-scope'].value='0';await h.nodes['station-library-scope'].handlers.change();await flush();
  h.nodes['station-library-word-scope'].value='section';h.nodes['station-library-word-query'].value='PRIVATE';await h.nodes['station-library-word-search'].handlers.click();await flush();
  const pre=h.created.find(n=>n.tagName==='PRE'),value=JSON.parse(pre.textContent);
- assert.deepEqual(value.results.map(r=>r.action),['catalog','scope','search']);
- assert.deepEqual(value.results.map(r=>r.remoteReads),[1,1,0]);
- assert.equal(value.results.every(r=>r.elapsedMs>=0&&r.success===true&&r.count===1),true);
+ assert.deepEqual(value.results.map(r=>r.action),['filter','catalog','scope','search']);
+ assert.deepEqual(value.results.map(r=>r.remoteReads),[0,1,1,0]);
+ assert.equal(value.results.every(r=>r.elapsedMs>=0&&r.remoteWaitMs>=0
+   && Number.isInteger(r.cacheHits)&&r.success===true&&r.count===1),true);
  assert.doesNotMatch(pre.textContent,/PRIVATE|SENSITIVE|token|studentId|revisionId|query/);
  const copy=h.created.find(n=>n.textContent==='속도 결과 복사');await copy.handlers.click();assert.equal(h.copied.length,1);
  h.window.StationLibrary.reset();await copy.handlers.click();assert.equal(h.copied.length,1,'a button retained from the previous login cannot copy the next login report');
