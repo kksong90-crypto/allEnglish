@@ -61,6 +61,7 @@
     if (meter) meter.reads++;
     return apiGet(params, TIMEOUT);
   }
+  let pendingCatalogSearch = 0;
   let catalog = null, loading = null, generation = 0, selection = 0, searchSerial = 0, ranges = [], selectedWords = null;
   const basket = new Map();
   let basketVersion = 0, combinedSerial = 0;
@@ -660,12 +661,25 @@
   }
   scopes.addEventListener('change', loadScope);
   async function searchWords() {
-    if (!wordQuery || !searchResult || !catalog) return;
+    if (!wordQuery || !searchResult) return;
+    const pending = ++pendingCatalogSearch;
     const queryText = wordQuery.value.normalize('NFKC').trim();
     clearSearch();
     if (!queryText) { searchResult.textContent = '영어 또는 뜻을 입력하세요.'; return; }
     if (queryText.length > 80) { searchResult.textContent = '검색어는 80자 이내로 입력하세요.'; return; }
-    const mode = wordScope?.value || 'all', revisionId = mode === 'all' ? '' : books.value;
+    const mode = wordScope?.value || 'all';
+    if (!catalog) {
+      const epoch = generation;
+      const input = wordQuery.value;
+      searchResult.textContent = '교재 목록을 불러온 뒤 단어를 검색합니다.';
+      try { await loadCatalog(); } catch { /* Show a search-specific retry below. */ }
+      if (pending !== pendingCatalogSearch || epoch !== generation || input !== wordQuery.value || mode !== (wordScope?.value || 'all')) return;
+      if (!catalog) {
+        searchResult.textContent = '교재 목록을 불러오지 못했습니다. 단어 검색을 다시 눌러 주세요.';
+        return;
+      }
+    }
+    const revisionId = mode === 'all' ? '' : books.value;
     const scope = mode === 'section' ? selectedScope() : null;
     if (mode !== 'all' && !revisionId || mode === 'section' && !scope) {
       searchResult.textContent = '교재와 검색할 범위를 먼저 선택하세요.'; return;
@@ -739,9 +753,10 @@
   }
   searchButton?.addEventListener('click', searchWords);
   wordQuery?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); searchWords(); } });
-  wordQuery?.addEventListener('input', clearSearch);
-  wordScope?.addEventListener('change', clearSearch);
-  document.getElementById('station-library-word-clear')?.addEventListener('click', () => { wordQuery.value = ''; clearSearch(); });
+  const cancelWordSearch = () => { pendingCatalogSearch++; clearSearch(); };
+  wordQuery?.addEventListener('input', cancelWordSearch);
+  wordScope?.addEventListener('change', cancelWordSearch);
+  document.getElementById('station-library-word-clear')?.addEventListener('click', () => { wordQuery.value = ''; cancelWordSearch(); });
   legacy?.addEventListener('toggle', () => { if (legacy.open && currentUser?.token && getActiveTabId() === 'vocab') loadVocabBooksOnce(); });
   window.StationLibrary = {reset, open() {panel.open = true; return loadCatalog();}};
   reset();
