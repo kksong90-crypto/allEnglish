@@ -671,6 +671,7 @@ async function fetchSheet(sheetName) {
     let studentSessionEpoch = 0;
     let preparedPracticeCapability = null;
     let directPreparedChoices = null;
+    let directPreparedEntryPending = null;
     let myScheduleRequestSerial = 0;
     let homeScheduleRequestSerial = 0;
 
@@ -1350,6 +1351,7 @@ async function loadHomeContent(forceRefresh = false) {
       studentSessionEpoch += 1;
       preparedPracticeCapability = null;
       directPreparedChoices = null;
+      directPreparedEntryPending = null;
       if (typeof StationLibrary !== "undefined") StationLibrary.reset();
       if (typeof PlanScopePresentation !== "undefined") PlanScopePresentation.reset();
       homeContentRequestSerial += 1;
@@ -1504,15 +1506,24 @@ async function loadHomeContent(forceRefresh = false) {
   if (getActiveTabId() !== "exam") loadHomeLearningPreview(false);
   loadHomeContent(true);
 
-  setTimeout(() => {
+  setTimeout(function loadFavoritesAfterEntry() {
     if (epoch !== studentSessionEpoch || !currentUser || !currentUser.token) return;
+    if (typeof directPreparedEntryPending !== 'undefined' && directPreparedEntryPending) {
+      setTimeout(loadFavoritesAfterEntry, 150);
+      return;
+    }
     Promise.resolve(loadFavoriteFolders()).then(() => {
       if (epoch === studentSessionEpoch) renderFolderControls();
     });
   }, 250);
 
-  setTimeout(() => {
-    if (epoch === studentSessionEpoch && currentUser && currentUser.token) refreshMyPointSummary();
+  setTimeout(function loadPointsAfterEntry() {
+    if (epoch !== studentSessionEpoch || !currentUser || !currentUser.token) return;
+    if (typeof directPreparedEntryPending !== 'undefined' && directPreparedEntryPending) {
+      setTimeout(loadPointsAfterEntry, 150);
+      return;
+    }
+    refreshMyPointSummary();
   }, 500);
 
   restorePointTestDraft();
@@ -2239,6 +2250,7 @@ function directPreparedEntryButton() {
 async function startNextPreparedPractice(button,selection=null) {
   if(!currentUser?.token||String(currentUser.role||'').toLowerCase()!=='student')return;
   const epoch=studentSessionEpoch,token=currentUser.token,request=++assignedPracticeRequestSerial;
+  const entryPending={epoch,token,request};directPreparedEntryPending=entryPending;
   if(button)button.disabled=true;
   showTab('practice',{deferLoad:true});
   assignedPracticeState=null;directPreparedChoices=null;
@@ -2264,7 +2276,7 @@ async function startNextPreparedPractice(button,selection=null) {
     const message=noAssignment?'새 단어시험 계획이 등록되면 연습할 수 있어요. 홈에서 학습일정을 확인해 주세요.':changed?'이전에 선택한 범위로 시작하지 않았어요. 홈에서 최신 시험범위를 확인해 주세요.':error?.code==='PREPARED_PENDING'?'최신 시험범위를 준비하고 있어요. 잠시 후 홈에서 확인해 주세요.':error?.code==='PREPARED_NEXT_UNSUPPORTED'?'홈에서 확인한 시험범위를 선택해 연습해 주세요.':'최신 시험범위를 확인하지 못했어요. 홈에서 범위를 다시 확인해 주세요.';
     target.innerHTML='<div class="card" role="'+(noAssignment?'status':'alert')+'"><h2 id="practice-load-error-heading" tabindex="-1">'+heading+'</h2><p>'+message+'</p><button class="vocab-btn secondary" type="button" onclick="showTab(&quot;home&quot;)">'+(noAssignment?'홈에서 학습일정 확인':'홈에서 시험범위 확인')+'</button></div>';
     document.getElementById('practice-load-error-heading')?.focus?.({preventScroll:true});
-  } finally {if(button)button.disabled=false;}
+  } finally {if(directPreparedEntryPending===entryPending)directPreparedEntryPending=null;if(button)button.disabled=false;}
 }
 function chooseNextPreparedPractice(index,button) {
   const selection=directPreparedChoices;
