@@ -1436,9 +1436,25 @@ async function loadHomeContent(forceRefresh = false) {
   appContentPromise = null;
   studentContentPromise = null;
 
-  // 필수 일정 요청을 먼저 시작하고, 나머지 개인 API는 짧게 분산한다.
-  if (getActiveTabId() !== "exam") loadHomeLearningPreview(false);
-  loadHomeContent(true);
+  // Give the visible direct-entry action priority over automatic home reads.
+  const entryHome = String(currentUser.role || '').toLowerCase() === 'student' && getActiveTabId() === 'home';
+  if (entryHome) {
+    renderHomePreparationState('loading');
+    renderHomeContentState();
+    setTimeout(function loadHomeAfterEntry() {
+      if (epoch !== studentSessionEpoch || !currentUser?.token) return;
+      if (directPreparedEntryPending) { setTimeout(loadHomeAfterEntry, 150); return; }
+      if (getActiveTabId() === 'home') loadHomeLearningPreview(false);
+    }, 1200);
+    setTimeout(function loadContentAfterEntry() {
+      if (epoch !== studentSessionEpoch || !currentUser?.token) return;
+      if (directPreparedEntryPending) { setTimeout(loadContentAfterEntry, 150); return; }
+      loadHomeContent(true);
+    }, 1250);
+  } else {
+    if (getActiveTabId() !== 'exam') loadHomeLearningPreview(false);
+    loadHomeContent(true);
+  }
 
   setTimeout(function loadFavoritesAfterEntry() {
     if (epoch !== studentSessionEpoch || !currentUser || !currentUser.token) return;
@@ -1449,7 +1465,7 @@ async function loadHomeContent(forceRefresh = false) {
     Promise.resolve(loadFavoriteFolders()).then(() => {
       if (epoch === studentSessionEpoch) renderFolderControls();
     });
-  }, 250);
+  }, entryHome ? 1300 : 250);
 
   setTimeout(function loadPointsAfterEntry() {
     if (epoch !== studentSessionEpoch || !currentUser || !currentUser.token) return;
@@ -1458,7 +1474,7 @@ async function loadHomeContent(forceRefresh = false) {
       return;
     }
     refreshMyPointSummary();
-  }, 500);
+  }, entryHome ? 1400 : 500);
 
   restorePointTestDraft();
   if (getActiveTabId() !== "home") showTab(getActiveTabId(), { skipHistory: true, keepScroll: true });
