@@ -13,8 +13,8 @@ function fixture(reply=ready){const backend=server(),base=backend.answer.bind(ba
 test('immediate direct entry defers all automatic home reads and home return still reads fresh scope',async()=>{
  const v=fixture(),automatic=['getMyVocabPreparation','getStudentContent','getFavoriteState','getMyPointSummary'];await v.boot();assert.match(v.node('home-learning-content').innerHTML,/내 시험범위 바로 연습/);assert.equal(v.requests.filter(p=>automatic.includes(p.action)).length,0);
  v.backend.hold.add('getMyNextPreparedVocabPractice');const entry=v.context.startNextPreparedPractice();await v.flush();await v.runShortTimers(1500);assert.equal(v.requests.filter(p=>automatic.includes(p.action)).length,0);
- v.backend.waiting.find(w=>w.params.action==='getMyNextPreparedVocabPractice').resolve(ready);await entry;await v.runShortTimers(1500);assert.equal(v.requests.filter(p=>p.action==='getMyVocabPreparation').length,0);for(const action of automatic.slice(1))assert.equal(v.requests.filter(p=>p.action===action).length,1);
- v.context.showTab('home');await v.flush();assert.equal(v.requests.filter(p=>p.action==='getMyVocabPreparation').length,1);
+ v.backend.waiting.find(w=>w.params.action==='getMyNextPreparedVocabPractice').resolve(ready);await entry;await v.runShortTimers(1500);for(const action of automatic.slice(0,2))assert.equal(v.requests.filter(p=>p.action===action).length,0);for(const action of automatic.slice(2))assert.equal(v.requests.filter(p=>p.action===action).length,1);
+ v.context.showTab('home');await v.flush();assert.equal(v.requests.filter(p=>p.action==='getMyVocabPreparation').length,1);assert.equal(v.requests.filter(p=>p.action==='getStudentContent').length,1);
 });
 test('ordinary home keeps automatic preparation after the short entry priority window',async()=>{
  const v=fixture();await v.boot();await v.runShortTimers(1199);assert.equal(v.requests.filter(p=>p.action==='getMyVocabPreparation').length,0);await v.runShortTimers(1500);assert.equal(v.requests.filter(p=>p.action==='getMyVocabPreparation').length,1);assert.equal(v.requests.filter(p=>p.action==='getStudentContent').length,1);

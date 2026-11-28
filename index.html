@@ -1449,7 +1449,7 @@ async function loadHomeContent(forceRefresh = false) {
     setTimeout(function loadContentAfterEntry() {
       if (epoch !== studentSessionEpoch || !currentUser?.token) return;
       if (directPreparedEntryPending) { setTimeout(loadContentAfterEntry, 150); return; }
-      loadHomeContent(true);
+      if (getActiveTabId() === 'home') loadHomeContent(true);
     }, 1250);
   } else {
     if (getActiveTabId() !== 'exam') loadHomeLearningPreview(false);
