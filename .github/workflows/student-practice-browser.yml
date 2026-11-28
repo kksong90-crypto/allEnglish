@@ -61,6 +61,8 @@ jobs:
         run: node browser-tests/prepared-practice.browser.mjs ${{ matrix.browser }}
       - name: Verify cold bundled entry and warm owner-bound hash hints
         run: node browser-tests/prepared-practice.browser.mjs ${{ matrix.browser }} --bundle
+      - name: Verify direct next-range entry and explicit time selection
+        run: node browser-tests/direct-prepared-entry.browser.mjs ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
